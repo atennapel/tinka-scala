@@ -1,0 +1,11 @@
+object Errors:
+  final case class Impossible() extends Exception(s"impossible")
+  final case class UnifyError() extends Exception(s"unify error")
+
+  final case class ElaborationUnifyError(msg: String)
+      extends Exception(s"unify error: $msg")
+  final case class CannotInferError(msg: String)
+      extends Exception(s"cannot infer: $msg")
+  final case class NotPiError(msg: String) extends Exception(s"not a pi: $msg")
+  final case class VarError(msg: String)
+      extends Exception(s"undefined variable: $msg")
