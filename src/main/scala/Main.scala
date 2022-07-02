@@ -1,11 +1,9 @@
-import Surface.Tm.*
+import Parser.parse
+import scala.io.Source
 
-val tm = Let(
-  "id",
-  Some(Pi("A", Type, Pi("_", Var("A"), Var("A")))),
-  Lam("A", Lam("x", Var("x"))),
-  Var("id")
-)
-
-@main def hello: Unit =
+@main def cli(filename: String): Unit =
+  val src = Source.fromFile(filename)
+  val contents = src.getLines.mkString
+  src.close()
+  val tm = parse(contents)
   println(tm)

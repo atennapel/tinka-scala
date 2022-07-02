@@ -28,7 +28,7 @@ object Core:
       case app @ App(_, _) =>
         val (fn, args) = app.flattenApp()
         val argsStr = args.map(_.toStringParens(false)).mkString(" ")
-        s"${fn.toStringParens} $argsStr"
+        s"${fn.toStringParens()} $argsStr"
 
     def toStringParens(appSimple: Boolean = true) =
       if isSimple(appSimple) then this.toString else s"($this)"

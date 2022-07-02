@@ -1,7 +1,8 @@
 import Common.*
+import scala.util.parsing.input.Positional
 
 object Surface:
-  enum Tm:
+  enum Tm extends Positional:
     case Var(name: Name)
     case Let(name: Name, ty: Option[Tm], value: Tm, body: Tm)
     case Type
@@ -30,7 +31,7 @@ object Surface:
       case app @ App(_, _) =>
         val (fn, args) = app.flattenApp()
         val argsStr = args.map(_.toStringParens(false)).mkString(" ")
-        s"${fn.toStringParens} $argsStr"
+        s"${fn.toStringParens()} $argsStr"
 
     def toStringParens(appSimple: Boolean = true) =
       if isSimple(appSimple) then this.toString else s"($this)"
