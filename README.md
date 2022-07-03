@@ -15,5 +15,6 @@ Dependently typed programming language implemented in Scala 3
 - [ ] Sigma types
 - [ ] Add a package name
 - [ ] Clean up error handling and output
+- [ ] Improve Pi parser
 - [ ] Better name generation
 - [ ] Investigate laziness
