@@ -1,4 +1,7 @@
 import Common.*
+import scala.annotation.tailrec
+import scala.collection.mutable.StringBuilder
+import Errors.*
 
 object Core:
   enum Tm:
@@ -17,10 +20,7 @@ object Core:
 
       case pi @ Pi(_, _, _) =>
         val (ps, rt) = pi.flattenPi()
-        val psStr = ps
-          .map { case (x, ty) => s"($x : $ty)" }
-          .mkString(" ") // TODO: handle _ parameters
-        s"$psStr -> $rt"
+        piToString(ps, rt)
       case lam @ Lam(_, _) =>
         val (ns, b) = lam.flattenLam()
         val nsStr = ns.mkString(" ")
@@ -32,6 +32,48 @@ object Core:
 
     def toStringParens(appSimple: Boolean = true) =
       if isSimple(appSimple) then this.toString else s"($this)"
+
+    private def piParamToString(ps: (Name, Tm)) = ps match
+      case ("_", ty) => ty.toString
+      case (x, ty)   => s"($x : $ty)"
+
+    @tailrec
+    private def piToString(
+        ps: List[(Name, Tm)],
+        rt: Tm,
+        sb: StringBuilder = new StringBuilder,
+        kind: Int = 0
+    ): String = ps match
+      case List() => sb.append(s" -> $rt").toString
+      case p :: rest if kind == 0 =>
+        piToString(
+          rest,
+          rt,
+          sb.append(piParamToString(p)),
+          if p._1 == "_" then 1 else 2
+        )
+      case (p @ ("_", ty)) :: rest =>
+        piToString(
+          rest,
+          rt,
+          sb.append(s" -> ${piParamToString(p)}"),
+          if p._1 == "_" then 1 else 2
+        )
+      case (p @ (x, ty)) :: rest if kind == 1 =>
+        piToString(
+          rest,
+          rt,
+          sb.append(s" -> ${piParamToString(p)}"),
+          if p._1 == "_" then 1 else 2
+        )
+      case (p @ (x, ty)) :: rest if kind == 2 =>
+        piToString(
+          rest,
+          rt,
+          sb.append(s" ${piParamToString(p)}"),
+          if p._1 == "_" then 1 else 2
+        )
+      case _ => throw Impossible()
 
     def isSimple(appSimple: Boolean = true) = this match
       case Var(_)                 => true

@@ -9,7 +9,7 @@ Dependently typed programming language implemented in Scala 3
 
 ## TODO
 - [x] Pretty print elaborated terms
-- [ ] Fix Pi printer
+- [x] Fix Pi printer
 - [ ] Fix Pi parser
 - [ ] Definitions
 - [ ] Sigma types
