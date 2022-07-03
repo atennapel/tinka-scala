@@ -9,4 +9,6 @@ object Errors:
   final case class NotPiError(msg: String) extends Exception(s"not a pi: $msg")
   final case class VarError(msg: String)
       extends Exception(s"undefined variable: $msg")
+  final case class GlobalError(msg: String)
+      extends Exception(s"duplicate global: $msg")
   final case class HoleError(msg: String) extends Exception(s"hole found: $msg")

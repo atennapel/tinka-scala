@@ -1,5 +1,6 @@
 import Surface.*
 import Surface.Tm.*
+import Surface.Decl.*
 import Common.*
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
@@ -19,7 +20,7 @@ object Parser extends StdTokenParsers with PackratParsers:
     ";",
     "->"
   )
-  lexical.reserved ++= Seq("Type", "let", "_")
+  lexical.reserved ++= Seq("Type", "let", "_", "def")
 
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = pi | fun | application | notApp
@@ -58,6 +59,19 @@ object Parser extends StdTokenParsers with PackratParsers:
   def parse(str: String): ParseResult[Tm] =
     val tokens = new lexical.Scanner(str)
     phrase(expr)(tokens)
+
+  lazy val decls: P[Decls] = repsep(decl, ";") <~ opt(";") ^^ { lst =>
+    Decls(lst)
+  }
+  lazy val decl: P[Decl] = positioned(
+    "def" ~> ident ~ opt(":" ~> expr) ~ "=" ~ expr ^^ { case id ~ ty ~ _ ~ v =>
+      ty.fold(Def(id, v))(ty => Def(id, Let(id, Some(ty), v, Var(id))))
+    }
+  )
+
+  def parseDecls(str: String): ParseResult[Decls] =
+    val tokens = new lexical.Scanner(str)
+    phrase(decls)(tokens)
 
   private object Lexer extends StdLexical:
     override def letter = elem("letter", c => c.isLetter && c != 'λ')

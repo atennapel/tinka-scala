@@ -1,5 +1,8 @@
 import Surface.{Tm as STm}
 import Surface.Tm as S
+import Surface.Decls
+import Surface.Decl
+import Surface.Decl.*
 import Core.*
 import Core.Tm.*
 import Ctx.*
@@ -9,6 +12,7 @@ import Evaluation.*
 import Unification.*
 import scala.util.parsing.input.{Position, NoPosition}
 import Errors.*
+import Globals.*
 
 object Elaboration:
   private def unifyCatch(ctx: Ctx, expected: Val, actual: Val): Unit =
@@ -56,8 +60,11 @@ object Elaboration:
       case S.Type => (Type, VType)
       case S.Var(name) =>
         ctx.lookup(name) match
-          case None           => throw VarError(s"$name\n${ctx.pos.longString}")
           case Some((ix, ty)) => (Var(ix), ty)
+          case None =>
+            getGlobal(name) match
+              case None => throw VarError(s"$name\n${ctx.pos.longString}")
+              case Some(GlobalEntry(_, ty, vty, tm, vtm)) => (tm, vty)
       case S.Let(x, oty, value, body) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
@@ -84,3 +91,14 @@ object Elaboration:
     val ctx = Ctx.empty(pos)
     val (etm, vty) = infer(ctx, tm)
     (etm, ctx.quote(vty))
+
+  def elaborateDecls(decls: Decls, pos: Position = NoPosition): Unit =
+    decls.decls.foreach(elaborateDecl(_, pos))
+
+  def elaborateDecl(decl: Decl, pos: Position = NoPosition): Unit = decl match
+    case Def(x, v) =>
+      if getGlobal(x).isDefined then throw GlobalError(x)
+      val (etm, ety) = elaborate(v, pos)
+      val vty = eval(List.empty, ety)
+      val vval = eval(List.empty, etm)
+      addGlobal(GlobalEntry(x, ety, vty, etm, vval))

@@ -5,6 +5,15 @@ import scala.collection.mutable.StringBuilder
 import Errors.*
 
 object Surface:
+  enum Decl extends Positional:
+    case Def(name: Name, value: Tm)
+
+    override def toString: String = this match
+      case Def(x, v) => s"def $x = $v;"
+
+  final case class Decls(val decls: List[Decl]):
+    override def toString: String = decls.map(_.toString).mkString("\n")
+
   enum Tm extends Positional:
     case Var(name: Name)
     case Let(name: Name, ty: Option[Tm], value: Tm, body: Tm)

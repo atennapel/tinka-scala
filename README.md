@@ -11,7 +11,8 @@ Dependently typed programming language implemented in Scala 3
 - [x] Pretty print elaborated terms
 - [x] Fix Pi printer
 - [x] Fix Pi parser
-- [ ] Definitions
+- [x] Definitions
+- [ ] Glued evaluation
 - [ ] Sigma types
 - [ ] Add a package name
 - [ ] Clean up error handling and output

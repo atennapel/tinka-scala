@@ -1,4 +1,4 @@
-import Parser.parse
+import Parser.parseDecls
 import scala.io.Source
 import Elaboration.*
 import Evaluation.*
@@ -11,16 +11,13 @@ import scala.util.parsing.input.OffsetPosition
     val contents = src.getLines.mkString
     val ctx = Ctx.empty(OffsetPosition(contents, 0))
     src.close()
-    val tm = parse(contents) match
+    val decls = parseDecls(contents) match
       case Parser.Success(x, _) => x
       case Parser.Failure(msg, _) =>
         throw new Exception(s"parsing failure: $msg")
       case Parser.Error(msg, _) => throw new Exception(s"parsing error: $msg")
-    println(tm)
-    val (etm, ety) = elaborate(tm)
-    println(ctx.pretty(etm))
-    println(ctx.pretty(ety))
-    println(ctx.pretty(nf(ctx.env, etm)))
+    println(decls)
+    elaborateDecls(decls)
   catch
     case exc: Exception =>
       println(exc.getMessage)
