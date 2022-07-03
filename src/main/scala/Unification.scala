@@ -16,7 +16,7 @@ object Unification:
   def unify(l: Lvl, t: Val, u: Val): Unit = (t, u) match
     case (VType, VType) => ()
     case (VPi(x1, ty1, body1), VPi(x2, ty2, body2)) =>
-      unify(l, ty1(), ty2())
+      unify(l, ty1, ty2)
       val v = VVar(l)
       unify(lvlInc(l), vinst(body1, v), vinst(body2, v))
     case (VLam(_, body1), VLam(_, body2)) =>

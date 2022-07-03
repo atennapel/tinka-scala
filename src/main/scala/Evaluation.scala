@@ -7,9 +7,9 @@ import Value.Elim.*
 import Errors.*
 
 object Evaluation:
-  def vinst(cl: Clos, v: => Val): Val = eval(v :: cl.env, cl.tm)
+  def vinst(cl: Clos, v: Val): Val = eval(v :: cl.env, cl.tm)
 
-  def vapp(fn: Val, arg: => Val): Val = fn match
+  def vapp(fn: Val, arg: Val): Val = fn match
     case VLam(_, body)  => vinst(body, arg)
     case VNe(hd, spine) => VNe(hd, EApp(arg) :: spine)
     case _              => throw Impossible()
@@ -19,7 +19,7 @@ object Evaluation:
     case Let(x, _, value, body) => eval(eval(env, value) :: env, body)
     case Type                   => VType
 
-    case Pi(x, ty, body) => vpi(x, eval(env, ty), Clos(env, body))
+    case Pi(x, ty, body) => VPi(x, eval(env, ty), Clos(env, body))
     case Lam(x, body)    => VLam(x, Clos(env, body))
     case App(fn, arg)    => vapp(eval(env, fn), eval(env, arg))
 
@@ -32,7 +32,7 @@ object Evaluation:
     case VType         => Type
 
     case VPi(x, ty, body) =>
-      Pi(x, quote(lvl, ty()), quote(lvlInc(lvl), vinst(body, VVar(lvl))))
+      Pi(x, quote(lvl, ty), quote(lvlInc(lvl), vinst(body, VVar(lvl))))
     case VLam(x, body) => Lam(x, quote(lvlInc(lvl), vinst(body, VVar(lvl))))
 
   def nf(env: Env, tm: Tm): Tm = quote(lvlFromEnv(env), eval(env, tm))

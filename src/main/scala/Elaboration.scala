@@ -37,7 +37,7 @@ object Elaboration:
     val ctx = ctx0.enter(tm.pos)
     (tm, ty) match
       case (S.Lam(x, body), VPi(_, pty, bty)) =>
-        Lam(x, check(ctx.bind(x, pty()), body, vinst(bty, VVar(ctx.lvl))))
+        Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
       case (S.Let(x, oty, value, body), ty) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
@@ -70,7 +70,7 @@ object Elaboration:
         val (efn, fty) = infer(ctx, fn)
         fty match
           case VPi(x, ty, rty) =>
-            val earg = check(ctx, arg, ty())
+            val earg = check(ctx, arg, ty)
             (App(efn, earg), vinst(rty, ctx.eval(earg)))
           case ty => throw NotPiError(s"$app, got ${ctx.quote(ty)}")
       case S.Lam(_, _) => throw CannotInferError(tm.toString)

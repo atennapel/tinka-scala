@@ -15,10 +15,7 @@ object Value:
     case VType
 
     case VLam(name: Name, body: Clos)
-    case VPi(name: Name, ty: () => Val, body: Clos)
-
-  def vpi(name: Name, ty: => Val, body: Clos) =
-    Val.VPi(name, () => ty, body)
+    case VPi(name: Name, ty: Val, body: Clos)
 
   object VVar:
     import Val.VNe
