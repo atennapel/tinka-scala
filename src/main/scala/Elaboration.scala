@@ -16,7 +16,7 @@ object Elaboration:
     catch
       case e: UnifyError =>
         throw ElaborationUnifyError(
-          s"${ctx.quote(actual)} ~ ${ctx.quote(expected)}"
+          s"${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}\n${ctx.pos.longString}"
         )
 
   private def checkOptionalTy(
@@ -55,7 +55,7 @@ object Elaboration:
       case S.Type => (Type, VType)
       case S.Var(name) =>
         ctx.lookup(name) match
-          case None           => throw VarError(name)
+          case None           => throw VarError(s"$name\n${ctx.pos.longString}")
           case Some((ix, ty)) => (Var(ix), ty)
       case S.Let(x, oty, value, body) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
@@ -72,8 +72,11 @@ object Elaboration:
           case VPi(x, ty, rty) =>
             val earg = check(ctx, arg, ty)
             (App(efn, earg), vinst(rty, ctx.eval(earg)))
-          case ty => throw NotPiError(s"$app, got ${ctx.quote(ty)}")
-      case S.Lam(_, _) => throw CannotInferError(tm.toString)
+          case ty =>
+            throw NotPiError(
+              s"$app, got ${ctx.pretty(ty)}\n${ctx.pos.longString}"
+            )
+      case S.Lam(_, _) => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
 
   def elaborate(tm: STm, pos: Position = NoPosition): (Tm, Tm) =
     val ctx = Ctx.empty(pos)

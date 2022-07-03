@@ -8,10 +8,12 @@ Dependently typed programming language implemented in Scala 3
 - Run-time and compile-time irrelevance annotations
 
 ## TODO
-- [ ] Pretty print elaborated terms
+- [x] Pretty print elaborated terms
+- [ ] Fix Pi printer
 - [ ] Fix Pi parser
-- [ ] Sigma types
 - [ ] Definitions
+- [ ] Sigma types
 - [ ] Add a package name
-- [ ] Clean up error handling in elaboration
+- [ ] Clean up error handling and output
+- [ ] Better name generation
 - [ ] Investigate laziness

@@ -1,7 +1,7 @@
+import scala.annotation.tailrec
 object Common:
   opaque type Ix = Int
   opaque type Lvl = Int
-  type Name = String
 
   def ixEnv[A](env: Seq[A], ix: Ix): A = env(ix)
   def lvlFromEnv[A](env: Seq[A]): Lvl = env.size
@@ -11,3 +11,16 @@ object Common:
   def lvl2ix(l: Lvl, x: Lvl): Ix = l - x - 1
   def lvlInc(l: Lvl): Lvl = l + 1
   def ixInc(ix: Ix): Ix = ix + 1
+
+  type Name = String
+
+  @tailrec
+  def freshName(x: Name, ns: Seq[Name]): Name =
+    if x == "_" then x
+    else if ns.contains(x) then freshName(nextName(x), ns)
+    else x
+
+  // TODO: better name generation
+  def nextName(x: Name): Name =
+    if x == "_" then x
+    else s"$x'"

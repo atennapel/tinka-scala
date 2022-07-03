@@ -4,6 +4,7 @@ import scala.util.parsing.input.{Position, NoPosition}
 import Evaluation.{eval as veval, quote as vquote}
 import Core.*
 import scala.annotation.tailrec
+import Pretty.{pretty as pretty0}
 
 final case class Ctx(
     val env: Env,
@@ -22,6 +23,9 @@ final case class Ctx(
 
   def eval(tm: Tm): Val = veval(env, tm)
   def quote(v: Val): Tm = vquote(lvl, v)
+
+  def pretty(tm: Tm): String = pretty0(tm, names).toString
+  def pretty(v: Val): String = pretty0(quote(v), names).toString
 
   def lookup(name: Name): Option[(Ix, Val)] =
     @tailrec
