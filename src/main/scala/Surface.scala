@@ -14,12 +14,15 @@ object Surface:
     case Lam(name: Name, body: Tm)
     case App(fn: Tm, arg: Tm)
 
+    case Hole
+
     override def toString: String = this match
       case Var(name) => name
       case Let(name, Some(ty), value, body) =>
         s"let $name : $ty = $value; $body"
       case Let(name, _, value, body) => s"let $name = $value; $body"
       case Type                      => "Type"
+      case Hole                      => "_"
 
       case pi @ Pi(_, _, _) =>
         val (ps, rt) = pi.flattenPi()
@@ -81,6 +84,7 @@ object Surface:
     def isSimple(appSimple: Boolean = true) = this match
       case Var(_)                 => true
       case Type                   => true
+      case Hole                   => true
       case App(_, _) if appSimple => true
       case _                      => false
 

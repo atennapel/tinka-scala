@@ -10,11 +10,10 @@ Dependently typed programming language implemented in Scala 3
 ## TODO
 - [x] Pretty print elaborated terms
 - [x] Fix Pi printer
-- [ ] Fix Pi parser
+- [x] Fix Pi parser
 - [ ] Definitions
 - [ ] Sigma types
 - [ ] Add a package name
 - [ ] Clean up error handling and output
-- [ ] Improve Pi parser
 - [ ] Better name generation
 - [ ] Investigate laziness

@@ -36,6 +36,7 @@ object Elaboration:
   private def check(ctx0: Ctx, tm: STm, ty: Val): Tm =
     val ctx = ctx0.enter(tm.pos)
     (tm, ty) match
+      case (S.Hole, ty) => throw HoleError(ctx.pretty(ty))
       case (S.Lam(x, body), VPi(_, pty, bty)) =>
         Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
       case (S.Let(x, oty, value, body), ty) =>
@@ -77,6 +78,7 @@ object Elaboration:
               s"$app, got ${ctx.pretty(ty)}\n${ctx.pos.longString}"
             )
       case S.Lam(_, _) => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
+      case S.Hole      => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
 
   def elaborate(tm: STm, pos: Position = NoPosition): (Tm, Tm) =
     val ctx = Ctx.empty(pos)

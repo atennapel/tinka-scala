@@ -5,18 +5,12 @@ import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.PackratParsers
 
-/*
-TODO:
-- Remove / and π and use ->
-- Pi params with multiple identifiers
- */
 object Parser extends StdTokenParsers with PackratParsers:
   type Tokens = StdLexical
   val lexical = Lexer
   lexical.delimiters ++= Seq(
     "\\",
     "λ",
-    "π",
     ".",
     "(",
     ")",
@@ -25,11 +19,12 @@ object Parser extends StdTokenParsers with PackratParsers:
     ";",
     "->"
   )
-  lexical.reserved ++= Seq("Type", "let", "forall")
+  lexical.reserved ++= Seq("Type", "let", "_")
 
   type P[+A] = PackratParser[A]
-  lazy val expr: P[Tm] = application | notApp
-  lazy val notApp: P[Tm] = parens | lambda | pi | let | typeP | variable
+  lazy val expr: P[Tm] = pi | fun | application | notApp
+  lazy val notApp: P[Tm] =
+    parens | lambda | let | typeP | hole | variable
   lazy val lambda: P[Tm] = positioned(("\\" | "λ") ~> ident.+ ~ "." ~ expr ^^ {
     case xs ~ _ ~ b => xs.foldRight(b)(Lam.apply)
   })
@@ -42,14 +37,18 @@ object Parser extends StdTokenParsers with PackratParsers:
     App(fn, arg)
   })
   lazy val variable: P[Tm] = positioned(ident ^^ Var.apply)
+  lazy val hole: P[Tm] = positioned("_" ^^ { _ => Hole })
   lazy val parens: P[Tm] = "(" ~> expr <~ ")"
   lazy val typeP: P[Tm] = positioned("Type" ^^ { _ => Type })
   lazy val pi: P[Tm] = positioned(
-    ("forall" | "π") ~> piParam.+ ~ "->" ~ expr ^^ { case ps ~ _ ~ rt =>
+    piParam.+ ~ "->" ~ expr ^^ { case ps ~ _ ~ rt =>
       ps.foldRight(rt) { case ((xs, ty), rt) =>
         xs.foldRight(rt) { case (x, rt) => Pi(x, ty, rt) }
       }
     }
+  )
+  lazy val fun: P[Tm] = positioned(
+    expr ~ "->" ~ expr ^^ { case fn ~ _ ~ arg => Pi("_", fn, arg) }
   )
   lazy val piParam: P[(List[Name], Tm)] =
     "(" ~> ident.+ ~ ":" ~ expr <~ ")" ^^ { case xs ~ _ ~ ty =>
