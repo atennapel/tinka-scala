@@ -12,10 +12,9 @@ import scala.util.parsing.input.OffsetPosition
     val ctx = Ctx.empty(OffsetPosition(contents, 0))
     src.close()
     val decls = parseDecls(contents) match
-      case Parser.Success(x, _) => x
-      case Parser.Failure(msg, _) =>
-        throw new Exception(s"parsing failure: $msg")
-      case Parser.Error(msg, _) => throw new Exception(s"parsing error: $msg")
+      case Parser.Success(x, _)         => x
+      case err @ Parser.Failure(msg, _) => throw new Exception(err.toString)
+      case err @ Parser.Error(msg, _)   => throw new Exception(err.toString)
     println(decls)
     elaborateDecls(decls)
   catch

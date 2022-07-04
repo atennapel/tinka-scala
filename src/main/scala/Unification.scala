@@ -19,6 +19,7 @@ object Unification:
       unify(l, ty1, ty2)
       val v = VVar(l)
       unify(lvlInc(l), vinst(body1, v), vinst(body2, v))
+
     case (VLam(_, body1), VLam(_, body2)) =>
       val v = VVar(l)
       unify(lvlInc(l), vinst(body1, v), vinst(body2, v))
@@ -28,5 +29,14 @@ object Unification:
     case (w, VLam(_, body)) =>
       val v = VVar(l)
       unify(lvlInc(l), vapp(w, v), vinst(body, v))
+
     case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unifySp(l, sp1, sp2)
-    case _                                        => throw UnifyError()
+
+    case (VGlobal(h1, sp1, v1), VGlobal(h2, sp2, v2)) if h1 == h2 =>
+      try unifySp(l, sp1, sp2)
+      catch case UnifyError() => unify(l, v1(), v2())
+    case (VGlobal(_, _, v1), VGlobal(_, _, v2)) => unify(l, v1(), v2())
+    case (VGlobal(_, _, v1), v2)                => unify(l, v1(), v2)
+    case (v1, VGlobal(_, _, v2))                => unify(l, v1, v2())
+
+    case _ => throw UnifyError()

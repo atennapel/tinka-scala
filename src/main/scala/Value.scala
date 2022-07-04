@@ -12,6 +12,7 @@ object Value:
 
   enum Val:
     case VNe(head: Lvl, spine: Spine)
+    case VGlobal(head: Name, spine: Spine, value: () => Val)
     case VType
 
     case VLam(name: Name, body: Clos)

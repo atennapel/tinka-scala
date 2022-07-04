@@ -6,6 +6,7 @@ import Errors.*
 object Core:
   enum Tm:
     case Var(ix: Ix)
+    case Global(name: Name)
     case Let(name: Name, ty: Tm, value: Tm, body: Tm)
     case Type
 
@@ -15,6 +16,7 @@ object Core:
 
     override def toString: String = this match
       case Var(ix)                    => s"'$ix"
+      case Global(name)               => name
       case Let(name, ty, value, body) => s"let $name : $ty = $value; $body"
       case Type                       => "Type"
 
@@ -34,7 +36,7 @@ object Core:
       if isSimple(appSimple) then this.toString else s"($this)"
 
     private def piParamToString(ps: (Name, Tm)) = ps match
-      case ("_", ty) => ty.toString
+      case ("_", ty) => ty.toStringParens()
       case (x, ty)   => s"($x : $ty)"
 
     @tailrec

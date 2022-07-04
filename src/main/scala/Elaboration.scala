@@ -16,6 +16,7 @@ import Globals.*
 
 object Elaboration:
   private def unifyCatch(ctx: Ctx, expected: Val, actual: Val): Unit =
+    // println(s"unify: ${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}")
     try unify(ctx.lvl, actual, expected)
     catch
       case e: UnifyError =>
@@ -39,17 +40,18 @@ object Elaboration:
 
   private def check(ctx0: Ctx, tm: STm, ty: Val): Tm =
     val ctx = ctx0.enter(tm.pos)
-    (tm, ty) match
-      case (S.Hole, ty) => throw HoleError(ctx.pretty(ty))
+    // println(s"check: ${tm} : ${ctx.pretty(ty)}")
+    (tm, force(ty)) match
+      case (S.Hole, _) => throw HoleError(ctx.pretty(ty))
       case (S.Lam(x, body), VPi(_, pty, bty)) =>
         Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
-      case (S.Let(x, oty, value, body), ty) =>
+      case (S.Let(x, oty, value, body), _) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
         Let(x, ety, evalue, check(ctx.define(x, vty, vvalue), body, ty))
-      case (tm, tyEx) =>
+      case (tm, _) =>
         val (etm, tyAct) = infer(ctx, tm)
-        unifyCatch(ctx, tyEx, tyAct)
+        unifyCatch(ctx, ty, tyAct)
         etm
 
   private def checkType(ctx: Ctx, tm: STm): Tm = check(ctx, tm, VType)
@@ -63,8 +65,8 @@ object Elaboration:
           case Some((ix, ty)) => (Var(ix), ty)
           case None =>
             getGlobal(name) match
-              case None => throw VarError(s"$name\n${ctx.pos.longString}")
-              case Some(GlobalEntry(_, ty, vty, tm, vtm)) => (tm, vty)
+              case None     => throw VarError(s"$name\n${ctx.pos.longString}")
+              case Some(ge) => (Global(name), ge.vty)
       case S.Let(x, oty, value, body) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
@@ -76,13 +78,13 @@ object Elaboration:
         (Pi(x, ety, ebody), VType)
       case app @ S.App(fn, arg) =>
         val (efn, fty) = infer(ctx, fn)
-        fty match
+        force(fty) match
           case VPi(x, ty, rty) =>
             val earg = check(ctx, arg, ty)
             (App(efn, earg), vinst(rty, ctx.eval(earg)))
-          case ty =>
+          case _ =>
             throw NotPiError(
-              s"$app, got ${ctx.pretty(ty)}\n${ctx.pos.longString}"
+              s"$app, got ${ctx.pretty(fty)}\n${ctx.pos.longString}"
             )
       case S.Lam(_, _) => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
       case S.Hole      => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
@@ -101,4 +103,6 @@ object Elaboration:
       val (etm, ety) = elaborate(v, pos)
       val vty = eval(List.empty, ety)
       val vval = eval(List.empty, etm)
-      addGlobal(GlobalEntry(x, ety, vty, etm, vval))
+      addGlobal(
+        GlobalEntry(x, ety, vty, etm, vval, VGlobal(x, List.empty, () => vval))
+      )

@@ -49,7 +49,7 @@ object Surface:
       if isSimple(appSimple) then this.toString else s"($this)"
 
     private def piParamToString(ps: (Name, Tm)) = ps match
-      case ("_", ty) => ty.toString
+      case ("_", ty) => ty.toStringParens()
       case (x, ty)   => s"($x : $ty)"
 
     @tailrec

@@ -20,12 +20,12 @@ object Parser extends StdTokenParsers with PackratParsers:
     ";",
     "->"
   )
-  lexical.reserved ++= Seq("Type", "let", "_", "def")
+  lexical.reserved ++= Seq("Type", "let", "def")
 
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = pi | fun | application | notApp
   lazy val notApp: P[Tm] =
-    parens | lambda | let | typeP | hole | variable
+    parens | lambda | let | typeP | variable
   lazy val lambda: P[Tm] = positioned(("\\" | "λ") ~> ident.+ ~ "." ~ expr ^^ {
     case xs ~ _ ~ b => xs.foldRight(b)(Lam.apply)
   })
@@ -37,8 +37,9 @@ object Parser extends StdTokenParsers with PackratParsers:
   lazy val application: P[Tm] = positioned(expr ~ notApp ^^ { case fn ~ arg =>
     App(fn, arg)
   })
-  lazy val variable: P[Tm] = positioned(ident ^^ Var.apply)
-  lazy val hole: P[Tm] = positioned("_" ^^ { _ => Hole })
+  lazy val variable: P[Tm] = positioned(ident ^^ { x =>
+    if x.startsWith("_") then Hole else Var(x)
+  })
   lazy val parens: P[Tm] = "(" ~> expr <~ ")"
   lazy val typeP: P[Tm] = positioned("Type" ^^ { _ => Type })
   lazy val pi: P[Tm] = positioned(

@@ -1,4 +1,5 @@
 import scala.annotation.tailrec
+
 object Common:
   opaque type Ix = Int
   opaque type Lvl = Int
