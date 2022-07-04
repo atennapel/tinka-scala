@@ -24,8 +24,8 @@ final case class Ctx(
   def eval(tm: Tm): Val = veval(env, tm)
   def quote(v: Val): Tm = vquote(lvl, v)
 
-  def pretty(tm: Tm): String = pretty0(tm, names).toString
-  def pretty(v: Val): String = pretty0(quote(v), names).toString
+  def pretty(tm: Tm): String = pretty0(tm, names)
+  def pretty(v: Val): String = pretty0(quote(v), names)
 
   def lookup(name: Name): Option[(Ix, Val)] =
     @tailrec
