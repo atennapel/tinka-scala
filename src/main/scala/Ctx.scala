@@ -1,4 +1,5 @@
 import Common.*
+import Common.BD.*
 import Value.*
 import scala.util.parsing.input.{Position, NoPosition}
 import Evaluation.{eval as veval, quote as vquote}
@@ -10,6 +11,7 @@ final case class Ctx(
     val env: Env,
     val lvl: Lvl,
     val types: List[(Name, Val)],
+    val bds: BDs,
     val pos: Position
 ):
   def names: List[Name] = types.map(_._1)
@@ -17,9 +19,21 @@ final case class Ctx(
   def enter(pos: Position): Ctx = copy(pos = pos)
 
   def bind(x: Name, ty: Val): Ctx =
-    copy(env = VVar(lvl) :: env, lvlInc(lvl), (x, ty) :: types, pos)
+    copy(
+      env = VVar(lvl) :: env,
+      lvl = lvlInc(lvl),
+      types = (x, ty) :: types,
+      bds = Bound :: bds
+    )
   def define(x: Name, ty: Val, value: Val): Ctx =
-    copy(env = value :: env, lvlInc(lvl), (x, ty) :: types, pos)
+    copy(
+      env = value :: env,
+      lvl = lvlInc(lvl),
+      types = (x, ty) :: types,
+      bds = Defined :: bds
+    )
+
+  def closeVal(v: Val): Clos = Clos(env, vquote(lvlInc(lvl), v))
 
   def eval(tm: Tm): Val = veval(env, tm)
   def quote(v: Val): Tm = vquote(lvl, v)
@@ -37,4 +51,4 @@ final case class Ctx(
 
 object Ctx:
   def empty(pos: Position = NoPosition): Ctx =
-    Ctx(List.empty, initialLvl, List.empty, pos)
+    Ctx(List.empty, initialLvl, List.empty, List.empty, pos)

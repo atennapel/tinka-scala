@@ -1,6 +1,7 @@
 object Errors:
   final case class Impossible() extends Exception(s"impossible")
-  final case class UnifyError() extends Exception(s"unify error")
+  final case class UnifyError(msg: String)
+      extends Exception(s"unify error: $msg")
 
   final case class ElaborationUnifyError(msg: String)
       extends Exception(s"unify error: $msg")

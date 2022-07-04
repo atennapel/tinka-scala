@@ -1,6 +1,7 @@
 # tinka-scala
 
-Dependently typed programming language implemented in Scala 3
+Dependently typed programming language implemented in Scala 3.
+Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-zoo
 
 ## Desired features
 
@@ -16,10 +17,15 @@ Dependently typed programming language implemented in Scala 3
 - [x] Fix Pi parser
 - [x] Definitions
 - [x] Glued evaluation
-- [ ] Meta variables and solving
+- [x] Meta variables and solving
+- [ ] Zonking
+- [ ] Lambda with type annotation
 - [ ] Implicit function types
+- [ ] Def with parameters and type annotation
+- [ ] Let with parameters and type annotation
 - [ ] Sigma types
 - [ ] Add a package name
 - [ ] Clean up error handling and output
 - [ ] Better name generation
 - [ ] Investigate laziness
+- [ ] Approximate solving for globals

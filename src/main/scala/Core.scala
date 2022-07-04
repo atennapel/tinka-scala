@@ -14,6 +14,9 @@ object Core:
     case Lam(name: Name, body: Tm)
     case App(fn: Tm, arg: Tm)
 
+    case Meta(id: MetaId)
+    case InsertedMeta(id: MetaId, bds: BDs)
+
     override def toString: String = this match
       case Var(ix)                    => s"'$ix"
       case Global(name)               => name
@@ -23,3 +26,6 @@ object Core:
       case Pi(x, ty, b) => s"(($x : $ty) -> $b)"
       case Lam(x, b)    => s"(\\$x. $b)"
       case App(fn, arg) => s"($fn $arg)"
+
+      case Meta(id)            => s"?$id"
+      case InsertedMeta(id, _) => s"?$id"

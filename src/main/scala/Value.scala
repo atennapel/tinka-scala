@@ -6,12 +6,16 @@ object Value:
 
   final case class Clos(env: Env, tm: Tm)
 
+  enum Head:
+    case HVar(lvl: Lvl)
+    case HMeta(id: MetaId)
+
   type Spine = List[Elim]
   enum Elim:
     case EApp(arg: Val)
 
   enum Val:
-    case VNe(head: Lvl, spine: Spine)
+    case VNe(head: Head, spine: Spine)
     case VGlobal(head: Name, spine: Spine, value: () => Val)
     case VType
 
@@ -20,7 +24,16 @@ object Value:
 
   object VVar:
     import Val.VNe
-    def apply(lvl: Lvl) = VNe(lvl, List.empty)
+    import Head.HVar
+    def apply(lvl: Lvl) = VNe(HVar(lvl), List.empty)
     def unapply(value: Val): Option[Lvl] = value match
-      case VNe(head, List()) => Some(head)
-      case _                 => None
+      case VNe(HVar(head), List()) => Some(head)
+      case _                       => None
+
+  object VMeta:
+    import Val.VNe
+    import Head.HMeta
+    def apply(id: MetaId) = VNe(HMeta(id), List.empty)
+    def unapply(value: Val): Option[MetaId] = value match
+      case VNe(HMeta(head), List()) => Some(head)
+      case _                        => None

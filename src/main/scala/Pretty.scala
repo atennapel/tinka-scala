@@ -6,10 +6,12 @@ import Common.*
 
 object Pretty:
   private def prettyTm(tm: CTm, ns: List[Name]): Tm = tm match
-    case C.Var(ix)      => Var(ixEnv(ns, ix))
-    case C.Global(name) => Var(name)
-    case C.App(fn, arg) => App(prettyTm(fn, ns), prettyTm(arg, ns))
-    case C.Type         => Type
+    case C.Var(ix)             => Var(ixEnv(ns, ix))
+    case C.Global(name)        => Var(name)
+    case C.App(fn, arg)        => App(prettyTm(fn, ns), prettyTm(arg, ns))
+    case C.Type                => Type
+    case C.Meta(id)            => Var(s"?$id")
+    case C.InsertedMeta(id, _) => Var(s"?$id")
     case C.Let(x0, ty, value, b) =>
       val x = freshName(x0, ns)
       Let(x, Some(prettyTm(ty, ns)), prettyTm(value, ns), prettyTm(b, x :: ns))

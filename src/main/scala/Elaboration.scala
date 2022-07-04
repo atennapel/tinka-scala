@@ -13,15 +13,18 @@ import Unification.*
 import scala.util.parsing.input.{Position, NoPosition}
 import Errors.*
 import Globals.*
+import Metas.*
 
 object Elaboration:
+  private def newMeta(ctx: Ctx): Tm = InsertedMeta(freshMeta(), ctx.bds)
+
   private def unifyCatch(ctx: Ctx, expected: Val, actual: Val): Unit =
     // println(s"unify: ${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}")
     try unify(ctx.lvl, actual, expected)
     catch
       case e: UnifyError =>
         throw ElaborationUnifyError(
-          s"${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}\n${ctx.pos.longString}"
+          s"${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}: ${e.msg}\n${ctx.pos.longString}"
         )
 
   private def checkOptionalTy(
@@ -40,9 +43,9 @@ object Elaboration:
 
   private def check(ctx0: Ctx, tm: STm, ty: Val): Tm =
     val ctx = ctx0.enter(tm.pos)
-    // println(s"check: ${tm} : ${ctx.pretty(ty)}")
+    // println(s"check: $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
-      case (S.Hole, _) => throw HoleError(ctx.pretty(ty))
+      case (S.Hole, _) => newMeta(ctx)
       case (S.Lam(x, body), VPi(_, pty, bty)) =>
         Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
       case (S.Let(x, oty, value, body), _) =>
@@ -58,6 +61,7 @@ object Elaboration:
 
   private def infer(ctx0: Ctx, tm: STm): (Tm, Val) =
     val ctx = ctx0.enter(tm.pos)
+    // println(s"infer: $tm")
     tm match
       case S.Type => (Type, VType)
       case S.Var(name) =>
@@ -78,18 +82,27 @@ object Elaboration:
         (Pi(x, ety, ebody), VType)
       case app @ S.App(fn, arg) =>
         val (efn, fty) = infer(ctx, fn)
-        force(fty) match
-          case VPi(x, ty, rty) =>
-            val earg = check(ctx, arg, ty)
-            (App(efn, earg), vinst(rty, ctx.eval(earg)))
+        val (ty, rty) = force(fty) match
+          case VPi(x, ty, rty) => (ty, rty)
           case _ =>
-            throw NotPiError(
-              s"$app, got ${ctx.pretty(fty)}\n${ctx.pos.longString}"
-            )
-      case S.Lam(_, _) => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
-      case S.Hole      => throw CannotInferError(s"$tm\n${ctx.pos.longString}")
+            val ty = ctx.eval(newMeta(ctx))
+            val rty = Clos(ctx.env, newMeta(ctx.bind("x", ty)))
+            unifyCatch(ctx, VPi("x", ty, rty), fty)
+            (ty, rty)
+        val earg = check(ctx, arg, ty)
+        (App(efn, earg), vinst(rty, ctx.eval(earg)))
+      case S.Lam(x, b) =>
+        val va = ctx.eval(newMeta(ctx))
+        val (eb, vb) = infer(ctx.bind(x, va), b)
+        (Lam(x, eb), VPi(x, va, ctx.closeVal(vb)))
+      case S.Hole =>
+        val a = ctx.eval(newMeta(ctx))
+        val t = newMeta(ctx)
+        (t, a)
 
   def elaborate(tm: STm, pos: Position = NoPosition): (Tm, Tm) =
+    // TODO: reset metas and zonk
+    // TODO: check for unsolved metas
     val ctx = Ctx.empty(pos)
     val (etm, vty) = infer(ctx, tm)
     (etm, ctx.quote(vty))
