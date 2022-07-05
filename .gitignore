@@ -31,5 +31,5 @@ metals.sbt
 .idea_modules
 /.worksheet/
 
-*.tinka
+/*.tinka
 log.txt

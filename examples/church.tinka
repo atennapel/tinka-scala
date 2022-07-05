@@ -1,0 +1,11 @@
+def Nat = (A : Type) (Z : A) (S : A -> A) -> A;
+def Z : Nat = \_ z s. z;
+def S : Nat -> Nat = \n A z s. s (n A z s);
+
+def List : Type -> Type = \A. (R : Type) (Nil : R) (Cons : A -> R -> R) -> R;
+def Nil : (A : Type) -> List A = \A R nil cons. nil;
+def Cons : (A : Type) -> A -> List A -> List A
+  = \A hd tl R nil cons. cons hd (tl R nil cons);
+
+def map : (A B : Type) -> (A -> B) -> List A -> List B
+  = \A B fn lst. lst _ (Nil _) (\hd tl. Cons _ (fn hd) tl);

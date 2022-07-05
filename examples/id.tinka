@@ -1,0 +1,2 @@
+def id : (A : Type) -> A -> A
+  = \_ x. x;

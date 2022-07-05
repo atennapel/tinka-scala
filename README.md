@@ -29,3 +29,4 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [ ] Better name generation
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
+- [ ] Core language verification
