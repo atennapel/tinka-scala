@@ -1,13 +1,13 @@
 def Nat = (Nat : Type) (Z : Nat) (S : Nat -> Nat) -> Nat;
 def Z : Nat = \_ z s. z;
-def S (n : Nat) : Nat = \A z s. s (n A z s);
+def S (n : Nat) : Nat = \_ z s. s (n _ z s);
 
 def add (a b : Nat) : Nat = a _ b S;
 
 def List (A : Type) : Type = (R : Type) (Nil : R) (Cons : A -> R -> R) -> R;
 def Nil (A : Type) : List A = \R nil cons. nil;
 def Cons (A : Type) (hd : A) (tl : List A) : List A
-  = \R nil cons. cons hd (tl R nil cons);
+  = \_ nil cons. cons hd (tl _ nil cons);
 
 def map (A B : Type) (fn : A -> B) (lst : List A) : List B
   = lst _ (Nil _) (\hd tl. Cons _ (fn hd) tl);

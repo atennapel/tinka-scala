@@ -6,6 +6,7 @@ import Evaluation.{eval as veval, quote as vquote}
 import Core.*
 import scala.annotation.tailrec
 import Pretty.{pretty as pretty0}
+import Zonking.{zonk as zonk0}
 
 final case class Ctx(
     val env: Env,
@@ -41,10 +42,12 @@ final case class Ctx(
   def pretty(tm: Tm): String = pretty0(tm, names)
   def pretty(v: Val): String = pretty0(quote(v), names)
 
+  def zonk(tm: Tm): Tm = zonk0(lvl, env, tm)
+
   def lookup(name: Name): Option[(Ix, Val)] =
     @tailrec
     def go(ts: List[(Name, Val)], ix: Ix): Option[(Ix, Val)] = ts match
-      case List()                    => None
+      case Nil                       => None
       case (x, ty) :: _ if x == name => Some((ix, ty))
       case _ :: rest                 => go(rest, ixInc(ix))
     go(types, initialIx)

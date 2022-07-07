@@ -13,3 +13,5 @@ object Errors:
   final case class GlobalError(msg: String)
       extends Exception(s"duplicate global: $msg")
   final case class HoleError(msg: String) extends Exception(s"hole found: $msg")
+  final case class UnsolvedMetasError(msg: String)
+      extends Exception(s"unsolved metas: $msg")

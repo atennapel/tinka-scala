@@ -61,7 +61,7 @@ object Surface:
         sb: StringBuilder = new StringBuilder,
         kind: Int = 0
     ): String = ps match
-      case List() => sb.append(s" -> $rt").toString
+      case Nil => sb.append(s" -> $rt").toString
       case p :: rest if kind == 0 =>
         piToString(
           rest,

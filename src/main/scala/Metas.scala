@@ -1,5 +1,6 @@
 import Value.*
 import Common.*
+import Core.*
 import Errors.*
 import scala.collection.mutable.ArrayBuffer
 
@@ -8,7 +9,7 @@ object Metas:
 
   enum MetaEntry:
     case Unsolved
-    case Solved(value: Val)
+    case Solved(value: Val, tm: Tm)
   import MetaEntry.*
 
   def freshMeta(): MetaId =
@@ -16,11 +17,15 @@ object Metas:
     metas.addOne(Unsolved)
     id
 
-  def reset(): Unit = metas.clear()
+  def resetMetas(): Unit = metas.clear()
   def getMeta(id: MetaId): MetaEntry = metas(exposeMetaId(id))
   def getMetaSolved(id: MetaId): Solved = getMeta(id) match
-    case Unsolved      => throw Impossible()
-    case s @ Solved(_) => s
+    case Unsolved         => throw Impossible()
+    case s @ Solved(_, _) => s
 
-  def solveMeta(id: MetaId, v: Val): Unit =
-    metas(exposeMetaId(id)) = Solved(v)
+  def solveMeta(id: MetaId, v: Val, tm: Tm): Unit =
+    metas(exposeMetaId(id)) = Solved(v, tm)
+
+  def unsolvedMetas(): List[MetaId] = metas.zipWithIndex.collect {
+    case (Unsolved, ix) => metaId(ix)
+  }.toList

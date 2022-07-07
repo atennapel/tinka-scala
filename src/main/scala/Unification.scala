@@ -23,7 +23,7 @@ object Unification:
 
   private def invert(l: Lvl, sp: Spine): PRen =
     def go(sp: Spine): (Lvl, Ren) = sp match
-      case List() => (initialLvl, IntMap.empty)
+      case Nil => (initialLvl, IntMap.empty)
       case EApp(v) :: sp =>
         val (dom, ren) = go(sp)
         force(v, false) match
@@ -41,7 +41,7 @@ object Unification:
       case Some(x) => lvl2ix(pren.dom, x)
 
     def goSp(pren: PRen, t: Tm, sp: Spine): Tm = sp match
-      case List()        => t
+      case Nil           => t
       case EApp(u) :: sp => App(goSp(pren, t, sp), go(pren, u))
 
     def goLift(pren: PRen, c: Clos): Tm =
@@ -61,7 +61,7 @@ object Unification:
     go(pren, v)
 
   private def lams(sp: Spine, body: Tm, ix: Int = 0): Tm = sp match
-    case List()    => body
+    case Nil       => body
     case _ :: rest => Lam(s"x$ix", lams(rest, body, ix + 1))
 
   private def solve(l: Lvl, id: MetaId, sp: Spine, v: Val): Unit =
@@ -70,10 +70,10 @@ object Unification:
     val rhs = rename(id, pren, v)
     val solution = lams(sp.reverse, rhs)
     // println(s"solution ?$id := $solution")
-    solveMeta(id, eval(List.empty, solution))
+    solveMeta(id, eval(List.empty, solution), solution)
 
   private def unifySp(l: Lvl, sp1: Spine, sp2: Spine): Unit = (sp1, sp2) match
-    case (List(), List()) => ()
+    case (Nil, Nil) => ()
     case (EApp(v1) :: sp1, EApp(v2) :: sp2) =>
       unifySp(l, sp1, sp2)
       unify(l, v1, v2)

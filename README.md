@@ -21,7 +21,7 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [x] Def with parameters and type annotation
 - [x] Let with parameters and type annotation
 - [x] Lambda with type annotation
-- [ ] Zonking
+- [x] Zonking
 - [ ] Implicit function types
 - [ ] Sigma types
 - [ ] Add a package name
@@ -30,3 +30,4 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
 - [ ] Core language verification
+- [ ] Replace zonking with something more efficient

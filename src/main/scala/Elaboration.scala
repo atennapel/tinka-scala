@@ -107,11 +107,13 @@ object Elaboration:
         (t, a)
 
   def elaborate(tm: STm, pos: Position = NoPosition): (Tm, Tm) =
-    // TODO: reset metas and zonk
-    // TODO: check for unsolved metas
+    resetMetas()
     val ctx = Ctx.empty(pos)
     val (etm, vty) = infer(ctx, tm)
-    (etm, ctx.quote(vty))
+    val unsolved = unsolvedMetas()
+    if unsolved.nonEmpty then
+      throw UnsolvedMetasError(unsolved.map(id => s"?$id").mkString(", "))
+    (ctx.zonk(etm), ctx.zonk(ctx.quote(vty)))
 
   def elaborateDecls(decls: Decls, pos: Position = NoPosition): Unit =
     decls.decls.foreach(elaborateDecl(_, pos))

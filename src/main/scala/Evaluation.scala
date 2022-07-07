@@ -18,8 +18,8 @@ object Evaluation:
     case VGlobal(_, _, value) if forceGlobals => force(value(), true)
     case ne @ VNe(HMeta(id), sp) =>
       getMeta(id) match
-        case Unsolved    => ne
-        case Solved(sol) => force(sp.foldRight(sol)(velim), forceGlobals)
+        case Unsolved       => ne
+        case Solved(sol, _) => force(sp.foldRight(sol)(velim), forceGlobals)
     case _ => v
 
   def vapp(fn: Val, arg: Val): Val = fn match
@@ -33,12 +33,12 @@ object Evaluation:
     case EApp(arg) => vapp(v, arg)
 
   def vmeta(id: MetaId): Val = getMeta(id) match
-    case Unsolved  => VMeta(id)
-    case Solved(v) => v
+    case Unsolved     => VMeta(id)
+    case Solved(v, _) => v
 
   def vinsertedmeta(env: Env, id: MetaId, bds: BDs): Val =
     def go(env: Env, bds: BDs): Val = (env, bds) match
-      case (List(), List())           => vmeta(id)
+      case (Nil, Nil)           => vmeta(id)
       case (v :: env, Bound :: bds)   => vapp(go(env, bds), v)
       case (_ :: env, Defined :: bds) => go(env, bds)
       case _                          => throw Impossible()
@@ -62,7 +62,7 @@ object Evaluation:
 
   private def quoteSp(lvl: Lvl, tm: Tm, sp: Spine, forceGlobals: Boolean): Tm =
     sp match
-      case List() => tm
+      case Nil => tm
       case EApp(arg) :: sp =>
         App(quoteSp(lvl, tm, sp, forceGlobals), quote(lvl, arg, forceGlobals))
 
