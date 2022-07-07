@@ -1,13 +1,15 @@
-def Nat = (Nat : Type) (Z : Nat) (S : Nat -> Nat) -> Nat;
+def Nat = (A : Type) (Z : A) (S : A -> A) -> A;
 def Z : Nat = \_ z s. z;
 def S (n : Nat) : Nat = \_ z s. s (n _ z s);
+def cataNat {A} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
 
-def add (a b : Nat) : Nat = a _ b S;
+def add (a b : Nat) : Nat = cataNat a b S;
 
-def List (A : Type) : Type = (R : Type) (Nil : R) (Cons : A -> R -> R) -> R;
-def Nil (A : Type) : List A = \R nil cons. nil;
-def Cons (A : Type) (hd : A) (tl : List A) : List A
+def List (A : Type) = (R : Type) (Nil : R) (Cons : A -> R -> R) -> R;
+def Nil {A : Type} : List A = \_ nil cons. nil;
+def Cons {A : Type} (hd : A) (tl : List A) : List A
   = \_ nil cons. cons hd (tl _ nil cons);
+def foldr {A R} (nil : R) (cons : A -> R -> R) (l : List A) : R = l R nil cons;
 
-def map (A B : Type) (fn : A -> B) (lst : List A) : List B
-  = lst _ (Nil _) (\hd tl. Cons _ (fn hd) tl);
+def map {A B} (fn : A -> B) (lst : List A) : List B
+  = foldr Nil (\hd tl. Cons (fn hd) tl) lst;

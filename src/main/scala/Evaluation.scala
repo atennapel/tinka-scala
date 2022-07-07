@@ -22,15 +22,15 @@ object Evaluation:
         case Solved(sol, _) => force(sp.foldRight(sol)(velim), forceGlobals)
     case _ => v
 
-  def vapp(fn: Val, arg: Val): Val = fn match
-    case VLam(_, body)  => vinst(body, arg)
-    case VNe(hd, spine) => VNe(hd, EApp(arg) :: spine)
+  def vapp(fn: Val, arg: Val, icit: Icit): Val = fn match
+    case VLam(_, _, body) => vinst(body, arg)
+    case VNe(hd, spine)   => VNe(hd, EApp(arg, icit) :: spine)
     case VGlobal(hd, spine, value) =>
-      VGlobal(hd, EApp(arg) :: spine, () => vapp(value(), arg))
+      VGlobal(hd, EApp(arg, icit) :: spine, () => vapp(value(), arg, icit))
     case _ => throw Impossible()
 
   def velim(e: Elim, v: Val): Val = e match
-    case EApp(arg) => vapp(v, arg)
+    case EApp(arg, icit) => vapp(v, arg, icit)
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Unsolved     => VMeta(id)
@@ -38,10 +38,10 @@ object Evaluation:
 
   def vinsertedmeta(env: Env, id: MetaId, bds: BDs): Val =
     def go(env: Env, bds: BDs): Val = (env, bds) match
-      case (Nil, Nil)           => vmeta(id)
-      case (v :: env, Bound :: bds)   => vapp(go(env, bds), v)
-      case (_ :: env, Defined :: bds) => go(env, bds)
-      case _                          => throw Impossible()
+      case (Nil, Nil)                     => vmeta(id)
+      case (v :: env, Bound(icit) :: bds) => vapp(go(env, bds), v, icit)
+      case (_ :: env, Defined :: bds)     => go(env, bds)
+      case _                              => throw Impossible()
     go(env, bds)
 
   def eval(env: Env, tm: Tm): Val = tm match
@@ -53,9 +53,9 @@ object Evaluation:
     case Let(x, _, value, body) => eval(eval(env, value) :: env, body)
     case Type                   => VType
 
-    case Pi(x, ty, body) => VPi(x, eval(env, ty), Clos(env, body))
-    case Lam(x, body)    => VLam(x, Clos(env, body))
-    case App(fn, arg)    => vapp(eval(env, fn), eval(env, arg))
+    case Pi(x, icit, ty, body) => VPi(x, icit, eval(env, ty), Clos(env, body))
+    case Lam(x, icit, body)    => VLam(x, icit, Clos(env, body))
+    case App(fn, arg, icit)    => vapp(eval(env, fn), eval(env, arg), icit)
 
     case Meta(id)              => vmeta(id)
     case InsertedMeta(id, bds) => vinsertedmeta(env, id, bds)
@@ -63,8 +63,12 @@ object Evaluation:
   private def quoteSp(lvl: Lvl, tm: Tm, sp: Spine, forceGlobals: Boolean): Tm =
     sp match
       case Nil => tm
-      case EApp(arg) :: sp =>
-        App(quoteSp(lvl, tm, sp, forceGlobals), quote(lvl, arg, forceGlobals))
+      case EApp(arg, icit) :: sp =>
+        App(
+          quoteSp(lvl, tm, sp, forceGlobals),
+          quote(lvl, arg, forceGlobals),
+          icit
+        )
 
   private def quoteHead(lvl: Lvl, head: Head): Tm = head match
     case HVar(head) => Var(lvl2ix(lvl, head))
@@ -76,14 +80,15 @@ object Evaluation:
       case VGlobal(head, sp, _) => quoteSp(lvl, Global(head), sp, forceGlobals)
       case VType                => Type
 
-      case VPi(x, ty, body) =>
+      case VPi(x, icit, ty, body) =>
         Pi(
           x,
+          icit,
           quote(lvl, ty, forceGlobals),
           quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals)
         )
-      case VLam(x, body) =>
-        Lam(x, quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals))
+      case VLam(x, icit, body) =>
+        Lam(x, icit, quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals))
 
   def nf(env: Env, tm: Tm): Tm =
     quote(lvlFromEnv(env), eval(env, tm), forceGlobals = true)

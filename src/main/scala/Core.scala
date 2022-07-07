@@ -1,4 +1,5 @@
 import Common.*
+import Common.Icit.*
 import scala.annotation.tailrec
 import scala.collection.mutable.StringBuilder
 import Errors.*
@@ -10,9 +11,9 @@ object Core:
     case Let(name: Name, ty: Tm, value: Tm, body: Tm)
     case Type
 
-    case Pi(name: Name, ty: Tm, body: Tm)
-    case Lam(name: Name, body: Tm)
-    case App(fn: Tm, arg: Tm)
+    case Pi(name: Name, icit: Icit, ty: Tm, body: Tm)
+    case Lam(name: Name, icit: Icit, body: Tm)
+    case App(fn: Tm, arg: Tm, icit: Icit)
 
     case Meta(id: MetaId)
     case InsertedMeta(id: MetaId, bds: BDs)
@@ -23,9 +24,12 @@ object Core:
       case Let(name, ty, value, body) => s"(let $name : $ty = $value; $body)"
       case Type                       => "Type"
 
-      case Pi(x, ty, b) => s"(($x : $ty) -> $b)"
-      case Lam(x, b)    => s"(\\$x. $b)"
-      case App(fn, arg) => s"($fn $arg)"
+      case Pi(x, Expl, ty, b) => s"(($x : $ty) -> $b)"
+      case Pi(x, Impl, ty, b) => s"({$x : $ty} -> $b)"
+      case Lam(x, Expl, b)    => s"(\\$x. $b)"
+      case Lam(x, Impl, b)    => s"(\\{$x}. $b)"
+      case App(fn, arg, Expl) => s"($fn $arg)"
+      case App(fn, arg, Impl) => s"($fn {$arg})"
 
       case Meta(id)            => s"?$id"
       case InsertedMeta(id, _) => s"?$id"

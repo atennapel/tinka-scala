@@ -10,13 +10,44 @@ import Value.*
 import Value.Val.*
 import Evaluation.*
 import Unification.*
-import scala.util.parsing.input.{Position, NoPosition}
 import Errors.*
 import Globals.*
 import Metas.*
+import Common.*
+import Common.Icit.*
+import scala.util.parsing.input.{Position, NoPosition}
 
 object Elaboration:
   private def newMeta(ctx: Ctx): Tm = InsertedMeta(freshMeta(), ctx.bds)
+
+  private def insertPi(ctx: Ctx, inp: (Tm, Val)): (Tm, Val) =
+    val (tm, ty) = inp
+    force(ty) match
+      case VPi(x, Impl, a, b) =>
+        val m = newMeta(ctx)
+        val mv = ctx.eval(m)
+        insertPi(ctx, (App(tm, m, Impl), vinst(b, mv)))
+      case _ => (tm, ty)
+
+  private def insert(ctx: Ctx, inp: (Tm, Val)): (Tm, Val) =
+    val (tm, ty) = inp
+    tm match
+      case Lam(_, Impl, _) => (tm, ty)
+      case _               => insertPi(ctx, (tm, ty))
+
+  private def insertUntilName(
+      ctx: Ctx,
+      name: Name,
+      inp: (Tm, Val)
+  ): (Tm, Val) =
+    val (tm, ty) = inp
+    force(ty) match
+      case VPi(x, Impl, a, b) if x == name => (tm, ty)
+      case VPi(x, Impl, a, b) =>
+        val m = newMeta(ctx)
+        val mv = ctx.eval(m)
+        insertUntilName(ctx, name, (App(tm, m, Impl), vinst(b, mv)))
+      case _ => throw NameNotInPiError(name)
 
   private def unifyCatch(ctx: Ctx, expected: Val, actual: Val): Unit =
     // println(s"unify: ${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}")
@@ -46,19 +77,27 @@ object Elaboration:
     // println(s"check: $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
       case (S.Hole, _) => newMeta(ctx)
-      case (S.Lam(x, tyopt, body), VPi(_, pty, bty)) =>
+      case (S.Lam(x, i, tyopt, body), VPi(x2, i2, ty, b2))
+          if i.fold(y => i2 == Impl && y == x2, _ == i2) =>
         tyopt match
           case None =>
-          case Some(ty) =>
-            val vty = ctx.eval(checkType(ctx, tyopt.get))
-            unifyCatch(ctx, pty, vty)
-        Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
+          case Some(a) =>
+            val ea = checkType(ctx, a)
+            val va = ctx.eval(ea)
+            unifyCatch(ctx, ty, va)
+        Lam(x, i2, check(ctx.bind(x, i2, ty), body, ctx.inst(b2)))
+      case (tm, VPi(x, Impl, a, b)) =>
+        Lam(
+          x,
+          Impl,
+          check(ctx.bind(x, Impl, a, true), tm, ctx.inst(b))
+        )
       case (S.Let(x, oty, value, body), _) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
         Let(x, ety, evalue, check(ctx.define(x, vty, vvalue), body, ty))
       case (tm, _) =>
-        val (etm, tyAct) = infer(ctx, tm)
+        val (etm, tyAct) = insert(ctx, infer(ctx, tm))
         unifyCatch(ctx, ty, tyAct)
         etm
 
@@ -81,26 +120,38 @@ object Elaboration:
         val vvalue = ctx.eval(evalue)
         val (ebody, vbodyty) = infer(ctx.define(x, vty, vvalue), body)
         (Let(x, ety, evalue, ebody), vbodyty)
-      case S.Pi(x, ty, body) =>
+      case S.Pi(x, i, ty, body) =>
         val ety = checkType(ctx, ty)
-        val ebody = checkType(ctx.bind(x, ctx.eval(ety)), body)
-        (Pi(x, ety, ebody), VType)
-      case app @ S.App(fn, arg) =>
-        val (efn, fty) = infer(ctx, fn)
-        val (ty, rty) = force(fty) match
-          case VPi(x, ty, rty) => (ty, rty)
-          case _ =>
-            val ty = ctx.eval(newMeta(ctx))
-            val rty = Clos(ctx.env, newMeta(ctx.bind("x", ty)))
-            unifyCatch(ctx, VPi("x", ty, rty), fty)
-            (ty, rty)
-        val earg = check(ctx, arg, ty)
-        (App(efn, earg), vinst(rty, ctx.eval(earg)))
-      case S.Lam(x, tyopt, b) =>
+        val ebody = checkType(ctx.bind(x, i, ctx.eval(ety)), body)
+        (Pi(x, i, ety, ebody), VType)
+      case app @ S.App(fn, arg, j) =>
+        val (i, efn, tty) = j match
+          case Left(name) =>
+            val (t, tty) = insertUntilName(ctx, name, infer(ctx, fn))
+            (Impl, t, tty)
+          case Right(Impl) =>
+            val (t, tty) = infer(ctx, fn)
+            (Impl, t, tty)
+          case Right(Expl) =>
+            val (t, tty) = insertPi(ctx, infer(ctx, fn))
+            (Expl, t, tty)
+        val (pt, rt) = force(tty) match
+          case VPi(x, i2, a, b) =>
+            if i != i2 then throw AppIcitMismatchError(app.toString)
+            (a, b)
+          case tty =>
+            val a = ctx.eval(newMeta(ctx))
+            val b = Clos(ctx.env, newMeta(ctx.bind("x", i, a)))
+            unifyCatch(ctx, VPi("x", i, a, b), tty)
+            (a, b)
+        val earg = check(ctx, arg, pt)
+        (App(efn, earg, i), vinst(rt, ctx.eval(earg)))
+      case S.Lam(x, Right(i), tyopt, b) =>
         val va =
           ctx.eval(tyopt.map(ty => checkType(ctx, ty)).getOrElse(newMeta(ctx)))
-        val (eb, vb) = infer(ctx.bind(x, va), b)
-        (Lam(x, eb), VPi(x, va, ctx.closeVal(vb)))
+        val (eb, vb) = insert(ctx, infer(ctx.bind(x, i, va), b))
+        (Lam(x, i, eb), VPi(x, i, va, ctx.closeVal(vb)))
+      case tm @ S.Lam(_, _, _, _) => throw NamedLambdaError(tm.toString)
       case S.Hole =>
         val a = ctx.eval(newMeta(ctx))
         val t = newMeta(ctx)
@@ -110,6 +161,7 @@ object Elaboration:
     resetMetas()
     val ctx = Ctx.empty(pos)
     val (etm, vty) = infer(ctx, tm)
+    // println(s"elaboration done: $etm")
     val unsolved = unsolvedMetas()
     if unsolved.nonEmpty then
       throw UnsolvedMetasError(unsolved.map(id => s"?$id").mkString(", "))

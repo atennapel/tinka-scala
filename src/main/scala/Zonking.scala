@@ -14,20 +14,20 @@ object Zonking:
     zonk(lvlInc(l), VVar(l) :: e, t)
 
   private def zonkBDs(v: Val, e: Env, sp: BDs): Val = (e, sp) match
-    case (Nil, Nil)              => v
-    case (_ :: e, Defined :: sp) => zonkBDs(v, e, sp)
-    case (w :: e, Bound :: sp)   => vapp(zonkBDs(v, e, sp), w)
-    case _                       => throw Impossible()
+    case (Nil, Nil)               => v
+    case (_ :: e, Defined :: sp)  => zonkBDs(v, e, sp)
+    case (w :: e, Bound(i) :: sp) => vapp(zonkBDs(v, e, sp), w, i)
+    case _                        => throw Impossible()
 
   private def zonkSpine(l: Lvl, e: Env, t: Tm): Either[Val, Tm] = t match
     case Meta(id) =>
       getMeta(id) match
         case Solved(v, _) => Left(v)
         case Unsolved     => Right(zonk(l, e, t))
-    case App(fn, arg) =>
+    case App(fn, arg, i) =>
       zonkSpine(l, e, fn) match
-        case Left(v)  => Left(vapp(v, eval(e, arg)))
-        case Right(t) => Right(App(t, zonk(l, e, arg)))
+        case Left(v)  => Left(vapp(v, eval(e, arg), i))
+        case Right(t) => Right(App(t, zonk(l, e, arg), i))
     case t => Right(zonk(l, e, t))
 
   def zonk(l: Lvl, e: Env, t: Tm): Tm = t match
@@ -41,14 +41,14 @@ object Zonking:
         case Solved(_, c) => zonk(l, e, c)
     case InsertedMeta(id, sp) => zonk(l, e, quote(l, zonkBDs(vmeta(id), e, sp)))
 
-    case App(fn, arg) =>
+    case App(fn, arg, i) =>
       zonkSpine(l, e, fn) match
-        case Left(v)  => zonk(l, e, quote(l, vapp(v, eval(e, arg))))
-        case Right(t) => App(t, zonk(l, e, arg))
+        case Left(v)  => zonk(l, e, quote(l, vapp(v, eval(e, arg), i)))
+        case Right(t) => App(t, zonk(l, e, arg), i)
 
     case Let(x, ty, value, b) =>
       Let(x, zonk(l, e, ty), zonk(l, e, value), zonkLift(l, e, b))
-    case Pi(x, ty, b) => Pi(x, zonk(l, e, ty), zonkLift(l, e, b))
-    case Lam(x, b)    => Lam(x, zonkLift(l, e, b))
+    case Pi(x, i, ty, b) => Pi(x, i, zonk(l, e, ty), zonkLift(l, e, b))
+    case Lam(x, i, b)    => Lam(x, i, zonkLift(l, e, b))
 
   def zonk(t: Tm): Tm = zonk(initialLvl, List.empty, t)

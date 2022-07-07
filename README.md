@@ -3,6 +3,12 @@
 Dependently typed programming language implemented in Scala 3.
 Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-zoo
 
+Try it out using:
+
+```
+sbt "run examples/church.tinka"
+```
+
 ## Desired features
 
 - Type-in-type
@@ -22,8 +28,11 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [x] Let with parameters and type annotation
 - [x] Lambda with type annotation
 - [x] Zonking
-- [ ] Implicit function types
+- [x] Implicit function types
+- [ ] Debugging flag
+- [ ] Add comments
 - [ ] Sigma types
+- [ ] Erasure annotations
 - [ ] Add a package name
 - [ ] Clean up error handling and output
 - [ ] Better name generation
@@ -31,3 +40,6 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [ ] Approximate solving for globals
 - [ ] Core language verification
 - [ ] Replace zonking with something more efficient
+- [ ] Pruning
+- [ ] First-class polymorphism
+- [ ] Clean up parser

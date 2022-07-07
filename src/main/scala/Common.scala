@@ -33,7 +33,11 @@ object Common:
   def exposeMetaId(ix: MetaId): Int = ix
 
   enum BD:
-    case Bound
+    case Bound(icit: Icit)
     case Defined
 
   type BDs = List[BD]
+
+  enum Icit:
+    case Expl
+    case Impl

@@ -12,15 +12,15 @@ object Value:
 
   type Spine = List[Elim]
   enum Elim:
-    case EApp(arg: Val)
+    case EApp(arg: Val, icit: Icit)
 
   enum Val:
     case VNe(head: Head, spine: Spine)
     case VGlobal(head: Name, spine: Spine, value: () => Val)
     case VType
 
-    case VLam(name: Name, body: Clos)
-    case VPi(name: Name, ty: Val, body: Clos)
+    case VLam(name: Name, icit: Icit, body: Clos)
+    case VPi(name: Name, icit: Icit, ty: Val, body: Clos)
 
   object VVar:
     import Val.VNe
