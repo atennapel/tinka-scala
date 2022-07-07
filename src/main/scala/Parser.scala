@@ -30,8 +30,13 @@ object Parser extends StdTokenParsers with PackratParsers:
     case xs ~ _ ~ b => xs.foldRight(b)(Lam.apply)
   })
   lazy val let: P[Tm] = positioned(
-    "let" ~> ident ~ (":" ~> expr).? ~ "=" ~ expr ~ ";" ~ expr ^^ {
-      case x ~ ty ~ _ ~ v ~ _ ~ b => Let(x, ty, v, b)
+    "let" ~> ident ~ lamParam.* ~ (":" ~> expr).? ~ "=" ~ expr ~ ";" ~ expr ^^ {
+      case x ~ ps ~ ty ~ _ ~ v ~ _ ~ b =>
+        if ps.isEmpty then Let(x, ty, v, b)
+        else
+          val pi = piFromParams(ps, ty.getOrElse(Hole))
+          val lams = unannotatedLamFromParams(ps, v)
+          Let(x, Some(pi), lams, b)
     }
   )
   lazy val application: P[Tm] = positioned(expr ~ notApp ^^ { case fn ~ arg =>
@@ -57,6 +62,10 @@ object Parser extends StdTokenParsers with PackratParsers:
       (xs, ty)
     }
 
+  lazy val lamParam: P[(List[Name], Option[Tm])] = piParam.map {
+    case (xs, ty) => (xs, Some(ty))
+  } | ident.map(x => (List(x), None))
+
   def parse(str: String): ParseResult[Tm] =
     val tokens = new lexical.Scanner(str)
     phrase(expr)(tokens)
@@ -65,10 +74,30 @@ object Parser extends StdTokenParsers with PackratParsers:
     Decls(lst)
   }
   lazy val decl: P[Decl] = positioned(
-    "def" ~> ident ~ opt(":" ~> expr) ~ "=" ~ expr ^^ { case id ~ ty ~ _ ~ v =>
-      ty.fold(Def(id, v))(ty => Def(id, Let(id, Some(ty), v, Var(id))))
+    "def" ~> ident ~ lamParam.* ~ opt(":" ~> expr) ~ "=" ~ expr ^^ {
+      case id ~ ps ~ ty ~ _ ~ v =>
+        if ps.isEmpty then
+          ty.fold(Def(id, v))(ty => Def(id, Let(id, Some(ty), v, Var(id))))
+        else
+          val pi = piFromParams(ps, ty.getOrElse(Hole))
+          val lams = unannotatedLamFromParams(ps, v)
+          Def(id, Let(id, Some(pi), lams, Var(id)))
     }
   )
+  def piFromParams(ps: List[(List[Name], Option[Tm])], rt: Tm): Tm =
+    ps.foldRight(rt) { case ((xs, tyopt), rt) =>
+      val pty = tyopt.getOrElse(
+        Hole
+      ) // TODO: should the params share the same hole? (introduce let)
+      xs.foldRight(rt)((x, rt) => Pi(x, pty, rt))
+    }
+  def unannotatedLamFromParams(
+      ps: List[(List[Name], Option[Tm])],
+      body: Tm
+  ): Tm =
+    ps.foldRight(body) { case ((xs, _), body) =>
+      xs.foldRight(body)((x, body) => Lam(x, body))
+    }
 
   def parseDecls(str: String): ParseResult[Decls] =
     val tokens = new lexical.Scanner(str)

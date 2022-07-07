@@ -18,11 +18,11 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 - [x] Definitions
 - [x] Glued evaluation
 - [x] Meta variables and solving
-- [ ] Zonking
+- [x] Def with parameters and type annotation
+- [x] Let with parameters and type annotation
 - [ ] Lambda with type annotation
+- [ ] Zonking
 - [ ] Implicit function types
-- [ ] Def with parameters and type annotation
-- [ ] Let with parameters and type annotation
 - [ ] Sigma types
 - [ ] Add a package name
 - [ ] Clean up error handling and output
