@@ -20,7 +20,7 @@ object Surface:
     case Type
 
     case Pi(name: Name, ty: Tm, body: Tm)
-    case Lam(name: Name, body: Tm)
+    case Lam(name: Name, ty: Option[Tm], body: Tm)
     case App(fn: Tm, arg: Tm)
 
     case Hole
@@ -36,9 +36,11 @@ object Surface:
       case pi @ Pi(_, _, _) =>
         val (ps, rt) = pi.flattenPi()
         piToString(ps, rt)
-      case lam @ Lam(_, _) =>
+      case lam @ Lam(_, _, _) =>
         val (ns, b) = lam.flattenLam()
-        val nsStr = ns.mkString(" ")
+        val nsStr = ns
+          .map { case (x, tyopt) => tyopt.fold(x)(ty => s"($x : $ty)") }
+          .mkString(" ")
         s"\\$nsStr. $b"
       case app @ App(_, _) =>
         val (fn, args) = app.flattenApp()
@@ -102,9 +104,11 @@ object Surface:
         case Pi(name, ty, body) => body.flattenPi(ns :+ (name, ty))
         case tm                 => (ns, tm)
 
-    def flattenLam(ns: List[Name] = List.empty): (List[Name], Tm) = this match
-      case Lam(name, body) => body.flattenLam(ns :+ name)
-      case tm              => (ns, tm)
+    def flattenLam(
+        ns: List[(Name, Option[Tm])] = List.empty
+    ): (List[(Name, Option[Tm])], Tm) = this match
+      case Lam(name, ty, body) => body.flattenLam(ns :+ (name, ty))
+      case tm                  => (ns, tm)
 
     def flattenApp(args: List[Tm] = List.empty): (Tm, List[Tm]) = this match
       case App(fn, arg) => fn.flattenApp(arg :: args)

@@ -26,9 +26,11 @@ object Parser extends StdTokenParsers with PackratParsers:
   lazy val expr: P[Tm] = pi | fun | application | notApp
   lazy val notApp: P[Tm] =
     parens | lambda | let | typeP | variable
-  lazy val lambda: P[Tm] = positioned(("\\" | "λ") ~> ident.+ ~ "." ~ expr ^^ {
-    case xs ~ _ ~ b => xs.foldRight(b)(Lam.apply)
-  })
+  lazy val lambda: P[Tm] = positioned(
+    ("\\" | "λ") ~> lamParam.+ ~ "." ~ expr ^^ { case ps ~ _ ~ b =>
+      annotatedLamFromParams(ps, b)
+    }
+  )
   lazy val let: P[Tm] = positioned(
     "let" ~> ident ~ lamParam.* ~ (":" ~> expr).? ~ "=" ~ expr ~ ";" ~ expr ^^ {
       case x ~ ps ~ ty ~ _ ~ v ~ _ ~ b =>
@@ -96,7 +98,14 @@ object Parser extends StdTokenParsers with PackratParsers:
       body: Tm
   ): Tm =
     ps.foldRight(body) { case ((xs, _), body) =>
-      xs.foldRight(body)((x, body) => Lam(x, body))
+      xs.foldRight(body)((x, body) => Lam(x, None, body))
+    }
+  def annotatedLamFromParams(
+      ps: List[(List[Name], Option[Tm])],
+      body: Tm
+  ): Tm =
+    ps.foldRight(body) { case ((xs, ty), body) =>
+      xs.foldRight(body)((x, body) => Lam(x, ty, body))
     }
 
   def parseDecls(str: String): ParseResult[Decls] =

@@ -46,7 +46,12 @@ object Elaboration:
     // println(s"check: $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
       case (S.Hole, _) => newMeta(ctx)
-      case (S.Lam(x, body), VPi(_, pty, bty)) =>
+      case (S.Lam(x, tyopt, body), VPi(_, pty, bty)) =>
+        tyopt match
+          case None =>
+          case Some(ty) =>
+            val vty = ctx.eval(checkType(ctx, tyopt.get))
+            unifyCatch(ctx, pty, vty)
         Lam(x, check(ctx.bind(x, pty), body, vinst(bty, VVar(ctx.lvl))))
       case (S.Let(x, oty, value, body), _) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
@@ -91,8 +96,9 @@ object Elaboration:
             (ty, rty)
         val earg = check(ctx, arg, ty)
         (App(efn, earg), vinst(rty, ctx.eval(earg)))
-      case S.Lam(x, b) =>
-        val va = ctx.eval(newMeta(ctx))
+      case S.Lam(x, tyopt, b) =>
+        val va =
+          ctx.eval(tyopt.map(ty => checkType(ctx, ty)).getOrElse(newMeta(ctx)))
         val (eb, vb) = infer(ctx.bind(x, va), b)
         (Lam(x, eb), VPi(x, va, ctx.closeVal(vb)))
       case S.Hole =>

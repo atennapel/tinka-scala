@@ -20,7 +20,7 @@ object Pretty:
       Pi(x, prettyTm(ty, ns), prettyTm(b, x :: ns))
     case C.Lam(x0, b) =>
       val x = freshName(x0, ns)
-      Lam(x, prettyTm(b, x :: ns))
+      Lam(x, None, prettyTm(b, x :: ns))
 
   def pretty(tm: CTm, ns: List[Name] = List.empty): String =
     prettyTm(tm, ns).toString
