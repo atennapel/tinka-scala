@@ -138,4 +138,18 @@ object Parser extends StdTokenParsers with PackratParsers:
     phrase(decls)(tokens)
 
   private object Lexer extends StdLexical:
+    final val EofCh: Char = '\u001a'
+
     override def letter = elem("letter", c => c.isLetter && c != 'λ')
+
+    override def whitespace: Parser[Any] = rep[Any](
+      whitespaceChar
+        | '{' ~ '-' ~ commentEnd
+        | '-' ~ '-' ~ rep(chrExcept(EofCh, '\n'))
+        | '{' ~ '-' ~ rep(elem("", _ => true)) ~> err("unclosed comment")
+    )
+
+    private def commentEnd: Parser[Any] = (
+      rep(chrExcept(EofCh, '-')) ~ '-' ~ '}' ^^ { _ => ' ' }
+        | rep(chrExcept(EofCh, '-')) ~ '-' ~ commentEnd ^^ { _ => ' ' }
+    )

@@ -10,7 +10,7 @@ import Pretty.*
 @main def cli(filename: String): Unit =
   try
     val src = Source.fromFile(filename)
-    val contents = src.getLines.mkString
+    val contents = src.getLines.mkString("\n")
     val ctx = Ctx.empty(OffsetPosition(contents, 0))
     src.close()
     val decls = parseDecls(contents) match

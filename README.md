@@ -29,8 +29,8 @@ sbt "run examples/church.tinka"
 - [x] Lambda with type annotation
 - [x] Zonking
 - [x] Implicit function types
+- [x] Add comments
 - [ ] Debugging flag
-- [ ] Add comments
 - [ ] Sigma types
 - [ ] Erasure annotations
 - [ ] Add a package name
