@@ -8,6 +8,7 @@ import Evaluation.*
 import Metas.*
 import Core.*
 import Core.Tm.*
+import Debug.{debug}
 import scala.collection.immutable.IntMap
 
 object Unification:
@@ -66,11 +67,11 @@ object Unification:
     case _                  => throw Impossible()
 
   private def solve(l: Lvl, id: MetaId, sp: Spine, v: Val): Unit =
-    // println(s"solve: ?$id ~ ${quote(l, v)}")
+    debug(s"solve: ?$id ~ ${quote(l, v)}")
     val pren = invert(l, sp)
     val rhs = rename(id, pren, v)
     val solution = lams(sp.reverse, rhs)
-    // println(s"solution: ?$id := $solution")
+    debug(s"solution: ?$id := $solution")
     solveMeta(id, eval(List.empty, solution), solution)
 
   private def unifySp(l: Lvl, sp1: Spine, sp2: Spine): Unit = (sp1, sp2) match
@@ -81,7 +82,7 @@ object Unification:
     case _ => throw UnifyError("spine mismatch")
 
   def unify(l: Lvl, t: Val, u: Val): Unit =
-    // println(s"unify: ${quote(l, t)} ~ ${quote(l, u)}")
+    debug(s"unify: ${quote(l, t)} ~ ${quote(l, u)}")
     (force(t, false), force(u, false)) match
       case (VType, VType) => ()
       case (VPi(x1, i, ty1, body1), VPi(x2, i2, ty2, body2)) if i == i2 =>

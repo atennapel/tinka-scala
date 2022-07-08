@@ -15,6 +15,7 @@ import Globals.*
 import Metas.*
 import Common.*
 import Common.Icit.*
+import Debug.{debug}
 import scala.util.parsing.input.{Position, NoPosition}
 
 object Elaboration:
@@ -50,7 +51,7 @@ object Elaboration:
       case _ => throw NameNotInPiError(name)
 
   private def unifyCatch(ctx: Ctx, expected: Val, actual: Val): Unit =
-    // println(s"unify: ${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}")
+    debug(s"unify: ${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}")
     try unify(ctx.lvl, actual, expected)
     catch
       case e: UnifyError =>
@@ -74,7 +75,7 @@ object Elaboration:
 
   private def check(ctx0: Ctx, tm: STm, ty: Val): Tm =
     val ctx = ctx0.enter(tm.pos)
-    // println(s"check: $tm : ${ctx.pretty(ty)}")
+    debug(s"check: $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
       case (S.Hole, _) => newMeta(ctx)
       case (S.Lam(x, i, tyopt, body), VPi(x2, i2, ty, b2))
@@ -105,7 +106,7 @@ object Elaboration:
 
   private def infer(ctx0: Ctx, tm: STm): (Tm, Val) =
     val ctx = ctx0.enter(tm.pos)
-    // println(s"infer: $tm")
+    debug(s"infer: $tm")
     tm match
       case S.Type => (Type, VType)
       case S.Var(name) =>
@@ -161,7 +162,7 @@ object Elaboration:
     resetMetas()
     val ctx = Ctx.empty(pos)
     val (etm, vty) = infer(ctx, tm)
-    // println(s"elaboration done: $etm")
+    debug(s"elaboration done: $etm")
     val unsolved = unsolvedMetas()
     if unsolved.nonEmpty then
       throw UnsolvedMetasError(unsolved.map(id => s"?$id").mkString(", "))

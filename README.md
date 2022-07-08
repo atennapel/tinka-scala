@@ -30,7 +30,7 @@ sbt "run examples/church.tinka"
 - [x] Zonking
 - [x] Implicit function types
 - [x] Add comments
-- [ ] Debugging flag
+- [x] Debugging flag
 - [ ] Sigma types
 - [ ] Erasure annotations
 - [ ] Add a package name

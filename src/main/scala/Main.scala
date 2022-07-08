@@ -1,14 +1,19 @@
 import Parser.parseDecls
-import scala.io.Source
 import Elaboration.*
 import Evaluation.*
 import Ctx.*
-import scala.util.parsing.input.OffsetPosition
 import Globals.*
 import Pretty.*
+import Debug.{setDebug}
+import scala.io.Source
+import scala.util.parsing.input.OffsetPosition
 
-@main def cli(filename: String): Unit =
+@main def cliDebug(filename: String): Unit = run(filename, true)
+@main def cli(filename: String): Unit = run(filename)
+
+def run(filename: String, debug: Boolean = false): Unit =
   try
+    setDebug(debug)
     val src = Source.fromFile(filename)
     val contents = src.getLines.mkString("\n")
     val ctx = Ctx.empty(OffsetPosition(contents, 0))
