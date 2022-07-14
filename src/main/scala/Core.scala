@@ -1,7 +1,5 @@
 import Common.*
 import Common.Icit.*
-import scala.annotation.tailrec
-import scala.collection.mutable.StringBuilder
 import Errors.*
 
 object Core:
@@ -18,6 +16,7 @@ object Core:
 
   enum Tm:
     case Var(ix: Ix)
+    case Prim(name: PrimName)
     case Global(name: Name)
     case Let(name: Name, ty: Tm, value: Tm, body: Tm)
     case Type
@@ -35,6 +34,7 @@ object Core:
 
     override def toString: String = this match
       case Var(ix)                    => s"'$ix"
+      case Prim(name)                 => name.toString
       case Global(name)               => name
       case Let(name, ty, value, body) => s"(let $name : $ty = $value; $body)"
       case Type                       => "Type"

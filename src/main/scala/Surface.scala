@@ -65,7 +65,9 @@ object Surface:
         sigmaToString(ps, rt)
       case pair @ Pair(_, _) =>
         val es = pair.flattenPair()
-        s"(${es.mkString(", ")})"
+        if es.nonEmpty && es.last == Var("[]") then
+          s"[${es.init.mkString(", ")}]"
+        else s"(${es.mkString(", ")})"
       case proj @ Proj(_, _) =>
         val (tm, ps) = proj.flattenProj()
         s"${tm.toStringParens(appSimple = false)}${ps.mkString}"

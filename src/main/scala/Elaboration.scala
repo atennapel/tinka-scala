@@ -17,6 +17,7 @@ import Globals.*
 import Metas.*
 import Common.*
 import Common.Icit.*
+import Common.PrimName.*
 import Debug.debug
 import scala.util.parsing.input.{Position, NoPosition}
 import scala.annotation.tailrec
@@ -115,7 +116,9 @@ object Elaboration:
     val ctx = ctx0.enter(tm.pos)
     debug(s"infer: $tm")
     tm match
-      case S.Type => (Type, VType)
+      case S.Type      => (Type, VType)
+      case S.Var("()") => (Prim(PUnitType), VType)
+      case S.Var("[]") => (Prim(PUnit), VPrim(PUnitType))
       case S.Var(name) =>
         ctx.lookup(name) match
           case Some((ix, ty)) => (Var(ix), ty)

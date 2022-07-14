@@ -41,3 +41,11 @@ object Common:
   enum Icit:
     case Expl
     case Impl
+
+  enum PrimName:
+    case PUnitType
+    case PUnit
+
+    override def toString = this match
+      case PUnitType => "()"
+      case PUnit     => "[]"

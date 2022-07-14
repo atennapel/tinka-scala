@@ -17,6 +17,7 @@ object Pretty:
 
   private def prettyTm(tm: CTm, ns: List[Name]): Tm = tm match
     case C.Var(ix)         => Var(ixEnv(ns, ix))
+    case C.Prim(name)      => Var(name.toString)
     case C.Global(name)    => Var(name)
     case C.App(fn, arg, i) => App(prettyTm(fn, ns), prettyTm(arg, ns), Right(i))
     case C.Type            => Type

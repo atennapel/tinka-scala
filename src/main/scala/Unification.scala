@@ -1,4 +1,5 @@
 import Common.*
+import Common.PrimName.*
 import Value.*
 import Value.Val.*
 import Value.Elim.*
@@ -55,6 +56,7 @@ object Unification:
         throw UnifyError(s"occurs check failed ?$x")
       case VNe(HMeta(x), sp)  => goSp(pren, Meta(x), sp)
       case VNe(HVar(x), sp)   => goSp(pren, Var(goVar(pren, x)), sp)
+      case VNe(HPrim(x), sp)  => goSp(pren, Prim(x), sp)
       case VGlobal(hd, sp, v) => goSp(pren, Global(hd), sp) // TODO: is this OK?
       case VType              => Type
 
@@ -143,6 +145,9 @@ object Unification:
       case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unifySp(l, sp1, sp2)
       case (VNe(HMeta(id), sp), v)                  => solve(l, id, sp, v)
       case (v, VNe(HMeta(id), sp))                  => solve(l, id, sp, v)
+
+      case (VPrim(PUnit), _) => ()
+      case (_, VPrim(PUnit)) => ()
 
       case (VGlobal(h1, sp1, v1), VGlobal(h2, sp2, v2)) if h1 == h2 =>
         try unifySp(l, sp1, sp2)

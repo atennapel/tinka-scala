@@ -32,6 +32,7 @@ object Zonking:
 
   def zonk(l: Lvl, e: Env, t: Tm): Tm = t match
     case Var(ix)      => t
+    case Prim(name)   => t
     case Global(name) => t
     case Type         => t
 

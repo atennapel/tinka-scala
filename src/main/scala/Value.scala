@@ -9,6 +9,7 @@ object Value:
   enum Head:
     case HVar(lvl: Lvl)
     case HMeta(id: MetaId)
+    case HPrim(name: PrimName)
 
   type Spine = List[Elim]
   enum Elim:
@@ -40,4 +41,12 @@ object Value:
     def apply(id: MetaId) = VNe(HMeta(id), List.empty)
     def unapply(value: Val): Option[MetaId] = value match
       case VNe(HMeta(head), Nil) => Some(head)
+      case _                     => None
+
+  object VPrim:
+    import Val.VNe
+    import Head.HPrim
+    def apply(name: PrimName) = VNe(HPrim(name), List.empty)
+    def unapply(value: Val): Option[PrimName] = value match
+      case VNe(HPrim(head), Nil) => Some(head)
       case _                     => None

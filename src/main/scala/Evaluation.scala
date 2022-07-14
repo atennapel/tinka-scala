@@ -62,7 +62,8 @@ object Evaluation:
     go(env, bds)
 
   def eval(env: Env, tm: Tm): Val = tm match
-    case Var(ix) => ixEnv(env, ix)
+    case Var(ix)    => ixEnv(env, ix)
+    case Prim(name) => VPrim(name)
     case Global(name) =>
       getGlobal(name) match
         case Some(ge) => ge.vglobal
@@ -94,8 +95,9 @@ object Evaluation:
         Proj(quoteSp(lvl, tm, sp, forceGlobals), proj)
 
   private def quoteHead(lvl: Lvl, head: Head): Tm = head match
-    case HVar(head) => Var(lvl2ix(lvl, head))
-    case HMeta(id)  => Meta(id)
+    case HVar(head)  => Var(lvl2ix(lvl, head))
+    case HMeta(id)   => Meta(id)
+    case HPrim(name) => Prim(name)
 
   def quote(lvl: Lvl, value: Val, forceGlobals: Boolean = false): Tm =
     force(value, forceGlobals) match

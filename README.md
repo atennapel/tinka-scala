@@ -32,11 +32,10 @@ sbt "run examples/church.tinka"
 - [x] Add comments
 - [x] Debugging flag
 - [x] Sigma types
-- [ ] Add unit type
-- [ ] Add unit-terminated pairs
+- [x] Add unit type
 - [ ] Fix projection parsing issues
-- [ ] Allow recursion in definitions
 - [ ] Fix type
+- [ ] Equality type
 - [ ] Enum type
 - [ ] Erasure annotations
 - [ ] Add a package name

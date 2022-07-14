@@ -19,6 +19,8 @@ object Parser extends StdTokenParsers with PackratParsers:
     ")",
     "{",
     "}",
+    "[",
+    "]",
     ":",
     "=",
     ";",
@@ -33,7 +35,7 @@ object Parser extends StdTokenParsers with PackratParsers:
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
   lazy val notApp: P[Tm] =
-    parens | lambda | let | typeP | variable
+    unitType | unit | parens | unitParens | lambda | let | typeP | variable
   lazy val lambda: P[Tm] = positioned(
     ("\\" | "λ") ~> lamParam.+ ~ "." ~ expr ^^ { case ps ~ _ ~ b =>
       annotatedLamFromParams(ps, b)
@@ -47,6 +49,15 @@ object Parser extends StdTokenParsers with PackratParsers:
           val pi = piFromParams(ps, ty.getOrElse(Hole))
           val lams = unannotatedLamFromParams(ps, v)
           Let(x, Some(pi), lams, b)
+    }
+  )
+
+  lazy val unitType: P[Tm] = positioned("(" ~ ")" ^^ { case _ => Var("()") })
+  lazy val unit: P[Tm] = positioned("[" ~ "]" ^^ { case _ => Var("[]") })
+  lazy val unitParens: P[Tm] = positioned(
+    "[" ~> expr ~ ("," ~ expr).* <~ "]" ^^ { case fst ~ rest =>
+      val all = fst :: rest.map(_._2)
+      all.foldRight(Var("[]"))((t, acc) => Pair(t, acc))
     }
   )
 
