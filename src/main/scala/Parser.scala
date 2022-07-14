@@ -61,8 +61,11 @@ object Parser extends StdTokenParsers with PackratParsers:
       Right((t, Left(xs)))
     })
       | ("{" ~> expr <~ "}" ^^ { case t => Right((t, Right(Impl))) })
-      | ("._1" ^^ { case _ => Left(Fst) })
+      | ("._1" ^^ { case _ =>
+        Left(Fst)
+      }) // TODO: projection should bind tighter than application
       | ("._2" ^^ { case _ => Left(Snd) })
+      | ("." ~ ident ^^ { case _ ~ x => Left(Named(x)) })
       | notApp.map(t => Right((t, Right(Expl))))
 
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>

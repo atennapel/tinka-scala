@@ -19,6 +19,7 @@ import Common.*
 import Common.Icit.*
 import Debug.debug
 import scala.util.parsing.input.{Position, NoPosition}
+import scala.annotation.tailrec
 
 object Elaboration:
   private def newMeta(ctx: Ctx): Tm = InsertedMeta(freshMeta(), ctx.bds)
@@ -163,14 +164,26 @@ object Elaboration:
           case (VSigma(_, ty, _), SP.Fst) => (Proj(tm, Fst), ty)
           case (VSigma(_, _, c), SP.Snd) =>
             (Proj(tm, Snd), vinst(c, vfst(ctx.eval(tm))))
-          case (tty, _)
-              if p == SP.Fst || p == SP.Snd => // TODO: could possibly also work for indexed projection
+          case (tty, SP.Named(x)) =>
+            @tailrec
+            def go(tm: Val, ty: Val, i: Int, xs: Set[Name]): (Val, Int) = force(
+              ty
+            ) match
+              case VSigma(y, ty, c) if x == y => (ty, i)
+              case VSigma(y, ty, c) =>
+                val name = if x == "_" || xs.contains(x) then None else Some(y)
+                go(tm, vinst(c, vproj(tm, Named(name, i))), i + 1, xs + y)
+              case _ => throw NameNotInSigmaError(x)
+            val (a, i) = go(ctx.eval(tm), tty, 0, Set.empty)
+            (Proj(tm, Named(Some(x), i)), a)
+          case (tty, _) if p == SP.Fst || p == SP.Snd =>
             val a = ctx.eval(newMeta(ctx))
             val b = ctx.clos(newMeta(ctx.bind("x", Expl, a)))
             unifyCatch(ctx, VSigma("x", a, b), tty)
             p match
               case SP.Fst => (Proj(tm, Fst), a)
               case SP.Snd => (Proj(tm, Snd), vinst(b, vfst(ctx.eval(tm))))
+              case _      => throw Impossible()
           case _ => throw NotSigmaError(proj.toString)
       case S.Lam(x, Right(i), tyopt, b) =>
         val va =

@@ -32,7 +32,9 @@ sbt "run examples/church.tinka"
 - [x] Add comments
 - [x] Debugging flag
 - [x] Sigma types
-- [ ] Named and indexed sigma projection
+- [ ] Add unit type
+- [ ] Add unit-terminated pairs
+- [ ] Fix projection parsing issues
 - [ ] Allow recursion in definitions
 - [ ] Fix type
 - [ ] Enum type

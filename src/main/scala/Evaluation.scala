@@ -33,8 +33,10 @@ object Evaluation:
   def vproj(v: Val, proj: ProjType): Val = v match
     case VPair(fst, snd) =>
       proj match
-        case Fst => fst
-        case Snd => snd
+        case Fst         => fst
+        case Snd         => snd
+        case Named(x, 0) => fst
+        case Named(x, i) => vproj(snd, Named(x, i - 1))
     case VNe(hd, spine) => VNe(hd, EProj(proj) :: spine)
     case VGlobal(hd, spine, value) =>
       VGlobal(hd, EProj(proj) :: spine, () => vproj(value(), proj))

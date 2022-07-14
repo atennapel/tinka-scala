@@ -8,10 +8,13 @@ object Core:
   enum ProjType:
     case Fst
     case Snd
+    case Named(name: Option[Name], ix: Int)
 
     override def toString: String = this match
-      case Fst => "._1"
-      case Snd => "._2"
+      case Fst                  => "._1"
+      case Snd                  => "._2"
+      case Named(Some(name), _) => s"$name"
+      case Named(_, i)          => s".$i"
 
   enum Tm:
     case Var(ix: Ix)

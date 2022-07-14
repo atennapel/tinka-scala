@@ -8,6 +8,7 @@ import Evaluation.*
 import Metas.*
 import Core.*
 import Core.Tm.*
+import Core.ProjType.*
 import Debug.debug
 import scala.collection.immutable.IntMap
 
@@ -78,13 +79,32 @@ object Unification:
     debug(s"solution: ?$id := $solution")
     solveMeta(id, eval(List.empty, solution), solution)
 
+  private def eqvProj(p1: ProjType, p2: ProjType): Boolean = (p1, p2) match
+    case (Named(_, i1), Named(_, i2)) => i1 == i2
+    case (Fst, Named(_, 0))           => true
+    case (Named(_, 0), Fst)           => true
+    case (p1, p2)                     => p1 == p2
+
+  private def unifyElim(l: Lvl, e1: Elim, e2: Elim): Unit = (e1, e2) match
+    case (EApp(v1, _), EApp(v2, _))                => unify(l, v1, v2)
+    case (EProj(p1), EProj(p2)) if eqvProj(p1, p2) => ()
+    case _ => throw UnifyError("spine mismatch")
+
+  private def unifySpProj(l: Lvl, sp1: Spine, sp2: Spine, ix: Int): Unit =
+    (sp1, ix) match
+      case (sp1, 0)                => unifySp(l, sp1, sp2)
+      case (EProj(Snd) :: sp1, ix) => unifySpProj(l, sp1, sp2, ix - 1)
+      case _                       => throw UnifyError("spine mismatch")
+
   private def unifySp(l: Lvl, sp1: Spine, sp2: Spine): Unit = (sp1, sp2) match
     case (Nil, Nil) => ()
-    case (EApp(v1, _) :: sp1, EApp(v2, _) :: sp2) =>
+    case (EProj(Fst) :: sp1, EProj(Named(j, n)) :: sp2) =>
+      unifySpProj(l, sp1, sp2, n)
+    case (EProj(Named(j, n)) :: sp1, EProj(Fst) :: sp2) =>
+      unifySpProj(l, sp2, sp1, n)
+    case (e1 :: sp1, e2 :: sp2) =>
       unifySp(l, sp1, sp2)
-      unify(l, v1, v2)
-    case (EProj(p1) :: sp1, EProj(p2) :: sp2) if p1 == p2 =>
-      unifySp(l, sp1, sp2)
+      unifyElim(l, e1, e2)
     case _ => throw UnifyError("spine mismatch")
 
   def unify(l: Lvl, t: Val, u: Val): Unit =

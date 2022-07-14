@@ -23,3 +23,5 @@ object Errors:
       extends Exception(s"app icit mismatch: $msg")
   final case class NamedLambdaError(msg: String)
       extends Exception(s"cannot infer named lambda: $msg")
+  final case class NameNotInSigmaError(msg: String)
+      extends Exception(s"name not in sigma: $msg")

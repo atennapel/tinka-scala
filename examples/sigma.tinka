@@ -1,0 +1,17 @@
+def Nat = (A : Type) (Z : A) (S : A -> A) -> A;
+def Z : Nat = \_ z s. z;
+def S (n : Nat) : Nat = \_ z s. s (n _ z s);
+def foldNat {A} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+
+def NatSig =
+  (Nat : Type) **
+  (Z : Nat) **
+  (S : Nat -> Nat) **
+  (fold : {A} -> Nat -> A -> (A -> A) -> A) ** Type;
+
+def NatExt(natM : NatSig): (add : natM.Nat -> natM.Nat -> natM.Nat) ** Type =
+  (\a b. natM.fold a b (natM.S), Type);
+
+def CNatM : NatSig = (Nat, Z, S, foldNat, Type);
+
+def add : Nat -> Nat -> Nat = (NatExt CNatM).add;

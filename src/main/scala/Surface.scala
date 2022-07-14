@@ -18,10 +18,12 @@ object Surface:
   enum ProjType:
     case Fst
     case Snd
+    case Named(name: Name)
 
     override def toString: String = this match
-      case Fst => "._1"
-      case Snd => "._2"
+      case Fst         => "._1"
+      case Snd         => "._2"
+      case Named(name) => s".$name"
 
   enum Tm extends Positional:
     case Var(name: Name)
@@ -177,6 +179,7 @@ object Surface:
         case Var(_)         => true
         case Type           => true
         case Hole           => true
+        case Proj(_, _)     => true
         case App(_, _, _)   => appSimple
         case Sigma(_, _, _) => sigmaSimple
         case _              => false
