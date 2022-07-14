@@ -8,7 +8,7 @@ import Evaluation.*
 import Metas.*
 import Core.*
 import Core.Tm.*
-import Debug.{debug}
+import Debug.debug
 import scala.collection.immutable.IntMap
 
 object Unification:
@@ -60,6 +60,7 @@ object Unification:
       case VLam(x, icit, b)    => Lam(x, icit, goLift(pren, b))
 
       case VSigma(x, ty, b) => Sigma(x, go(pren, ty), goLift(pren, b))
+      case VPair(fst, snd)  => Pair(go(pren, fst), go(pren, snd))
 
     go(pren, v)
 

@@ -23,6 +23,7 @@ object Value:
     case VPi(name: Name, icit: Icit, ty: Val, body: Clos)
 
     case VSigma(name: Name, ty: Val, body: Clos)
+    case VPair(fst: Val, snd: Val)
 
   object VVar:
     import Val.VNe

@@ -16,6 +16,7 @@ object Core:
     case App(fn: Tm, arg: Tm, icit: Icit)
 
     case Sigma(name: Name, ty: Tm, body: Tm)
+    case Pair(fst: Tm, snd: Tm)
 
     case Meta(id: MetaId)
     case InsertedMeta(id: MetaId, bds: BDs)
@@ -34,6 +35,7 @@ object Core:
       case App(fn, arg, Impl) => s"($fn {$arg})"
 
       case Sigma(x, ty, b) => s"(($x : $ty) ** $b)"
+      case Pair(fst, snd)  => s"($fst, $snd)"
 
       case Meta(id)            => s"?$id"
       case InsertedMeta(id, _) => s"?$id"

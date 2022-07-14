@@ -15,7 +15,7 @@ import Globals.*
 import Metas.*
 import Common.*
 import Common.Icit.*
-import Debug.{debug}
+import Debug.debug
 import scala.util.parsing.input.{Position, NoPosition}
 
 object Elaboration:
@@ -97,6 +97,10 @@ object Elaboration:
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
         Let(x, ety, evalue, check(ctx.define(x, vty, vvalue), body, ty))
+      case (S.Pair(fst, snd), VSigma(x, a, b)) =>
+        val efst = check(ctx, fst, a)
+        val esnd = check(ctx, snd, vinst(b, ctx.eval(efst)))
+        Pair(efst, esnd)
       case (tm, _) =>
         val (etm, tyAct) = insert(ctx, infer(ctx, tm))
         unifyCatch(ctx, ty, tyAct)
@@ -157,6 +161,10 @@ object Elaboration:
         val (eb, vb) = insert(ctx, infer(ctx.bind(x, i, va), b))
         (Lam(x, i, eb), VPi(x, i, va, ctx.closeVal(vb)))
       case tm @ S.Lam(_, _, _, _) => throw NamedLambdaError(tm.toString)
+      case S.Pair(fst, snd) =>
+        val (efst, vtyfst) = infer(ctx, fst)
+        val (esnd, vtysnd) = infer(ctx, snd)
+        (Pair(efst, esnd), VSigma("_", vtyfst, ctx.closeVal(vtysnd)))
       case S.Hole =>
         val a = ctx.eval(newMeta(ctx))
         val t = newMeta(ctx)

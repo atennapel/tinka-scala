@@ -24,6 +24,7 @@ object Pretty:
     case C.Sigma(x0, ty, b) =>
       val x = freshName(x0, ns)
       Sigma(x, prettyTm(ty, ns), prettyTm(b, x :: ns))
+    case C.Pair(fst, snd) => Pair(prettyTm(fst, ns), prettyTm(snd, ns))
 
   def pretty(tm: CTm, ns: List[Name] = List.empty): String =
     prettyTm(tm, ns).toString

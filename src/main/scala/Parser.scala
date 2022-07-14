@@ -22,7 +22,8 @@ object Parser extends StdTokenParsers with PackratParsers:
     "=",
     ";",
     "->",
-    "**"
+    "**",
+    ","
   )
   lexical.reserved ++= Seq("Type", "let", "def")
 
@@ -58,10 +59,15 @@ object Parser extends StdTokenParsers with PackratParsers:
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
     if x.startsWith("_") then Hole else Var(x)
   })
-  lazy val parens: P[Tm] = "(" ~> expr <~ ")"
+  lazy val parens: P[Tm] = positioned(
+    "(" ~> expr ~ ("," ~ expr).* <~ ")" ^^ {
+      case fst ~ Nil  => fst
+      case fst ~ rest => Pair(fst, rest.map(_._2).reduceRight(Pair.apply))
+    }
+  )
   lazy val typeP: P[Tm] = positioned("Type" ^^ { _ => Type })
   lazy val piOrSigma: P[Tm] = positioned(
-    piParam.+ ~ ("->" | "**") ~ expr ^^ {
+    piParam.+ ~ ("->" | "**") ~ expr ^^ { // TODO: make ** lower precedence
       case ps ~ "->" ~ rt =>
         ps.foldRight(rt) { case ((xs, ty, i), rt) =>
           xs.foldRight(rt) { case (x, rt) => Pi(x, i, ty.getOrElse(Hole), rt) }

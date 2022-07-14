@@ -31,11 +31,10 @@ sbt "run examples/church.tinka"
 - [x] Implicit function types
 - [x] Add comments
 - [x] Debugging flag
+- [ ] Sigma types
 - [ ] Allow recursion in definitions
 - [ ] Fix type
 - [ ] Enum type
-- [ ] Sigma types
-- [ ] Parser: Lambda in spine
 - [ ] Erasure annotations
 - [ ] Add a package name
 - [ ] Clean up error handling and output

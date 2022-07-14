@@ -25,6 +25,7 @@ object Surface:
     case App(fn: Tm, arg: Tm, icit: Either[Name, Icit])
 
     case Sigma(name: Name, ty: Tm, body: Tm)
+    case Pair(fst: Tm, snd: Tm)
 
     case Hole
 
@@ -51,9 +52,15 @@ object Surface:
       case sigma @ Sigma(_, _, _) =>
         val (ps, rt) = sigma.flattenSigma()
         sigmaToString(ps, rt)
+      case pair @ Pair(_, _) =>
+        val es = pair.flattenPair()
+        s"(${es.mkString(", ")})"
 
-    def toStringParens(appSimple: Boolean = true) =
-      if isSimple(appSimple) then this.toString else s"($this)"
+    def toStringParens(
+        appSimple: Boolean = true,
+        sigmaSimple: Boolean = false
+    ) =
+      if isSimple(appSimple, sigmaSimple) then this.toString else s"($this)"
 
     private def argToString(arg: (Tm, Either[Name, Icit])) = arg match
       case (arg, Left(x))     => s"{$x = $arg}"
@@ -79,7 +86,8 @@ object Surface:
         sb: StringBuilder = new StringBuilder,
         kind: Int = 0
     ): String = ps match
-      case Nil => sb.append(s" -> ${rt.toStringParens()}").toString
+      case Nil =>
+        sb.append(s" -> ${rt.toStringParens(sigmaSimple = true)}").toString
       case p :: rest if kind == 0 =>
         piToString(
           rest,
@@ -152,12 +160,14 @@ object Surface:
         )
       case _ => throw Impossible()
 
-    def isSimple(appSimple: Boolean = true) = this match
-      case Var(_)                    => true
-      case Type                      => true
-      case Hole                      => true
-      case App(_, _, _) if appSimple => true
-      case _                         => false
+    def isSimple(appSimple: Boolean = true, sigmaSimple: Boolean = false) =
+      this match
+        case Var(_)         => true
+        case Type           => true
+        case Hole           => true
+        case App(_, _, _)   => appSimple
+        case Sigma(_, _, _) => sigmaSimple
+        case _              => false
 
     def flattenPi(
         ns: List[(Name, Icit, Tm)] = List.empty
@@ -184,3 +194,7 @@ object Surface:
     ): (Tm, List[(Tm, Either[Name, Icit])]) = this match
       case App(fn, arg, icit) => fn.flattenApp((arg, icit) :: args)
       case tm                 => (tm, args)
+
+    def flattenPair(): List[Tm] = this match
+      case Pair(fst, snd) => fst :: snd.flattenPair()
+      case tm             => List(tm)

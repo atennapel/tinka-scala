@@ -4,7 +4,7 @@ import Evaluation.*
 import Ctx.*
 import Globals.*
 import Pretty.*
-import Debug.{setDebug}
+import Debug.setDebug
 import scala.io.Source
 import scala.util.parsing.input.OffsetPosition
 

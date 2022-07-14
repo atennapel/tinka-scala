@@ -41,6 +41,7 @@ object Zonking:
         case Solved(_, c) => zonk(l, e, c)
     case InsertedMeta(id, sp) => zonk(l, e, quote(l, zonkBDs(vmeta(id), e, sp)))
 
+    case Pair(fst, snd) => Pair(zonk(l, e, fst), zonk(l, e, snd))
     case App(fn, arg, i) =>
       zonkSpine(l, e, fn) match
         case Left(v)  => zonk(l, e, quote(l, vapp(v, eval(e, arg), i)))

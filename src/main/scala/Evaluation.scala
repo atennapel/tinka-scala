@@ -58,6 +58,7 @@ object Evaluation:
     case App(fn, arg, icit)    => vapp(eval(env, fn), eval(env, arg), icit)
 
     case Sigma(x, ty, body) => VSigma(x, eval(env, ty), Clos(env, body))
+    case Pair(fst, snd)     => VPair(eval(env, fst), eval(env, snd))
 
     case Meta(id)              => vmeta(id)
     case InsertedMeta(id, bds) => vinsertedmeta(env, id, bds)
@@ -98,6 +99,7 @@ object Evaluation:
           quote(lvl, ty, forceGlobals),
           quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals)
         )
+      case VPair(fst, snd) => Pair(quote(lvl, fst), quote(lvl, snd))
 
   def nf(env: Env, tm: Tm): Tm =
     quote(lvlFromEnv(env), eval(env, tm), forceGlobals = true)

@@ -1,0 +1,3 @@
+def id {A} (x : A) : A = x;
+def const {A B} (x : A) (y : B) : A = x;
+def compose {A B C} (f : B -> C) (g : A -> B) : A -> C = \x. f (g x);
