@@ -2,6 +2,7 @@ import Common.*
 import Common.BD.*
 import Core.*
 import Core.Tm.*
+import Core.ProjType.*
 import Value.*
 import Value.Head.*
 import Value.Val.*
@@ -29,8 +30,22 @@ object Evaluation:
       VGlobal(hd, EApp(arg, icit) :: spine, () => vapp(value(), arg, icit))
     case _ => throw Impossible()
 
+  def vproj(v: Val, proj: ProjType): Val = v match
+    case VPair(fst, snd) =>
+      proj match
+        case Fst => fst
+        case Snd => snd
+    case VNe(hd, spine) => VNe(hd, EProj(proj) :: spine)
+    case VGlobal(hd, spine, value) =>
+      VGlobal(hd, EProj(proj) :: spine, () => vproj(value(), proj))
+    case _ => throw Impossible()
+
+  def vfst(v: Val): Val = vproj(v, Fst)
+  def vsnd(v: Val): Val = vproj(v, Snd)
+
   def velim(e: Elim, v: Val): Val = e match
     case EApp(arg, icit) => vapp(v, arg, icit)
+    case EProj(proj)     => vproj(v, proj)
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Unsolved     => VMeta(id)
@@ -59,6 +74,7 @@ object Evaluation:
 
     case Sigma(x, ty, body) => VSigma(x, eval(env, ty), Clos(env, body))
     case Pair(fst, snd)     => VPair(eval(env, fst), eval(env, snd))
+    case Proj(tm, proj)     => vproj(eval(env, tm), proj)
 
     case Meta(id)              => vmeta(id)
     case InsertedMeta(id, bds) => vinsertedmeta(env, id, bds)
@@ -72,6 +88,8 @@ object Evaluation:
           quote(lvl, arg, forceGlobals),
           icit
         )
+      case EProj(proj) :: sp =>
+        Proj(quoteSp(lvl, tm, sp, forceGlobals), proj)
 
   private def quoteHead(lvl: Lvl, head: Head): Tm = head match
     case HVar(head) => Var(lvl2ix(lvl, head))

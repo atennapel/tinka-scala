@@ -1,6 +1,7 @@
 import Surface.*
 import Surface.Tm.*
 import Surface.Decl.*
+import Surface.ProjType.*
 import Common.*
 import Common.Icit.*
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
@@ -23,7 +24,9 @@ object Parser extends StdTokenParsers with PackratParsers:
     ";",
     "->",
     "**",
-    ","
+    ",",
+    "._1",
+    "._2"
   )
   lexical.reserved ++= Seq("Type", "let", "def")
 
@@ -46,16 +49,22 @@ object Parser extends StdTokenParsers with PackratParsers:
           Let(x, Some(pi), lams, b)
     }
   )
+
   lazy val application: P[Tm] = positioned(expr ~ argument ^^ {
-    case fn ~ (arg, Right(i)) => App(fn, arg, Right(i))
-    case fn ~ (arg, Left(xs)) => xs.foldLeft(fn)((b, x) => App(b, arg, Left(x)))
+    case fn ~ Left(p)                => Proj(fn, p)
+    case fn ~ Right((arg, Right(i))) => App(fn, arg, Right(i))
+    case fn ~ Right((arg, Left(xs))) =>
+      xs.foldLeft(fn)((b, x) => App(b, arg, Left(x)))
   })
-  lazy val argument: P[(Tm, Either[List[Name], Icit])] =
+  lazy val argument: P[Either[ProjType, (Tm, Either[List[Name], Icit])]] =
     ("{" ~> ident.+ ~ "=" ~ expr <~ "}" ^^ { case xs ~ _ ~ t =>
-      (t, Left(xs))
-    }) |
-      ("{" ~> expr <~ "}" ^^ { case t => (t, Right(Impl)) }) |
-      notApp.map(t => (t, Right(Expl)))
+      Right((t, Left(xs)))
+    })
+      | ("{" ~> expr <~ "}" ^^ { case t => Right((t, Right(Impl))) })
+      | ("._1" ^^ { case _ => Left(Fst) })
+      | ("._2" ^^ { case _ => Left(Snd) })
+      | notApp.map(t => Right((t, Right(Expl))))
+
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
     if x.startsWith("_") then Hole else Var(x)
   })

@@ -15,6 +15,14 @@ object Surface:
   final case class Decls(val decls: List[Decl]):
     override def toString: String = decls.map(_.toString).mkString("\n")
 
+  enum ProjType:
+    case Fst
+    case Snd
+
+    override def toString: String = this match
+      case Fst => "._1"
+      case Snd => "._2"
+
   enum Tm extends Positional:
     case Var(name: Name)
     case Let(name: Name, ty: Option[Tm], value: Tm, body: Tm)
@@ -26,6 +34,7 @@ object Surface:
 
     case Sigma(name: Name, ty: Tm, body: Tm)
     case Pair(fst: Tm, snd: Tm)
+    case Proj(tm: Tm, proj: ProjType)
 
     case Hole
 
@@ -47,7 +56,7 @@ object Surface:
       case app @ App(_, _, _) =>
         val (fn, args) = app.flattenApp()
         val argsStr = args.map(argToString).mkString(" ")
-        s"${fn.toStringParens()} $argsStr"
+        s"${fn.toStringParens(appSimple = false)} $argsStr"
 
       case sigma @ Sigma(_, _, _) =>
         val (ps, rt) = sigma.flattenSigma()
@@ -55,6 +64,9 @@ object Surface:
       case pair @ Pair(_, _) =>
         val es = pair.flattenPair()
         s"(${es.mkString(", ")})"
+      case proj @ Proj(_, _) =>
+        val (tm, ps) = proj.flattenProj()
+        s"${tm.toStringParens(appSimple = false)}${ps.mkString}"
 
     def toStringParens(
         appSimple: Boolean = true,
@@ -65,7 +77,7 @@ object Surface:
     private def argToString(arg: (Tm, Either[Name, Icit])) = arg match
       case (arg, Left(x))     => s"{$x = $arg}"
       case (arg, Right(Impl)) => s"{$arg}"
-      case (arg, Right(Expl)) => arg.toStringParens(false)
+      case (arg, Right(Expl)) => arg.toStringParens(appSimple = false)
 
     private def lamParamToString(p: (Name, Either[Name, Icit], Option[Tm])) =
       p match
@@ -198,3 +210,8 @@ object Surface:
     def flattenPair(): List[Tm] = this match
       case Pair(fst, snd) => fst :: snd.flattenPair()
       case tm             => List(tm)
+
+    def flattenProj(ps: List[ProjType] = List.empty): (Tm, List[ProjType]) =
+      this match
+        case Proj(tm, proj) => tm.flattenProj(proj :: ps)
+        case tm             => (tm, ps)

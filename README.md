@@ -31,7 +31,8 @@ sbt "run examples/church.tinka"
 - [x] Implicit function types
 - [x] Add comments
 - [x] Debugging flag
-- [ ] Sigma types
+- [x] Sigma types
+- [ ] Named and indexed sigma projection
 - [ ] Allow recursion in definitions
 - [ ] Fix type
 - [ ] Enum type

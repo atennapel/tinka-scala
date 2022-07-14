@@ -8,6 +8,8 @@ object Errors:
   final case class CannotInferError(msg: String)
       extends Exception(s"cannot infer: $msg")
   final case class NotPiError(msg: String) extends Exception(s"not a pi: $msg")
+  final case class NotSigmaError(msg: String)
+      extends Exception(s"not a sigma: $msg")
   final case class VarError(msg: String)
       extends Exception(s"undefined variable: $msg")
   final case class GlobalError(msg: String)

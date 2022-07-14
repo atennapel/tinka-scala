@@ -1,10 +1,12 @@
 import Surface.{Tm as STm}
 import Surface.Tm as S
+import Surface.ProjType as SP
 import Surface.Decls
 import Surface.Decl
 import Surface.Decl.*
 import Core.*
 import Core.Tm.*
+import Core.ProjType.*
 import Ctx.*
 import Value.*
 import Value.Val.*
@@ -155,6 +157,21 @@ object Elaboration:
             (a, b)
         val earg = check(ctx, arg, pt)
         (App(efn, earg, i), vinst(rt, ctx.eval(earg)))
+      case proj @ S.Proj(t, p) =>
+        val (tm, vt) = insertPi(ctx, infer(ctx, t))
+        (force(vt), p) match
+          case (VSigma(_, ty, _), SP.Fst) => (Proj(tm, Fst), ty)
+          case (VSigma(_, _, c), SP.Snd) =>
+            (Proj(tm, Snd), vinst(c, vfst(ctx.eval(tm))))
+          case (tty, _)
+              if p == SP.Fst || p == SP.Snd => // TODO: could possibly also work for indexed projection
+            val a = ctx.eval(newMeta(ctx))
+            val b = ctx.clos(newMeta(ctx.bind("x", Expl, a)))
+            unifyCatch(ctx, VSigma("x", a, b), tty)
+            p match
+              case SP.Fst => (Proj(tm, Fst), a)
+              case SP.Snd => (Proj(tm, Snd), vinst(b, vfst(ctx.eval(tm))))
+          case _ => throw NotSigmaError(proj.toString)
       case S.Lam(x, Right(i), tyopt, b) =>
         val va =
           ctx.eval(tyopt.map(ty => checkType(ctx, ty)).getOrElse(newMeta(ctx)))

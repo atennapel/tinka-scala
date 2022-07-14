@@ -34,6 +34,7 @@ final case class Ctx(
       bds = Defined :: bds
     )
 
+  def clos(tm: Tm): Clos = Clos(env, tm)
   def closeVal(v: Val): Clos = Clos(env, vquote(lvlInc(lvl), v))
 
   def eval(tm: Tm): Val = veval(env, tm)

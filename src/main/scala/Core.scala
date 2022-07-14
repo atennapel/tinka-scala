@@ -5,6 +5,14 @@ import scala.collection.mutable.StringBuilder
 import Errors.*
 
 object Core:
+  enum ProjType:
+    case Fst
+    case Snd
+
+    override def toString: String = this match
+      case Fst => "._1"
+      case Snd => "._2"
+
   enum Tm:
     case Var(ix: Ix)
     case Global(name: Name)
@@ -17,6 +25,7 @@ object Core:
 
     case Sigma(name: Name, ty: Tm, body: Tm)
     case Pair(fst: Tm, snd: Tm)
+    case Proj(tm: Tm, proj: ProjType)
 
     case Meta(id: MetaId)
     case InsertedMeta(id: MetaId, bds: BDs)
@@ -36,6 +45,7 @@ object Core:
 
       case Sigma(x, ty, b) => s"(($x : $ty) ** $b)"
       case Pair(fst, snd)  => s"($fst, $snd)"
+      case Proj(tm, proj)  => s"$tm$proj"
 
       case Meta(id)            => s"?$id"
       case InsertedMeta(id, _) => s"?$id"

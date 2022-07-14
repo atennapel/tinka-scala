@@ -44,6 +44,7 @@ object Unification:
     def goSp(pren: PRen, t: Tm, sp: Spine): Tm = sp match
       case Nil                 => t
       case EApp(u, icit) :: sp => App(goSp(pren, t, sp), go(pren, u), icit)
+      case EProj(proj) :: sp   => Proj(goSp(pren, t, sp), proj)
 
     def goLift(pren: PRen, c: Clos): Tm =
       go(lift(pren), vinst(c, VVar(pren.cod)))
@@ -82,6 +83,8 @@ object Unification:
     case (EApp(v1, _) :: sp1, EApp(v2, _) :: sp2) =>
       unifySp(l, sp1, sp2)
       unify(l, v1, v2)
+    case (EProj(p1) :: sp1, EProj(p2) :: sp2) if p1 == p2 =>
+      unifySp(l, sp1, sp2)
     case _ => throw UnifyError("spine mismatch")
 
   def unify(l: Lvl, t: Val, u: Val): Unit =
@@ -106,6 +109,16 @@ object Unification:
       case (w, VLam(_, i, body)) =>
         val v = VVar(l)
         unify(lvlInc(l), vapp(w, v, i), vinst(body, v))
+
+      case (VPair(fst1, snd1), VPair(fst2, snd2)) =>
+        unify(l, fst1, fst2)
+        unify(l, snd1, snd2)
+      case (VPair(fst, snd), p) =>
+        unify(l, fst, vfst(p))
+        unify(l, snd, vsnd(p))
+      case (p, VPair(fst, snd)) =>
+        unify(l, vfst(p), fst)
+        unify(l, vsnd(p), snd)
 
       case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unifySp(l, sp1, sp2)
       case (VNe(HMeta(id), sp), v)                  => solve(l, id, sp, v)

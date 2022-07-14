@@ -1,10 +1,16 @@
 import Core.{Tm as CTm}
 import Core.Tm as C
+import Core.ProjType as CP
 import Surface.*
 import Surface.Tm.*
+import Surface.ProjType.*
 import Common.*
 
 object Pretty:
+  private def prettyProjType(proj: CP): ProjType = proj match
+    case CP.Fst => Fst
+    case CP.Snd => Snd
+
   private def prettyTm(tm: CTm, ns: List[Name]): Tm = tm match
     case C.Var(ix)         => Var(ixEnv(ns, ix))
     case C.Global(name)    => Var(name)
@@ -25,6 +31,7 @@ object Pretty:
       val x = freshName(x0, ns)
       Sigma(x, prettyTm(ty, ns), prettyTm(b, x :: ns))
     case C.Pair(fst, snd) => Pair(prettyTm(fst, ns), prettyTm(snd, ns))
+    case C.Proj(tm, proj) => Proj(prettyTm(tm, ns), prettyProjType(proj))
 
   def pretty(tm: CTm, ns: List[Name] = List.empty): String =
     prettyTm(tm, ns).toString

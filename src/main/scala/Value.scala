@@ -1,5 +1,5 @@
 import Common.*
-import Core.Tm
+import Core.*
 
 object Value:
   type Env = List[Val]
@@ -13,6 +13,7 @@ object Value:
   type Spine = List[Elim]
   enum Elim:
     case EApp(arg: Val, icit: Icit)
+    case EProj(proj: ProjType)
 
   enum Val:
     case VNe(head: Head, spine: Spine)
