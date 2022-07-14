@@ -22,6 +22,8 @@ object Value:
     case VLam(name: Name, icit: Icit, body: Clos)
     case VPi(name: Name, icit: Icit, ty: Val, body: Clos)
 
+    case VSigma(name: Name, ty: Val, body: Clos)
+
   object VVar:
     import Val.VNe
     import Head.HVar

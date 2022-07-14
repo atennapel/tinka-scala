@@ -24,6 +24,8 @@ object Surface:
     case Lam(name: Name, icit: Either[Name, Icit], ty: Option[Tm], body: Tm)
     case App(fn: Tm, arg: Tm, icit: Either[Name, Icit])
 
+    case Sigma(name: Name, ty: Tm, body: Tm)
+
     case Hole
 
     override def toString: String = this match
@@ -45,6 +47,10 @@ object Surface:
         val (fn, args) = app.flattenApp()
         val argsStr = args.map(argToString).mkString(" ")
         s"${fn.toStringParens()} $argsStr"
+
+      case sigma @ Sigma(_, _, _) =>
+        val (ps, rt) = sigma.flattenSigma()
+        sigmaToString(ps, rt)
 
     def toStringParens(appSimple: Boolean = true) =
       if isSimple(appSimple) then this.toString else s"($this)"
@@ -73,7 +79,7 @@ object Surface:
         sb: StringBuilder = new StringBuilder,
         kind: Int = 0
     ): String = ps match
-      case Nil => sb.append(s" -> $rt").toString
+      case Nil => sb.append(s" -> ${rt.toStringParens()}").toString
       case p :: rest if kind == 0 =>
         piToString(
           rest,
@@ -104,6 +110,48 @@ object Surface:
         )
       case _ => throw Impossible()
 
+    private def sigmaParamToString(ps: (Name, Tm)) = ps match
+      case ("_", ty) => ty.toStringParens()
+      case (x, ty)   => s"($x : $ty)"
+
+    @tailrec
+    private def sigmaToString(
+        ps: List[(Name, Tm)],
+        rt: Tm,
+        sb: StringBuilder = new StringBuilder,
+        kind: Int = 0
+    ): String = ps match
+      case Nil => sb.append(s" ** ${rt.toStringParens()}").toString
+      case p :: rest if kind == 0 =>
+        sigmaToString(
+          rest,
+          rt,
+          sb.append(sigmaParamToString(p)),
+          if p._1 == "_" && p._2 == Expl then 1 else 2
+        )
+      case (p @ ("_", ty)) :: rest =>
+        sigmaToString(
+          rest,
+          rt,
+          sb.append(s" ** ${sigmaParamToString(p)}"),
+          1
+        )
+      case p :: rest if kind == 1 =>
+        sigmaToString(
+          rest,
+          rt,
+          sb.append(s" ** ${sigmaParamToString(p)}"),
+          if p._1 == "_" && p._2 == Expl then 1 else 2
+        )
+      case p :: rest if kind == 2 =>
+        sigmaToString(
+          rest,
+          rt,
+          sb.append(s" ${sigmaParamToString(p)}"),
+          if p._1 == "_" && p._2 == Expl then 1 else 2
+        )
+      case _ => throw Impossible()
+
     def isSimple(appSimple: Boolean = true) = this match
       case Var(_)                    => true
       case Type                      => true
@@ -117,6 +165,13 @@ object Surface:
       this match
         case Pi(name, icit, ty, body) => body.flattenPi(ns :+ (name, icit, ty))
         case tm                       => (ns, tm)
+
+    def flattenSigma(
+        ns: List[(Name, Tm)] = List.empty
+    ): (List[(Name, Tm)], Tm) =
+      this match
+        case Sigma(name, ty, body) => body.flattenSigma(ns :+ (name, ty))
+        case tm                    => (ns, tm)
 
     def flattenLam(
         ns: List[(Name, Either[Name, Icit], Option[Tm])] = List.empty

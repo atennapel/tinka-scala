@@ -21,6 +21,9 @@ object Pretty:
     case C.Lam(x0, i, b) =>
       val x = freshName(x0, ns)
       Lam(x, Right(i), None, prettyTm(b, x :: ns))
+    case C.Sigma(x0, ty, b) =>
+      val x = freshName(x0, ns)
+      Sigma(x, prettyTm(ty, ns), prettyTm(b, x :: ns))
 
   def pretty(tm: CTm, ns: List[Name] = List.empty): String =
     prettyTm(tm, ns).toString

@@ -125,6 +125,10 @@ object Elaboration:
         val ety = checkType(ctx, ty)
         val ebody = checkType(ctx.bind(x, i, ctx.eval(ety)), body)
         (Pi(x, i, ety, ebody), VType)
+      case S.Sigma(x, ty, body) =>
+        val ety = checkType(ctx, ty)
+        val ebody = checkType(ctx.bind(x, Expl, ctx.eval(ety)), body)
+        (Sigma(x, ety, ebody), VType)
       case app @ S.App(fn, arg, j) =>
         val (i, efn, tty) = j match
           case Left(name) =>

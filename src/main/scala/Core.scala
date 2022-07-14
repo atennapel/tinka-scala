@@ -15,6 +15,8 @@ object Core:
     case Lam(name: Name, icit: Icit, body: Tm)
     case App(fn: Tm, arg: Tm, icit: Icit)
 
+    case Sigma(name: Name, ty: Tm, body: Tm)
+
     case Meta(id: MetaId)
     case InsertedMeta(id: MetaId, bds: BDs)
 
@@ -30,6 +32,8 @@ object Core:
       case Lam(x, Impl, b)    => s"(\\{$x}. $b)"
       case App(fn, arg, Expl) => s"($fn $arg)"
       case App(fn, arg, Impl) => s"($fn {$arg})"
+
+      case Sigma(x, ty, b) => s"(($x : $ty) ** $b)"
 
       case Meta(id)            => s"?$id"
       case InsertedMeta(id, _) => s"?$id"

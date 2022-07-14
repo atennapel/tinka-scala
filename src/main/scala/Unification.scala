@@ -59,6 +59,8 @@ object Unification:
       case VPi(x, icit, ty, b) => Pi(x, icit, go(pren, ty), goLift(pren, b))
       case VLam(x, icit, b)    => Lam(x, icit, goLift(pren, b))
 
+      case VSigma(x, ty, b) => Sigma(x, go(pren, ty), goLift(pren, b))
+
     go(pren, v)
 
   private def lams(sp: Spine, body: Tm, ix: Int = 0): Tm = sp match
@@ -85,7 +87,11 @@ object Unification:
     debug(s"unify: ${quote(l, t)} ~ ${quote(l, u)}")
     (force(t, false), force(u, false)) match
       case (VType, VType) => ()
-      case (VPi(x1, i, ty1, body1), VPi(x2, i2, ty2, body2)) if i == i2 =>
+      case (VPi(_, i, ty1, body1), VPi(_, i2, ty2, body2)) if i == i2 =>
+        unify(l, ty1, ty2)
+        val v = VVar(l)
+        unify(lvlInc(l), vinst(body1, v), vinst(body2, v))
+      case (VSigma(_, ty1, body1), VSigma(_, ty2, body2)) =>
         unify(l, ty1, ty2)
         val v = VVar(l)
         unify(lvlInc(l), vinst(body1, v), vinst(body2, v))

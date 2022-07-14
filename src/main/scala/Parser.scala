@@ -21,12 +21,13 @@ object Parser extends StdTokenParsers with PackratParsers:
     ":",
     "=",
     ";",
-    "->"
+    "->",
+    "**"
   )
   lexical.reserved ++= Seq("Type", "let", "def")
 
   type P[+A] = PackratParser[A]
-  lazy val expr: P[Tm] = pi | fun | application | notApp
+  lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
   lazy val notApp: P[Tm] =
     parens | lambda | let | typeP | variable
   lazy val lambda: P[Tm] = positioned(
@@ -59,15 +60,30 @@ object Parser extends StdTokenParsers with PackratParsers:
   })
   lazy val parens: P[Tm] = "(" ~> expr <~ ")"
   lazy val typeP: P[Tm] = positioned("Type" ^^ { _ => Type })
-  lazy val pi: P[Tm] = positioned(
-    piParam.+ ~ "->" ~ expr ^^ { case ps ~ _ ~ rt =>
-      ps.foldRight(rt) { case ((xs, ty, i), rt) =>
-        xs.foldRight(rt) { case (x, rt) => Pi(x, i, ty.getOrElse(Hole), rt) }
-      }
+  lazy val piOrSigma: P[Tm] = positioned(
+    piParam.+ ~ ("->" | "**") ~ expr ^^ {
+      case ps ~ "->" ~ rt =>
+        ps.foldRight(rt) { case ((xs, ty, i), rt) =>
+          xs.foldRight(rt) { case (x, rt) => Pi(x, i, ty.getOrElse(Hole), rt) }
+        }
+      case ps ~ "**" ~ rt =>
+        ps.foldRight(rt) {
+          case ((_, _, Impl), _) =>
+            throw new Exception("sigma cannot have a implicit parameter")
+          case ((xs, ty, _), rt) =>
+            xs.foldRight(rt) { case (x, rt) =>
+              Sigma(x, ty.getOrElse(Hole), rt)
+            }
+        }
+      case _ ~ x ~ _ => throw new Exception(s"invalid infix operator: $x")
     }
   )
-  lazy val fun: P[Tm] = positioned(
-    expr ~ "->" ~ expr ^^ { case fn ~ _ ~ arg => Pi("_", Expl, fn, arg) }
+  lazy val funOrProd: P[Tm] = positioned(
+    expr ~ ("->" | "**") ~ expr ^^ {
+      case fn ~ "->" ~ arg => Pi("_", Expl, fn, arg)
+      case fn ~ "**" ~ arg => Sigma("_", fn, arg)
+      case _ ~ x ~ _       => throw new Exception(s"invalid infix operator: $x")
+    }
   )
   lazy val piParam: P[(List[Name], Option[Tm], Icit)] =
     ("{" ~> ident.+ ~ ":" ~ expr <~ "}" ^^ { case xs ~ _ ~ ty =>

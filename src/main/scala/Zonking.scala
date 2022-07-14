@@ -51,4 +51,6 @@ object Zonking:
     case Pi(x, i, ty, b) => Pi(x, i, zonk(l, e, ty), zonkLift(l, e, b))
     case Lam(x, i, b)    => Lam(x, i, zonkLift(l, e, b))
 
+    case Sigma(x, ty, b) => Sigma(x, zonk(l, e, ty), zonkLift(l, e, b))
+
   def zonk(t: Tm): Tm = zonk(initialLvl, List.empty, t)

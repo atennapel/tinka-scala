@@ -57,6 +57,8 @@ object Evaluation:
     case Lam(x, icit, body)    => VLam(x, icit, Clos(env, body))
     case App(fn, arg, icit)    => vapp(eval(env, fn), eval(env, arg), icit)
 
+    case Sigma(x, ty, body) => VSigma(x, eval(env, ty), Clos(env, body))
+
     case Meta(id)              => vmeta(id)
     case InsertedMeta(id, bds) => vinsertedmeta(env, id, bds)
 
@@ -89,6 +91,13 @@ object Evaluation:
         )
       case VLam(x, icit, body) =>
         Lam(x, icit, quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals))
+
+      case VSigma(x, ty, body) =>
+        Sigma(
+          x,
+          quote(lvl, ty, forceGlobals),
+          quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals)
+        )
 
   def nf(env: Env, tm: Tm): Tm =
     quote(lvlFromEnv(env), eval(env, tm), forceGlobals = true)
