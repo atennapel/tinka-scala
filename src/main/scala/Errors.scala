@@ -25,3 +25,5 @@ object Errors:
       extends Exception(s"cannot infer named lambda: $msg")
   final case class NameNotInSigmaError(msg: String)
       extends Exception(s"name not in sigma: $msg")
+  final case class PrimitiveFailedToParse(msg: String)
+      extends Exception(s"primitive failed to parse: $msg")

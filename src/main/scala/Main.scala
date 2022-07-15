@@ -5,6 +5,7 @@ import Ctx.*
 import Globals.*
 import Pretty.*
 import Debug.setDebug
+import PrimitiveElaboration.*
 import scala.io.Source
 import scala.util.parsing.input.OffsetPosition
 
@@ -14,6 +15,9 @@ import scala.util.parsing.input.OffsetPosition
 def run(filename: String, debug: Boolean = false): Unit =
   try
     setDebug(debug)
+
+    elaboratePrimitives()
+
     val src = Source.fromFile(filename)
     val contents = src.getLines.mkString("\n")
     val ctx = Ctx.empty(OffsetPosition(contents, 0))

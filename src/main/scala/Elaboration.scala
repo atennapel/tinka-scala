@@ -17,8 +17,8 @@ import Globals.*
 import Metas.*
 import Common.*
 import Common.Icit.*
-import Common.PrimName.*
 import Debug.debug
+import Primitives.*
 import scala.util.parsing.input.{Position, NoPosition}
 import scala.annotation.tailrec
 
@@ -116,16 +116,17 @@ object Elaboration:
     val ctx = ctx0.enter(tm.pos)
     debug(s"infer: $tm")
     tm match
-      case S.Type      => (Type, VType)
-      case S.Var("()") => (Prim(PUnitType), VType)
-      case S.Var("[]") => (Prim(PUnit), VPrim(PUnitType))
+      case S.Type => (Type, VType)
       case S.Var(name) =>
-        ctx.lookup(name) match
-          case Some((ix, ty)) => (Var(ix), ty)
+        getPrimitive(name) match
+          case Some(ty) => (Prim(name), ty)
           case None =>
-            getGlobal(name) match
-              case None     => throw VarError(s"$name\n${ctx.pos.longString}")
-              case Some(ge) => (Global(name), ge.vty)
+            ctx.lookup(name) match
+              case Some((ix, ty)) => (Var(ix), ty)
+              case None =>
+                getGlobal(name) match
+                  case None => throw VarError(s"$name\n${ctx.pos.longString}")
+                  case Some(ge) => (Global(name), ge.vty)
       case S.Let(x, oty, value, body) =>
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)

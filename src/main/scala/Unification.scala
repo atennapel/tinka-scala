@@ -1,5 +1,4 @@
 import Common.*
-import Common.PrimName.*
 import Value.*
 import Value.Val.*
 import Value.Elim.*
@@ -146,8 +145,8 @@ object Unification:
       case (VNe(HMeta(id), sp), v)                  => solve(l, id, sp, v)
       case (v, VNe(HMeta(id), sp))                  => solve(l, id, sp, v)
 
-      case (VPrim(PUnit), _) => ()
-      case (_, VPrim(PUnit)) => ()
+      case (VPrim("[]"), _) => ()
+      case (_, VPrim("[]")) => ()
 
       case (VGlobal(h1, sp1, v1), VGlobal(h2, sp2, v2)) if h1 == h2 =>
         try unifySp(l, sp1, sp2)

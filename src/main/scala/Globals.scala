@@ -1,8 +1,8 @@
 import Common.*
-import scala.collection.mutable.Map
 import Core.Tm
 import Value.Val
 import Value.Val.VGlobal
+import scala.collection.mutable.Map
 
 object Globals:
   private val globals: Map[Name, GlobalEntry] = Map.empty
