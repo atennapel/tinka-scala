@@ -1,10 +1,13 @@
 import Common.*
+import Common.Icit.*
 import Core.*
 
 object Value:
   type Env = List[Val]
 
-  final case class Clos(env: Env, tm: Tm)
+  enum Clos:
+    case ClosEnv(env: Env, tm: Tm)
+    case ClosFun(fn: Val => Val)
 
   enum Head:
     case HVar(lvl: Lvl)
@@ -15,6 +18,11 @@ object Value:
   enum Elim:
     case EApp(arg: Val, icit: Icit)
     case EProj(proj: ProjType)
+    case EPrim(name: PrimName, args: List[(Val, Icit)])
+
+    def isApp: Boolean = this match
+      case EApp(_, _) => true
+      case _          => false
 
   enum Val:
     case VNe(head: Head, spine: Spine)
@@ -50,3 +58,14 @@ object Value:
     def unapply(value: Val): Option[PrimName] = value match
       case VNe(HPrim(head), Nil) => Some(head)
       case _                     => None
+
+  object VPrimArgs:
+    import Val.VNe
+    import Head.HPrim
+    import Elim.EApp
+    def apply(name: PrimName, args: List[(Val, Icit)]) =
+      VNe(HPrim(name), args.map((v, i) => EApp(v, i)).reverse)
+    def unapply(value: Val): Option[(PrimName, List[(Val, Icit)])] = value match
+      case VNe(HPrim(head), args) if args.forall(_.isApp) =>
+        Some((head, args.collect { case EApp(v, i) => (v, i) }.reverse))
+      case _ => None

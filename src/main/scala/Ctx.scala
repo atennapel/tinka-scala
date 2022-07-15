@@ -1,12 +1,13 @@
 import Common.*
 import Common.BD.*
 import Value.*
-import scala.util.parsing.input.{Position, NoPosition}
+import Value.Clos.*
 import Evaluation.{eval as veval, quote as vquote, vinst}
 import Core.*
-import scala.annotation.tailrec
 import Pretty.{pretty as pretty0}
 import Zonking.{zonk as zonk0}
+import scala.annotation.tailrec
+import scala.util.parsing.input.{Position, NoPosition}
 
 final case class Ctx(
     val env: Env,
@@ -34,8 +35,8 @@ final case class Ctx(
       bds = Defined :: bds
     )
 
-  def clos(tm: Tm): Clos = Clos(env, tm)
-  def closeVal(v: Val): Clos = Clos(env, vquote(lvlInc(lvl), v))
+  def clos(tm: Tm): Clos = ClosEnv(env, tm)
+  def closeVal(v: Val): Clos = ClosEnv(env, vquote(lvlInc(lvl), v))
 
   def eval(tm: Tm): Val = veval(env, tm)
   def quote(v: Val): Tm = vquote(lvl, v)

@@ -1,5 +1,6 @@
 import Common.*
 import Common.BD.*
+import Common.Icit.*
 import Core.*
 import Core.Tm.*
 import Core.ProjType.*
@@ -7,13 +8,17 @@ import Value.*
 import Value.Head.*
 import Value.Val.*
 import Value.Elim.*
+import Value.Clos.*
 import Errors.*
 import Globals.*
 import Metas.*
 import Metas.MetaEntry.*
+import Primitives.*
 
 object Evaluation:
-  def vinst(cl: Clos, v: Val): Val = eval(v :: cl.env, cl.tm)
+  def vinst(cl: Clos, v: Val): Val = cl match
+    case ClosEnv(env, tm) => eval(v :: env, tm)
+    case ClosFun(fn)      => fn(v)
 
   def force(v: Val, forceGlobals: Boolean = true): Val = v match
     case VGlobal(_, _, value) if forceGlobals => force(value(), true)
@@ -46,8 +51,9 @@ object Evaluation:
   def vsnd(v: Val): Val = vproj(v, Snd)
 
   def velim(e: Elim, v: Val): Val = e match
-    case EApp(arg, icit) => vapp(v, arg, icit)
-    case EProj(proj)     => vproj(v, proj)
+    case EApp(arg, icit)   => vapp(v, arg, icit)
+    case EProj(proj)       => vproj(v, proj)
+    case EPrim(name, args) => vprimelim(name, v, args)
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Unsolved     => VMeta(id)
@@ -61,8 +67,42 @@ object Evaluation:
       case _                              => throw Impossible()
     go(env, bds)
 
+  def vprimelim(name: Name, scrut: Val, args: List[(Val, Icit)]): Val =
+    (name, scrut, args) match
+      case ("indBool", VPrim("True"), List(_, (t, _), _))  => t
+      case ("indBool", VPrim("False"), List(_, _, (f, _))) => f
+
+      // elimFix {F} P alg (In {F} x) ~> alg (\y. elimFix {F} p alg y) x
+      case (
+            "elimFix",
+            VPrimArgs("In", List(_, (x, _))),
+            List((f, _), (p, _), (alg, _))
+          ) =>
+        vapp(
+          vapp(
+            alg,
+            VLam("y", Expl, ClosFun(y => vprimelim(name, y, args))),
+            Expl
+          ),
+          x,
+          Expl
+        )
+
+      case (_, VNe(hd, spine), _) => VNe(hd, EPrim(name, args) :: spine)
+      case (_, VGlobal(hd, spine, value), _) =>
+        VGlobal(
+          hd,
+          EPrim(name, args) :: spine,
+          () => vprimelim(name, value(), args)
+        )
+      case _ => throw Impossible()
+
   def eval(env: Env, tm: Tm): Val = tm match
-    case Var(ix)    => ixEnv(env, ix)
+    case Var(ix) => ixEnv(env, ix)
+    case Prim(name) if isPrimitiveEliminator(name) =>
+      getPrimitive(name) match
+        case Some((tm, _)) => vprimelimLambda(name, tm)
+        case None          => throw Impossible()
     case Prim(name) => VPrim(name)
     case Global(name) =>
       getGlobal(name) match
@@ -71,16 +111,34 @@ object Evaluation:
     case Let(x, _, value, body) => eval(eval(env, value) :: env, body)
     case Type                   => VType
 
-    case Pi(x, icit, ty, body) => VPi(x, icit, eval(env, ty), Clos(env, body))
-    case Lam(x, icit, body)    => VLam(x, icit, Clos(env, body))
-    case App(fn, arg, icit)    => vapp(eval(env, fn), eval(env, arg), icit)
+    case Pi(x, icit, ty, body) =>
+      VPi(x, icit, eval(env, ty), ClosEnv(env, body))
+    case Lam(x, icit, body) => VLam(x, icit, ClosEnv(env, body))
+    case App(fn, arg, icit) => vapp(eval(env, fn), eval(env, arg), icit)
 
-    case Sigma(x, ty, body) => VSigma(x, eval(env, ty), Clos(env, body))
+    case Sigma(x, ty, body) => VSigma(x, eval(env, ty), ClosEnv(env, body))
     case Pair(fst, snd)     => VPair(eval(env, fst), eval(env, snd))
     case Proj(tm, proj)     => vproj(eval(env, tm), proj)
 
     case Meta(id)              => vmeta(id)
     case InsertedMeta(id, bds) => vinsertedmeta(env, id, bds)
+
+  private def vprimelimLambda(
+      name: Name,
+      ty: Tm,
+      i: Int = 0,
+      args: List[(Val, Icit)] = List.empty
+  ): Val = ty match
+    case Pi(x, icit, _, b) =>
+      val y = if x == "_" then s"$x$i" else x
+      VLam(
+        y,
+        icit,
+        ClosFun(arg => vprimelimLambda(name, b, i + 1, args :+ (arg, icit)))
+      )
+    case _ if args.nonEmpty && args.last._2 == Expl =>
+      vprimelim(name, args.last._1, args.init)
+    case _ => throw Impossible()
 
   private def quoteSp(lvl: Lvl, tm: Tm, sp: Spine, forceGlobals: Boolean): Tm =
     sp match
@@ -93,6 +151,12 @@ object Evaluation:
         )
       case EProj(proj) :: sp =>
         Proj(quoteSp(lvl, tm, sp, forceGlobals), proj)
+      case EPrim(name, args) :: sp =>
+        val scrut = quoteSp(lvl, tm, sp, forceGlobals)
+        val head = args.foldLeft(Prim(name)) { case (prev, (v, icit)) =>
+          App(prev, quote(lvl, v, forceGlobals), icit)
+        }
+        App(head, scrut, Expl)
 
   private def quoteHead(lvl: Lvl, head: Head): Tm = head match
     case HVar(head)  => Var(lvl2ix(lvl, head))
@@ -121,7 +185,8 @@ object Evaluation:
           quote(lvl, ty, forceGlobals),
           quote(lvlInc(lvl), vinst(body, VVar(lvl)), forceGlobals)
         )
-      case VPair(fst, snd) => Pair(quote(lvl, fst), quote(lvl, snd))
+      case VPair(fst, snd) =>
+        Pair(quote(lvl, fst, forceGlobals), quote(lvl, snd, forceGlobals))
 
   def nf(env: Env, tm: Tm): Tm =
     quote(lvlFromEnv(env), eval(env, tm), forceGlobals = true)

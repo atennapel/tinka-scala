@@ -182,6 +182,7 @@ object Surface:
         case Type           => true
         case Hole           => true
         case Proj(_, _)     => true
+        case Pair(_, _)     => true
         case App(_, _, _)   => appSimple
         case Sigma(_, _, _) => sigmaSimple
         case _              => false

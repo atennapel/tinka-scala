@@ -1,4 +1,5 @@
 import Common.*
+import Common.Icit.*
 import Value.*
 import Value.Val.*
 import Value.Elim.*
@@ -46,6 +47,12 @@ object Unification:
       case Nil                 => t
       case EApp(u, icit) :: sp => App(goSp(pren, t, sp), go(pren, u), icit)
       case EProj(proj) :: sp   => Proj(goSp(pren, t, sp), proj)
+      case EPrim(name, args) :: sp =>
+        val scrut = goSp(pren, t, sp)
+        val head = args.foldLeft(Prim(name)) { case (prev, (v, icit)) =>
+          App(prev, go(pren, v), icit)
+        }
+        App(head, scrut, Expl)
 
     def goLift(pren: PRen, c: Clos): Tm =
       go(lift(pren), vinst(c, VVar(pren.cod)))
@@ -89,6 +96,10 @@ object Unification:
   private def unifyElim(l: Lvl, e1: Elim, e2: Elim): Unit = (e1, e2) match
     case (EApp(v1, _), EApp(v2, _))                => unify(l, v1, v2)
     case (EProj(p1), EProj(p2)) if eqvProj(p1, p2) => ()
+    case (EPrim(x1, args1), EPrim(x2, args2)) if x1 == x2 =>
+      args1.map(_._1).zip(args2.map(_._1)).foreach { case (v1, v2) =>
+        unify(l, v1, v2)
+      }
     case _ => throw UnifyError("spine mismatch")
 
   private def unifySpProj(l: Lvl, sp1: Spine, sp2: Spine, ix: Int): Unit =

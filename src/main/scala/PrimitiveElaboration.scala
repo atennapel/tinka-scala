@@ -14,5 +14,5 @@ object PrimitiveElaboration:
       case err @ Parser.Error(msg, _) =>
         throw PrimitiveFailedToParse(s"$name: $err")
     val (ty, _) = elaborate(stm)
-    Ctx.empty().eval(ty)
+    (ty, Ctx.empty().eval(ty))
   }

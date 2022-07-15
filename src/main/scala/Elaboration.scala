@@ -10,6 +10,7 @@ import Core.ProjType.*
 import Ctx.*
 import Value.*
 import Value.Val.*
+import Value.Clos.*
 import Evaluation.*
 import Unification.*
 import Errors.*
@@ -119,7 +120,7 @@ object Elaboration:
       case S.Type => (Type, VType)
       case S.Var(name) =>
         getPrimitive(name) match
-          case Some(ty) => (Prim(name), ty)
+          case Some((_, ty)) => (Prim(name), ty)
           case None =>
             ctx.lookup(name) match
               case Some((ix, ty)) => (Var(ix), ty)
@@ -157,7 +158,7 @@ object Elaboration:
             (a, b)
           case tty =>
             val a = ctx.eval(newMeta(ctx))
-            val b = Clos(ctx.env, newMeta(ctx.bind("x", i, a)))
+            val b = ClosEnv(ctx.env, newMeta(ctx.bind("x", i, a)))
             unifyCatch(ctx, VPi("x", i, a, b), tty)
             (a, b)
         val earg = check(ctx, arg, pt)
