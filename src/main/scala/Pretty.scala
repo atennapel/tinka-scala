@@ -21,6 +21,7 @@ object Pretty:
     case C.Global(name)    => Var(name)
     case C.App(fn, arg, i) => App(prettyTm(fn, ns), prettyTm(arg, ns), Right(i))
     case C.Type            => Type
+    case C.LabelLit(x)     => LabelLit(x)
     case C.Meta(id)        => Var(s"?$id")
     case C.InsertedMeta(id, _) => Var(s"?$id")
     case C.Let(x0, ty, value, b) =>

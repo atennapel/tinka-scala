@@ -72,6 +72,9 @@ object Evaluation:
       case ("elimBool", VPrim("True"), List(_, (t, _), _))  => t
       case ("elimBool", VPrim("False"), List(_, _, (f, _))) => f
 
+      case ("eqLabel", VLabelLit(x), List((VLabelLit(y), _))) =>
+        if x == y then VPrimTrue else VPrimFalse
+
       // elimFix {F} P alg (In {F} x) ~> alg (\y. elimFix {F} p alg y) x
       case (
             "elimFix",
@@ -114,6 +117,7 @@ object Evaluation:
         case None     => throw Impossible()
     case Let(x, _, value, body) => eval(eval(env, value) :: env, body)
     case Type                   => VType
+    case LabelLit(x)            => VLabelLit(x)
 
     case Pi(x, icit, ty, body) =>
       VPi(x, icit, eval(env, ty), ClosEnv(env, body))
@@ -172,6 +176,7 @@ object Evaluation:
       case VNe(head, sp) => quoteSp(lvl, quoteHead(lvl, head), sp, forceGlobals)
       case VGlobal(head, sp, _) => quoteSp(lvl, Global(head), sp, forceGlobals)
       case VType                => Type
+      case VLabelLit(x)         => LabelLit(x)
 
       case VPi(x, icit, ty, body) =>
         Pi(

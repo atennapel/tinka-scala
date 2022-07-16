@@ -200,6 +200,7 @@ object Elaboration:
         val (efst, vtyfst) = infer(ctx, fst)
         val (esnd, vtysnd) = infer(ctx, snd)
         (Pair(efst, esnd), VSigma("_", vtyfst, ctx.closeVal(vtysnd)))
+      case S.LabelLit(x) => (LabelLit(x), VPrimLabel)
       case S.Hole =>
         val a = ctx.eval(newMeta(ctx))
         val t = newMeta(ctx)

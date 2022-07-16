@@ -35,6 +35,7 @@ object Zonking:
     case Prim(name)   => t
     case Global(name) => t
     case Type         => t
+    case LabelLit(_)  => t
 
     case Meta(id) =>
       getMeta(id) match

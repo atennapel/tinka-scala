@@ -80,7 +80,9 @@ object Parser extends StdTokenParsers with PackratParsers:
       | notApp.map(t => Right((t, Right(Expl))))
 
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
-    if x.startsWith("_") then Hole else Var(x)
+    if x.startsWith("_") then Hole
+    else if x.startsWith("'") then LabelLit(x.tail)
+    else Var(x)
   })
   lazy val parens: P[Tm] = positioned(
     "(" ~> expr ~ ("," ~ expr).* <~ ")" ^^ {
@@ -185,7 +187,8 @@ object Parser extends StdTokenParsers with PackratParsers:
   private object Lexer extends StdLexical:
     final val EofCh: Char = '\u001a'
 
-    override def letter = elem("letter", c => c.isLetter && c != 'λ')
+    override def letter =
+      elem("letter", c => (c.isLetter && c != 'λ') || c == '\'')
 
     override def whitespace: Parser[Any] = rep[Any](
       whitespaceChar

@@ -27,6 +27,7 @@ object Surface:
 
   enum Tm extends Positional:
     case Var(name: Name)
+    case LabelLit(name: Name)
     case Let(name: Name, ty: Option[Tm], value: Tm, body: Tm)
     case Type
 
@@ -41,7 +42,8 @@ object Surface:
     case Hole
 
     override def toString: String = this match
-      case Var(name) => name
+      case Var(name)      => name
+      case LabelLit(name) => s"'$name"
       case Let(name, Some(ty), value, body) =>
         s"let $name : $ty = $value; $body"
       case Let(name, _, value, body) => s"let $name = $value; $body"
@@ -179,6 +181,7 @@ object Surface:
     def isSimple(appSimple: Boolean = true, sigmaSimple: Boolean = false) =
       this match
         case Var(_)         => true
+        case LabelLit(_)    => true
         case Type           => true
         case Hole           => true
         case Proj(_, _)     => true

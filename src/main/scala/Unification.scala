@@ -65,6 +65,7 @@ object Unification:
       case VNe(HPrim(x), sp)  => goSp(pren, Prim(x), sp)
       case VGlobal(hd, sp, v) => goSp(pren, Global(hd), sp) // TODO: is this OK?
       case VType              => Type
+      case VLabelLit(x)       => LabelLit(x)
 
       case VPi(x, icit, ty, b) => Pi(x, icit, go(pren, ty), goLift(pren, b))
       case VLam(x, icit, b)    => Lam(x, icit, goLift(pren, b))
@@ -122,7 +123,8 @@ object Unification:
   def unify(l: Lvl, t: Val, u: Val): Unit =
     debug(s"unify: ${quote(l, t)} ~ ${quote(l, u)}")
     (force(t, false), force(u, false)) match
-      case (VType, VType) => ()
+      case (VType, VType)                         => ()
+      case (VLabelLit(x), VLabelLit(y)) if x == y => ()
       case (VPi(_, i, ty1, body1), VPi(_, i2, ty2, body2)) if i == i2 =>
         unify(l, ty1, ty2)
         val v = VVar(l)

@@ -28,6 +28,7 @@ object Value:
     case VNe(head: Head, spine: Spine)
     case VGlobal(head: Name, spine: Spine, value: () => Val)
     case VType
+    case VLabelLit(name: Name)
 
     case VLam(name: Name, icit: Icit, body: Clos)
     case VPi(name: Name, icit: Icit, ty: Val, body: Clos)

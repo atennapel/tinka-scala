@@ -18,6 +18,7 @@ object Core:
     case Var(ix: Ix)
     case Prim(name: PrimName)
     case Global(name: Name)
+    case LabelLit(name: Name)
     case Let(name: Name, ty: Tm, value: Tm, body: Tm)
     case Type
 
@@ -36,6 +37,7 @@ object Core:
       case Var(ix)                    => s"'$ix"
       case Prim(name)                 => name.toString
       case Global(name)               => name
+      case LabelLit(name)             => s"'$name"
       case Let(name, ty, value, body) => s"(let $name : $ty = $value; $body)"
       case Type                       => "Type"
 
