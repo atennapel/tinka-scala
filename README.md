@@ -33,14 +33,15 @@ sbt "run examples/church.tinka"
 - [x] Debugging flag
 - [x] Sigma types
 - [x] Add unit type
+- [x] Identity type
 - [ ] Fix projection parsing issues
 - [ ] Fix type
-- [ ] Equality type
 - [ ] Enum type
 - [ ] Erasure annotations
 - [ ] Add a package name
 - [ ] Clean up error handling and output
 - [ ] Better name generation
+- [ ] Operators
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
 - [ ] Core language verification

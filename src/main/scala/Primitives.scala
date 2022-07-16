@@ -18,7 +18,7 @@ object Primitives:
   def isPrimitiveEliminator(name: PrimName): Boolean =
     primitiveElims.contains(name)
 
-  private val primitiveElims = Set("absurd", "indBool", "elimFix")
+  private val primitiveElims = Set("absurd", "elimBool", "elimId", "elimFix")
 
   private val primitivesTypes = ListMap(
     "()" -> "Type",
@@ -28,7 +28,17 @@ object Primitives:
     "Bool" -> "Type",
     "True" -> "Bool",
     "False" -> "Bool",
-    "indBool" -> "(P : Bool -> Type) (t : P True) (f : P False) (b : Bool) -> P b",
+    "elimBool" -> "(P : Bool -> Type) (t : P True) (f : P False) (b : Bool) -> P b",
+    "Id" -> "{A B} -> A -> B -> Type",
+    "Refl" -> "{A} {x : A} -> Id x x",
+    "elimId" -> """
+      {A : Type} {x : A}
+      (P : {y : A} -> Id x y -> Type)
+      (refl : P {x} Refl)
+      {y : A}
+      (p : Id x y)
+      -> P p
+    """.trim,
     "Fix" -> "(Type -> Type) -> Type",
     "In" -> "{F : Type -> Type} -> F (Fix F) -> Fix F",
     "elimFix" -> """

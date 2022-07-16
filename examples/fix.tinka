@@ -1,9 +1,9 @@
-def if {A} (b : Bool) (t f : A) : A = indBool (\_. A) t f b;
+def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;
 def Sum (A B : Type) : Type = (tag : Bool) ** if tag A B;
 def Left {A B} (x : A) : Sum A B = (True, x);
 def Right {A B} (x : B) : Sum A B = (False, x);
 def caseSum {A B R} (x : Sum A B) (left : A -> R) (right : B -> R) : R =
-  indBool (\tag. if tag A B -> R) left right (x.tag) (x._2);
+  elimBool (\tag. if tag A B -> R) left right (x.tag) (x._2);
 
 def NatF (R : Type) : Type = Sum R ();
 def Nat = Fix NatF;

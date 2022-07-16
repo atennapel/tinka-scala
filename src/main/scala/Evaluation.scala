@@ -69,8 +69,8 @@ object Evaluation:
 
   def vprimelim(name: Name, scrut: Val, args: List[(Val, Icit)]): Val =
     (name, scrut, args) match
-      case ("indBool", VPrim("True"), List(_, (t, _), _))  => t
-      case ("indBool", VPrim("False"), List(_, _, (f, _))) => f
+      case ("elimBool", VPrim("True"), List(_, (t, _), _))  => t
+      case ("elimBool", VPrim("False"), List(_, _, (f, _))) => f
 
       // elimFix {F} P alg (In {F} x) ~> alg (\y. elimFix {F} p alg y) x
       case (
@@ -87,6 +87,10 @@ object Evaluation:
           x,
           Expl
         )
+
+      // elimId {A} {x} P refl {y} (Refl {_} {_} x y) ~> refl
+      case ("elimId", VPrimArgs("Refl", _), List(_, _, _, (refl, _), _)) =>
+        refl
 
       case (_, VNe(hd, spine), _) => VNe(hd, EPrim(name, args) :: spine)
       case (_, VGlobal(hd, spine, value), _) =>
