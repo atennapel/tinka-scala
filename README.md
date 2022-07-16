@@ -34,9 +34,9 @@ sbt "run examples/church.tinka"
 - [x] Sigma types
 - [x] Add unit type
 - [x] Identity type
+- [ ] Basic importing
 - [ ] Fix projection parsing issues
-- [ ] Fix type
-- [ ] Enum type
+- [ ] Inductive-recursive fixpoint type
 - [ ] Erasure annotations
 - [ ] Add a package name
 - [ ] Clean up error handling and output

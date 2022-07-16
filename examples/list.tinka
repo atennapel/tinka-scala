@@ -1,3 +1,4 @@
+-- prelude
 def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;
 def Sum (A B : Type) : Type = (tag : Bool) ** if tag A B;
 def Left {A B} (x : A) : Sum A B = (True, x);
@@ -21,6 +22,11 @@ def elimFix
   (x : Fix F) : P x
   = elimIFix {()} {\f _. F (f [])} P (\rec y. alg rec y) x;
 
+{-
+data List A where
+  Nil : List A
+  Cons : A -> List A -> List A
+-}
 def ListF A R = Sum ((head : A) (tail : R) ** ()) ();
 def List A = Fix (ListF A);
 def Nil {A} : List A = In {ListF A} (Right []);
@@ -33,30 +39,11 @@ def elimList
   (x : List A) : P x
   = elimFix {ListF A} P (\rec y. elimSum (\s. P (In {ListF A} s))
       (\data. cons (data.head) (data.tail) (rec (data.tail))) (\_. nil) y) x;
+
 def foldr {A R} (nil : R) (cons : A -> R -> R) (list : List A) : R
   = elimList (\_. R) nil (\hd _ tl. cons hd tl) list;
+
 def map {A B} (fn : A -> B) (list : List A) : List B
   = foldr Nil (\hd tl. Cons (fn hd) tl) list;
 
-def Enum = List Label;
-
-{-
-data Tag : Enum -> Type where
-  TZ : {l : Label} {e : Enum} -> Tag (Cons l e)
-  TS : {l : Label} {e : Enum} -> Tag e -> Tag (Cons l e)
--}
-def TagF (R : Enum -> Type) (e : Enum) : Type
-  = Sum
-      ((label : Label) (enum : Enum) (rest : R enum) (proof : Id (Cons label enum) e) ** ())
-      ((label : Label) (enum : Enum) (proof : Id (Cons label enum) e) ** ());
-def Tag : Enum -> Type = IFix TagF;
-def TZ {l : Label} {e : Enum} : Tag (Cons l e) =
-  IIn {F = TagF} {Cons l e} (Right
-    {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
-    {(label : Label) (enum : Enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
-    [l, e, Refl]);
-def TS {l : Label} {e : Enum} (rest : Tag e) : Tag (Cons l e) =
-  IIn {F = TagF} {Cons l e} (Left
-    {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
-    {(label : Label) (enum : Enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
-    [l, e, rest, Refl]);
+def main = #[[], [], []];
