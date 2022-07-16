@@ -82,7 +82,9 @@ object Elaboration:
     val ctx = ctx0.enter(tm.pos)
     debug(s"check: $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
-      case (S.Hole, _) => newMeta(ctx)
+      case (S.Hole(None), _) => newMeta(ctx)
+      case (S.Hole(Some(name)), _) =>
+        throw HoleError(s"_$name : ${ctx.pretty(ty)}\n${ctx.show}")
       case (S.Lam(x, i, tyopt, body), VPi(x2, i2, ty, b2))
           if i.fold(y => i2 == Impl && y == x2, _ == i2) =>
         tyopt match
@@ -201,10 +203,12 @@ object Elaboration:
         val (esnd, vtysnd) = infer(ctx, snd)
         (Pair(efst, esnd), VSigma("_", vtyfst, ctx.closeVal(vtysnd)))
       case S.LabelLit(x) => (LabelLit(x), VPrimLabel)
-      case S.Hole =>
+      case S.Hole(None) =>
         val a = ctx.eval(newMeta(ctx))
         val t = newMeta(ctx)
         (t, a)
+      case S.Hole(Some(name)) =>
+        throw CannotInferError(s"named hole _${name}")
 
   def elaborate(tm: STm, pos: Position = NoPosition): (Tm, Tm) =
     resetMetas()

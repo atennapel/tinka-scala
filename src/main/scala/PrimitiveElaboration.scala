@@ -10,9 +10,9 @@ object PrimitiveElaboration:
     val stm = parse(defn) match
       case Parser.Success(x, _) => x
       case err @ Parser.Failure(msg, _) =>
-        throw PrimitiveFailedToParse(s"$name: $err")
+        throw PrimitiveFailedToParseError(s"$name: $err")
       case err @ Parser.Error(msg, _) =>
-        throw PrimitiveFailedToParse(s"$name: $err")
+        throw PrimitiveFailedToParseError(s"$name: $err")
     val (ty, _) = elaborate(stm)
     (ty, Ctx.empty().eval(ty))
   }

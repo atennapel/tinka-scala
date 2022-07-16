@@ -34,7 +34,7 @@ def run(filename: String, debug: Boolean = false): Unit =
       case Some(ge) =>
         println(s"main : ${pretty(ge.ty)}")
         println(s"main = ${pretty(ge.value)}")
-        println(s"${pretty(nf(List.empty, ge.value))}")
+        println(s"${pretty(nf(List.empty, ge.value), hideImplicitApps = true)}")
   catch
     case exc: Exception =>
       println(exc.getMessage)

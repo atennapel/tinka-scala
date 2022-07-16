@@ -39,7 +39,7 @@ object Surface:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
 
-    case Hole
+    case Hole(name: Option[Name])
 
     override def toString: String = this match
       case Var(name)      => name
@@ -48,7 +48,7 @@ object Surface:
         s"let $name : $ty = $value; $body"
       case Let(name, _, value, body) => s"let $name = $value; $body"
       case Type                      => "Type"
-      case Hole                      => "_"
+      case Hole(name)                => s"_${name.getOrElse("")}"
 
       case pi @ Pi(_, _, _, _) =>
         val (ps, rt) = pi.flattenPi()
@@ -183,7 +183,7 @@ object Surface:
         case Var(_)         => true
         case LabelLit(_)    => true
         case Type           => true
-        case Hole           => true
+        case Hole(_)        => true
         case Proj(_, _)     => true
         case Pair(_, _)     => true
         case App(_, _, _)   => appSimple

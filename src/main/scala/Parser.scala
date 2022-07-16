@@ -46,7 +46,7 @@ object Parser extends StdTokenParsers with PackratParsers:
       case x ~ ps ~ ty ~ _ ~ v ~ _ ~ b =>
         if ps.isEmpty then Let(x, ty, v, b)
         else
-          val pi = piFromParams(ps, ty.getOrElse(Hole))
+          val pi = piFromParams(ps, ty.getOrElse(Hole(None)))
           val lams = unannotatedLamFromParams(ps, v)
           Let(x, Some(pi), lams, b)
     }
@@ -80,7 +80,7 @@ object Parser extends StdTokenParsers with PackratParsers:
       | notApp.map(t => Right((t, Right(Expl))))
 
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
-    if x.startsWith("_") then Hole
+    if x.startsWith("_") then Hole(if x.isEmpty then None else Some(x.tail))
     else if x.startsWith("'") then LabelLit(x.tail)
     else Var(x)
   })
@@ -95,7 +95,9 @@ object Parser extends StdTokenParsers with PackratParsers:
     piParam.+ ~ ("->" | "**") ~ expr ^^ { // TODO: make ** lower precedence
       case ps ~ "->" ~ rt =>
         ps.foldRight(rt) { case ((xs, ty, i), rt) =>
-          xs.foldRight(rt) { case (x, rt) => Pi(x, i, ty.getOrElse(Hole), rt) }
+          xs.foldRight(rt) { case (x, rt) =>
+            Pi(x, i, ty.getOrElse(Hole(None)), rt)
+          }
         }
       case ps ~ "**" ~ rt =>
         ps.foldRight(rt) {
@@ -103,7 +105,7 @@ object Parser extends StdTokenParsers with PackratParsers:
             throw new Exception("sigma cannot have a implicit parameter")
           case ((xs, ty, _), rt) =>
             xs.foldRight(rt) { case (x, rt) =>
-              Sigma(x, ty.getOrElse(Hole), rt)
+              Sigma(x, ty.getOrElse(Hole(None)), rt)
             }
         }
       case _ ~ x ~ _ => throw new Exception(s"invalid infix operator: $x")
@@ -152,7 +154,7 @@ object Parser extends StdTokenParsers with PackratParsers:
         if ps.isEmpty then
           ty.fold(Def(id, v))(ty => Def(id, Let(id, Some(ty), v, Var(id))))
         else
-          val pi = piFromParams(ps, ty.getOrElse(Hole))
+          val pi = piFromParams(ps, ty.getOrElse(Hole(None)))
           val lams = unannotatedLamFromParams(ps, v)
           Def(id, Let(id, Some(pi), lams, Var(id)))
     }
@@ -162,7 +164,7 @@ object Parser extends StdTokenParsers with PackratParsers:
       rt: Tm
   ): Tm =
     ps.foldRight(rt) { case ((xs, tyopt, i), rt) =>
-      val pty = tyopt.getOrElse(Hole)
+      val pty = tyopt.getOrElse(Hole(None))
       xs.foldRight(rt)((x, rt) => Pi(x, i, pty, rt))
     }
   def unannotatedLamFromParams(

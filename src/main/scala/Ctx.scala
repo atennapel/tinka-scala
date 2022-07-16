@@ -55,6 +55,9 @@ final case class Ctx(
       case _ :: rest                    => go(rest, ixInc(ix))
     go(types, initialIx)
 
+  def show: String =
+    types.map { case (x, _, ty) => s"$x : ${pretty(ty)}" }.mkString("\n")
+
 object Ctx:
   def empty(pos: Position = NoPosition): Ctx =
     Ctx(List.empty, initialLvl, List.empty, List.empty, pos)

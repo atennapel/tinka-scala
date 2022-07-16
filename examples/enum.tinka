@@ -1,0 +1,65 @@
+def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;
+def Sum (A B : Type) : Type = (tag : Bool) ** if tag A B;
+def Left {A B} (x : A) : Sum A B = (True, x);
+def Right {A B} (x : B) : Sum A B = (False, x);
+def elimSum
+  {A B}
+  (P : Sum A B -> Type)
+  (left : (x : A) -> P (Left x))
+  (right : (x : B) -> P (Right x))
+  (x : Sum A B) : P x
+  = elimBool (\tag. (x : if tag A B) -> P (tag, x)) left right (x.tag) (x._2);
+def caseSum {A B R} (x : Sum A B) (left : A -> R) (right : B -> R) : R =
+  elimSum (\_. R) left right x;
+
+def Fix (F : Type -> Type) : Type = IFix {()} (\f _. F (f [])) [];
+def In {F : Type -> Type} (x : F (Fix F)) : Fix F = IIn {()} {\f _. F (f [])} {[]} x;
+def elimFix
+  {F : Type -> Type}
+  (P : Fix F -> Type)
+  (alg : ((z : Fix F) -> P z) -> (y : F (Fix F)) -> P (In {F} y))
+  (x : Fix F) : P x
+  = elimIFix {()} {\f _. F (f [])} P (\rec y. alg rec y) x;
+
+{-
+data Enum where
+  ENil : Enum
+  ECons : Label -> Enum -> Enum
+-}
+def EnumF = \R. Sum ((label : Label) (tail : R) ** ()) ();
+def Enum = Fix EnumF;
+def ENil : Enum = In {EnumF} (Right []);
+def ECons (l : Label) (tl : Enum) : Enum = In {EnumF} (Left [l, tl]);
+def elimEnum
+  (P : Enum -> Type)
+  (nil : P ENil)
+  (cons : (l : Label) (tl : Enum) -> P tl -> P (ECons l tl))
+  (x : Enum) : P x
+  = elimFix {EnumF} P (\rec y. elimSum (\s. P (In {EnumF} s))
+      (\data. cons (data.label) (data.tail) (rec (data.tail))) (\_. nil) y) x;
+
+{-
+data Tag : Enum -> Type where
+  TZ : {l : Label} {e : Enum} -> Tag (ECons l e)
+  TS : {l : Label} {e : Enum} -> Tag e -> Tag (ECons l e)
+-}
+def TagF (R : Enum -> Type) (e : Enum) : Type
+  = Sum
+      ((label : Label) (enum : Enum) (rest : R enum) (proof : Id (ECons label enum) e) ** ())
+      ((label : Label) (enum : Enum) (proof : Id (ECons label enum) e) ** ());
+def Tag : Enum -> Type = IFix TagF;
+def TZ {l : Label} {e : Enum} : Tag (ECons l e) =
+  IIn {F = TagF} {ECons l e} (Right
+    {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (ECons label enum) (ECons l e)) ** ()}
+    {(label : Label) (enum : Enum) (proof : Id (ECons label enum) (ECons l e)) ** ()}
+    [l, e, Refl]);
+def TS {l : Label} {e : Enum} (rest : Tag e) : Tag (ECons l e) =
+  IIn {F = TagF} {ECons l e} (Left
+    {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (ECons label enum) (ECons l e)) ** ()}
+    {(label : Label) (enum : Enum) (proof : Id (ECons label enum) (ECons l e)) ** ()}
+    [l, e, rest, Refl]);
+
+def Bool2 = Tag (ECons 'True (ECons 'False ENil));
+def True2 : Bool2 = TZ;
+def False2 : Bool2 = TS TZ;
+def main = False2;

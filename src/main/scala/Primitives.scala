@@ -42,13 +42,15 @@ object Primitives:
       (p : Id x y)
       -> P p
     """.trim,
-    "Fix" -> "(Type -> Type) -> Type",
-    "In" -> "{F : Type -> Type} -> F (Fix F) -> Fix F",
-    "elimFix" -> """
-      {F : Type -> Type}
-      (P : Fix F -> Type)
-      (alg : ((z : Fix F) -> P z) -> (y : F (Fix F)) -> P (In {F} y))
-      (x : Fix F)
+    "IFix" -> "{I : Type} -> ((I -> Type) -> I -> Type) -> I -> Type",
+    "IIn" -> "{I} {F : (I -> Type) -> I -> Type} -> {i : I} -> F (IFix F) i -> IFix F i",
+    "elimIFix" -> """
+      {I}
+      {F : (I -> Type) -> I -> Type}
+      (P : {i} -> IFix F i -> Type)
+      (alg : ({j} (z : IFix F j) -> P z) -> {i} (y : F (IFix F) i) -> P (IIn {I} {F} y))
+      {i}
+      (x : IFix F i)
       -> P x
     """.trim
   )
