@@ -11,7 +11,7 @@ def NatSig =
   ();
 
 def NatExt (natM : NatSig): (add : natM.Nat -> natM.Nat -> natM.Nat) ** () =
-  [\a b. natM.fold a b (natM.S)];
+  [\a b. natM.fold a b natM.S];
 
 def CNatM : NatSig = [Nat, Z, S, foldNat];
 

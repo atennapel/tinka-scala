@@ -3,7 +3,7 @@ def Sum (A B : Type) : Type = (tag : Bool) ** if tag A B;
 def Left {A B} (x : A) : Sum A B = (True, x);
 def Right {A B} (x : B) : Sum A B = (False, x);
 def caseSum {A B R} (x : Sum A B) (left : A -> R) (right : B -> R) : R =
-  elimBool (\tag. if tag A B -> R) left right (x.tag) (x._2);
+  elimBool (\tag. if tag A B -> R) left right x.tag x._2;
 
 def Fix (F : Type -> Type) : Type = IFix {()} (\f _. F (f [])) [];
 def In {F : Type -> Type} (x : F (Fix F)) : Fix F = IIn {()} {\f _. F (f [])} {[]} x;

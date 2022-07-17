@@ -70,26 +70,36 @@ object Parser extends StdTokenParsers with PackratParsers:
     }
   )
 
-  lazy val application: P[Tm] = positioned(expr ~ argument ^^ {
-    case fn ~ Left(p)                => Proj(fn, p)
-    case fn ~ Right((arg, Right(i))) => App(fn, arg, Right(i))
-    case fn ~ Right((arg, Left(xs))) =>
+  private type Arg = Either[ProjType, (Tm, Either[List[Name], Icit])]
+
+  def applyArg(fn: Tm, arg: Arg): Tm = arg match
+    case Left(p)                => Proj(fn, p)
+    case Right((arg, Right(i))) => App(fn, arg, Right(i))
+    case Right((arg, Left(xs))) =>
       xs.foldLeft(fn)((b, x) => App(b, arg, Left(x)))
+
+  def prepareSpine(sp: List[Arg]): List[Arg] = sp match
+    case Right((arg, Right(Expl))) :: Left(p) :: rest =>
+      prepareSpine(Right((Proj(arg, p), Right(Expl))) :: rest)
+    case arg :: rest => arg :: prepareSpine(rest)
+    case Nil         => List.empty
+
+  lazy val application: P[Tm] = positioned(expr ~ argument.+ ^^ {
+    case fn ~ args => prepareSpine(args).foldLeft(fn)(applyArg)
   })
-  lazy val argument: P[Either[ProjType, (Tm, Either[List[Name], Icit])]] =
+  lazy val argument: P[Arg] =
     ("{" ~> ident.+ ~ "=" ~ expr <~ "}" ^^ { case xs ~ _ ~ t =>
       Right((t, Left(xs)))
     })
       | ("{" ~> expr <~ "}" ^^ { case t => Right((t, Right(Impl))) })
-      | ("._1" ^^ { case _ =>
-        Left(Fst)
-      }) // TODO: projection should bind tighter than application
+      | ("._1" ^^ { case _ => Left(Fst) })
       | ("._2" ^^ { case _ => Left(Snd) })
       | ("." ~ ident ^^ { case _ ~ x => Left(Named(x)) })
       | notApp.map(t => Right((t, Right(Expl))))
 
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
-    if x.startsWith("_") then Hole(if x.isEmpty then None else Some(x.tail))
+    if x.startsWith("_") then
+      Hole(if x.tail.isEmpty then None else Some(x.tail))
     else if x.startsWith("'") then LabelLit(x.tail)
     else Var(x)
   })

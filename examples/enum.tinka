@@ -8,7 +8,7 @@ def elimSum
   (left : (x : A) -> P (Left x))
   (right : (x : B) -> P (Right x))
   (x : Sum A B) : P x
-  = elimBool (\tag. (x : if tag A B) -> P (tag, x)) left right (x.tag) (x._2);
+  = elimBool (\tag. (x : if tag A B) -> P (tag, x)) left right x.tag x._2;
 def caseSum {A B R} (x : Sum A B) (left : A -> R) (right : B -> R) : R =
   elimSum (\_. R) left right x;
 
@@ -32,7 +32,7 @@ def elimList
   (cons : (head : A) (tail : List A) -> P tail -> P (Cons head tail))
   (x : List A) : P x
   = elimFix {ListF A} P (\rec y. elimSum (\s. P (In {ListF A} s))
-      (\data. cons (data.head) (data.tail) (rec (data.tail))) (\_. nil) y) x;
+      (\data. cons data.head data.tail (rec data.tail)) (\_. nil) y) x;
 def foldr {A R} (nil : R) (cons : A -> R -> R) (list : List A) : R
   = elimList (\_. R) nil (\hd _ tl. cons hd tl) list;
 def map {A B} (fn : A -> B) (list : List A) : List B
@@ -72,19 +72,19 @@ def elimTag
             {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) y) ** ()}
             {(label : Label) (enum : Enum) (proof : Id (Cons label enum) y) ** ()}
             [data.label, data.enum, data.rest, e])))
-          (ts {data.label} {data.enum} (data.rest) (rec (data.rest))) (data.proof))
+          (ts {data.label} {data.enum} data.rest (rec data.rest)) data.proof)
       (\data.
         elimId (\{y} e. P (IIn {F = TagF} {y}
           (Right
             {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) y) ** ()}
             {(label : Label) (enum : Enum) (proof : Id (Cons label enum) y) ** ()}
             [data.label, data.enum, e])))
-          (tz {data.label} {data.enum}) (data.proof))
+          (tz {data.label} {data.enum}) data.proof)
       y) x;
 
 def TaggedData = List (Label ** Type);
-def TaggedDataEnum (d : TaggedData) : Enum = foldr {Label ** Type} Nil (\x r. Cons (x._1) r) d;
-def TaggedDataTypes (d : TaggedData) : List Type = foldr {Label ** Type} Nil (\x r. Cons (x._2) r) d;
+def TaggedDataEnum (d : TaggedData) : Enum = foldr {Label ** Type} Nil (\x r. Cons x._1 r) d;
+def TaggedDataTypes (d : TaggedData) : List Type = foldr {Label ** Type} Nil (\x r. Cons x._2 r) d;
 
 def Sing {A} (v : A) = (value : A) (proof : Id value v) ** ();
 def MkSing {A} (v : A) : Sing v = [v, Refl];

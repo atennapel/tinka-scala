@@ -35,7 +35,6 @@ sbt "run examples/church.tinka"
 - [x] Add unit type
 - [x] Identity type
 - [ ] Basic importing
-- [ ] Fix projection parsing issues
 - [ ] Inductive-recursive fixpoint type
 - [ ] Erasure annotations
 - [ ] Add a package name
