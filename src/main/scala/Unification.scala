@@ -20,7 +20,7 @@ object Unification:
   private def lift(pren: PRen): PRen =
     PRen(
       lvlInc(pren.dom),
-      lvlInc(pren.dom),
+      lvlInc(pren.cod),
       pren.ren + (exposeLvl(pren.cod), pren.dom)
     )
 
@@ -168,4 +168,4 @@ object Unification:
       case (VGlobal(_, _, v1), v2)                => unify(l, v1(), v2)
       case (v1, VGlobal(_, _, v2))                => unify(l, v1, v2())
 
-      case _ => throw UnifyError("failed to unify")
+      case (v1, v2) => throw UnifyError("failed to unify")

@@ -60,3 +60,31 @@ def TS {l : Label} {e : Enum} (rest : Tag e) : Tag (Cons l e) =
     {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
     {(label : Label) (enum : Enum) (proof : Id (Cons label enum) (Cons l e)) ** ()}
     [l, e, rest, Refl]);
+def elimTag
+  (P : {e} -> Tag e -> Type)
+  (tz : {l : Label} {e : Enum} -> P {Cons l e} TZ)
+  (ts : {l : Label} {e : Enum} (t : Tag e) -> P t -> P {Cons l e} (TS t))
+  {e} (x : Tag e) : P x
+  = elimIFix {F = TagF} P (\rec {e'} y. elimSum (\s. P (IIn {F = TagF} {e'} s))
+      (\data.
+        elimId (\{y} e. P (IIn {F = TagF} {y}
+          (Left
+            {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) y) ** ()}
+            {(label : Label) (enum : Enum) (proof : Id (Cons label enum) y) ** ()}
+            [data.label, data.enum, data.rest, e])))
+          (ts {data.label} {data.enum} (data.rest) (rec (data.rest))) (data.proof))
+      (\data.
+        elimId (\{y} e. P (IIn {F = TagF} {y}
+          (Right
+            {(label : Label) (enum : Enum) (rest : Tag enum) (proof : Id (Cons label enum) y) ** ()}
+            {(label : Label) (enum : Enum) (proof : Id (Cons label enum) y) ** ()}
+            [data.label, data.enum, e])))
+          (tz {data.label} {data.enum}) (data.proof))
+      y) x;
+
+def TaggedData = List (Label ** Type);
+def TaggedDataEnum (d : TaggedData) : Enum = foldr {Label ** Type} Nil (\x r. Cons (x._1) r) d;
+def TaggedDataTypes (d : TaggedData) : List Type = foldr {Label ** Type} Nil (\x r. Cons (x._2) r) d;
+
+def Sing {A} (v : A) = (value : A) (proof : Id value v) ** ();
+def MkSing {A} (v : A) : Sing v = [v, Refl];

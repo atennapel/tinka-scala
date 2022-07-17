@@ -11,7 +11,7 @@ object Core:
     override def toString: String = this match
       case Fst                  => "._1"
       case Snd                  => "._2"
-      case Named(Some(name), _) => s"$name"
+      case Named(Some(name), i) => s".$name"
       case Named(_, i)          => s".$i"
 
   enum Tm:

@@ -19,7 +19,7 @@ object Primitives:
     primitiveElims.contains(name)
 
   private val primitiveElims =
-    Set("absurd", "elimBool", "eqLabel", "elimId", "elimFix")
+    Set("absurd", "elimBool", "eqLabel", "elimId", "elimIFix")
 
   private val primitivesTypes = ListMap(
     "()" -> "Type",

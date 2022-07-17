@@ -75,17 +75,31 @@ object Evaluation:
       case ("eqLabel", VLabelLit(x), List((VLabelLit(y), _))) =>
         if x == y then VPrimTrue else VPrimFalse
 
-      // elimFix {F} P alg (In {F} x) ~> alg (\y. elimFix {F} p alg y) x
+      // elimIFix {I} {F} P alg {i} (IIn {I} {F} {i} x) ~> alg (\{j} y. elimIFix {I} {F} p alg {j} y) {i} x
       case (
-            "elimFix",
-            VPrimArgs("In", List(_, (x, _))),
-            List((f, _), (p, _), (alg, _))
+            "elimIFix",
+            VPrimArgs("IIn", List(_, _, (i, _), (x, _))),
+            List((it, _), (f, _), (p, _), (alg, _), _)
           ) =>
         vapp(
           vapp(
-            alg,
-            VLam("y", Expl, ClosFun(y => vprimelim(name, y, args))),
-            Expl
+            vapp(
+              alg,
+              VLam(
+                "j",
+                Impl,
+                ClosFun(j =>
+                  VLam(
+                    "y",
+                    Expl,
+                    ClosFun(y => vprimelim(name, y, args.init :+ (j, Impl)))
+                  )
+                )
+              ),
+              Expl
+            ),
+            i,
+            Impl
           ),
           x,
           Expl
