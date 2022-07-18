@@ -8,9 +8,11 @@ import Errors.*
 object Surface:
   enum Decl extends Positional:
     case Def(name: Name, value: Tm)
+    case Import(name: Name)
 
     override def toString: String = this match
-      case Def(x, v) => s"def $x = $v;"
+      case Def(x, v)    => s"def $x = $v;"
+      case Import(name) => s"import $name;"
 
   final case class Decls(val decls: List[Decl]):
     override def toString: String = decls.map(_.toString).mkString("\n")

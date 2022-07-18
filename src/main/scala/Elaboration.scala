@@ -224,6 +224,7 @@ object Elaboration:
     decls.decls.foreach(elaborateDecl(_, pos))
 
   def elaborateDecl(decl: Decl, pos: Position = NoPosition): Unit = decl match
+    case Import(_) =>
     case Def(x, v) =>
       if getGlobal(x).isDefined then throw GlobalError(x)
       val (etm, ety) = elaborate(v, pos)

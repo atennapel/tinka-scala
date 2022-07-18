@@ -31,7 +31,7 @@ object Parser extends StdTokenParsers with PackratParsers:
     "._1",
     "._2"
   )
-  lexical.reserved ++= Seq("Type", "let", "def")
+  lexical.reserved ++= Seq("Type", "let", "def", "import")
 
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
@@ -164,8 +164,9 @@ object Parser extends StdTokenParsers with PackratParsers:
     val tokens = new lexical.Scanner(str)
     phrase(expr)(tokens)
 
-  lazy val decls: P[Decls] = repsep(decl, ";") <~ opt(";") ^^ { lst =>
-    Decls(lst)
+  lazy val decls: P[Decls] = repsep((decl | importP), ";") <~ opt(";") ^^ {
+    lst =>
+      Decls(lst)
   }
   lazy val decl: P[Decl] = positioned(
     "def" ~> ident ~ defParam.* ~ opt(":" ~> expr) ~ "=" ~ expr ^^ {
@@ -177,6 +178,9 @@ object Parser extends StdTokenParsers with PackratParsers:
           val lams = unannotatedLamFromParams(ps, v)
           Def(id, Let(id, Some(pi), lams, Var(id)))
     }
+  )
+  lazy val importP: P[Decl] = positioned(
+    "import" ~> (ident | stringLit) ^^ { case id => Import(id) }
   )
   def piFromParams(
       ps: List[(List[Name], Option[Tm], Icit)],

@@ -1,0 +1,1 @@
+def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;

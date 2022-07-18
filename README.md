@@ -6,7 +6,7 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 Try it out using:
 
 ```
-sbt "run examples/church.tinka"
+sbt "run lib/sum.tinka"
 ```
 
 ## Desired features
@@ -34,7 +34,8 @@ sbt "run examples/church.tinka"
 - [x] Sigma types
 - [x] Add unit type
 - [x] Identity type
-- [ ] Basic importing
+- [x] Basic importing
+- [ ] REPL
 - [ ] Inductive-recursive fixpoint type
 - [ ] Erasure annotations
 - [ ] Add a package name
@@ -43,6 +44,7 @@ sbt "run examples/church.tinka"
 - [ ] Operators
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
+- [ ] Importing with toposort
 - [ ] Core language verification
 - [ ] Replace zonking with something more efficient
 - [ ] Pruning
