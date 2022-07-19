@@ -2,10 +2,10 @@ import Common.*
 import Core.Tm
 import Value.Val
 import Value.Val.VGlobal
-import scala.collection.mutable.Map
+import scala.collection.immutable.ListMap
 
 object Globals:
-  private val globals: Map[Name, GlobalEntry] = Map.empty
+  private var globals: ListMap[Name, GlobalEntry] = ListMap.empty
 
   final case class GlobalEntry(
       val name: Name,
@@ -16,5 +16,7 @@ object Globals:
       val vglobal: Val
   )
 
-  def addGlobal(g: GlobalEntry): Unit = globals.put(g.name, g)
+  def addGlobal(g: GlobalEntry): Unit = globals = globals + (g.name -> g)
   def getGlobal(x: Name): Option[GlobalEntry] = globals.get(x)
+
+  def getGlobals(): List[(Name, GlobalEntry)] = globals.toList

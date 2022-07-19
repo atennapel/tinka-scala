@@ -35,7 +35,7 @@ sbt "run lib/sum.tinka"
 - [x] Add unit type
 - [x] Identity type
 - [x] Basic importing
-- [ ] REPL
+- [x] REPL
 - [ ] Inductive-recursive fixpoint type
 - [ ] Erasure annotations
 - [ ] Add a package name

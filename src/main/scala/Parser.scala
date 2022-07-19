@@ -36,7 +36,7 @@ object Parser extends StdTokenParsers with PackratParsers:
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
   lazy val notApp: P[Tm] =
-    unitType | unit | parens | listParens | unitParens | lambda | let | typeP | variable
+    unitType | unit | parens | listParens | unitParens | lambda | let | typeP | nat | variable
   lazy val lambda: P[Tm] = positioned(
     ("\\" | "λ") ~> lamParam.+ ~ "." ~ expr ^^ { case ps ~ _ ~ b =>
       annotatedLamFromParams(ps, b)
@@ -97,6 +97,14 @@ object Parser extends StdTokenParsers with PackratParsers:
       | ("." ~ ident ^^ { case _ ~ x => Left(Named(x)) })
       | notApp.map(t => Right((t, Right(Expl))))
 
+  lazy val nat: P[Tm] = positioned(numericLit ^^ { n =>
+    val m = n.toInt
+    if m < 0 then throw new Exception("negative nat literal")
+    else
+      var c = Var("Z")
+      for _ <- 1 to m do c = App(Var("S"), c, Right(Expl))
+      c
+  })
   lazy val variable: P[Tm] = positioned(ident ^^ { x =>
     if x.startsWith("_") then
       Hole(if x.tail.isEmpty then None else Some(x.tail))
