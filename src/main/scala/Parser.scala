@@ -13,26 +13,6 @@ object Parser extends StdTokenParsers with PackratParsers:
   type Tokens = StdLexical
   val lexical = Lexer
   lexical.reserved ++= Seq("Type", "let", "def", "import")
-  lexical.delimiters ++= Seq(
-    "\\",
-    "λ",
-    ".",
-    "(",
-    ")",
-    "{",
-    "}",
-    "#[",
-    "[",
-    "]",
-    ":",
-    "=",
-    ";",
-    "->",
-    "**",
-    ",",
-    "._1",
-    "._2"
-  )
 
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
@@ -319,6 +299,29 @@ object Parser extends StdTokenParsers with PackratParsers:
   private object Lexer extends StdLexical:
     final val EofCh: Char = '\u001a'
 
+    delimiters ++= Seq(
+      ".",
+      "(",
+      ")",
+      "{",
+      "}",
+      "#[",
+      "[",
+      "]",
+      ";",
+      "._1",
+      "._2"
+    )
+    val specialOps = Seq(
+      "\\",
+      "λ",
+      ":",
+      "=",
+      "->",
+      "**",
+      ","
+    )
+
     override def letter =
       elem("letter", c => (c.isLetter && c != 'λ') || c == '\'')
 
@@ -347,14 +350,16 @@ object Parser extends StdTokenParsers with PackratParsers:
       )((x, y) => y | x)
     }
 
-    private val symbols = "~!@#$%^&*+=|\\-:?/><,;:."
+    private val symbols = "~!@#$%^&*+=|\\-:?/><,:"
     private def symbol = elem("symbol", c => symbols.contains(c))
 
     case class Operator(op: String) extends Token:
       override def chars = op
 
-    lazy val operator: Parser[Token] = rep(symbol) ^^ { op =>
-      Operator(op.mkString)
+    lazy val operator: Parser[Token] = rep(symbol) ^^ { opL =>
+      val op = opL.mkString
+      if specialOps.contains(op) then Keyword(op)
+      else Operator(op)
     }
 
     override def delim: Parser[Token] = _delim | operator

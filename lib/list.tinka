@@ -10,6 +10,7 @@ def List A = Fix (ListF A);
 
 def Nil {A} : List A = In {ListF A} (Right []);
 def Cons {A} (head : A) (tail : List A) : List A = In {ListF A} (Left [head, tail]);
+def (::) = Cons;
 
 def elimList
   {A}
