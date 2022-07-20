@@ -39,7 +39,7 @@ object Value:
   object VVar:
     import Val.VNe
     import Head.HVar
-    def apply(lvl: Lvl) = VNe(HVar(lvl), List.empty)
+    def apply(lvl: Lvl) = VNe(HVar(lvl), Nil)
     def unapply(value: Val): Option[Lvl] = value match
       case VNe(HVar(head), Nil) => Some(head)
       case _                    => None
@@ -47,7 +47,7 @@ object Value:
   object VMeta:
     import Val.VNe
     import Head.HMeta
-    def apply(id: MetaId) = VNe(HMeta(id), List.empty)
+    def apply(id: MetaId) = VNe(HMeta(id), Nil)
     def unapply(value: Val): Option[MetaId] = value match
       case VNe(HMeta(head), Nil) => Some(head)
       case _                     => None
@@ -55,7 +55,7 @@ object Value:
   object VPrim:
     import Val.VNe
     import Head.HPrim
-    def apply(name: PrimName) = VNe(HPrim(name), List.empty)
+    def apply(name: PrimName) = VNe(HPrim(name), Nil)
     def unapply(value: Val): Option[PrimName] = value match
       case VNe(HPrim(head), Nil) => Some(head)
       case _                     => None

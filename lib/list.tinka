@@ -25,3 +25,7 @@ def foldr {A R} (nil : R) (cons : A -> R -> R) (list : List A) : R
 
 def map {A B} (fn : A -> B) (list : List A) : List B
   = foldr Nil (\hd tl. Cons (fn hd) tl) list;
+def (<$>:) = map;
+
+def append {A} (a b : List A) : List A = foldr b Cons a;
+def (++) = append;

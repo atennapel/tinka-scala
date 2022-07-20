@@ -7,10 +7,12 @@ import Common.Icit.*
 import scala.util.parsing.combinator.syntactical.StdTokenParsers
 import scala.util.parsing.combinator.lexical.StdLexical
 import scala.util.parsing.combinator.PackratParsers
+import scala.annotation.tailrec
 
 object Parser extends StdTokenParsers with PackratParsers:
   type Tokens = StdLexical
   val lexical = Lexer
+  lexical.reserved ++= Seq("Type", "let", "def", "import")
   lexical.delimiters ++= Seq(
     "\\",
     "λ",
@@ -31,12 +33,13 @@ object Parser extends StdTokenParsers with PackratParsers:
     "._1",
     "._2"
   )
-  lexical.reserved ++= Seq("Type", "let", "def", "import")
 
   type P[+A] = PackratParser[A]
   lazy val expr: P[Tm] = piOrSigma | funOrProd | application | notApp
   lazy val notApp: P[Tm] =
-    unitType | unit | parens | listParens | unitParens | lambda | let | typeP | nat | variable
+    unitType | unit | ("(" ~> operator <~ ")" ^^ { case op =>
+      Var(op)
+    }) | parens | listParens | unitParens | lambda | let | typeP | nat | variable
   lazy val lambda: P[Tm] = positioned(
     ("\\" | "λ") ~> lamParam.+ ~ "." ~ expr ^^ { case ps ~ _ ~ b =>
       annotatedLamFromParams(ps, b)
@@ -70,32 +73,127 @@ object Parser extends StdTokenParsers with PackratParsers:
     }
   )
 
-  private type Arg = Either[ProjType, (Tm, Either[List[Name], Icit])]
+  enum Arg:
+    case ArgProj(proj: ProjType)
+    case ArgApp(tm: Tm, icit: Either[List[Name], Icit])
+    case ArgOp(op: Name)
+  import Arg.*
+
+  def prec(op: Name) = op.head match
+    case '*' => 99
+    case '/' => 99
+    case '%' => 99
+
+    case '+' => 98
+    case '-' => 98
+
+    case ':' => 97
+
+    case '=' => 96
+    case '!' => 96
+
+    case '<' => 95
+    case '>' => 95
+
+    case '&' => 94
+
+    case '^' => 93
+
+    case '|' => 92
+
+    case '$' => 91
+    case '_' => 91
+
+    case _ => 999
+
+  def rightAssoc(op: Name) = op.last == ':'
 
   def applyArg(fn: Tm, arg: Arg): Tm = arg match
-    case Left(p)                => Proj(fn, p)
-    case Right((arg, Right(i))) => App(fn, arg, Right(i))
-    case Right((arg, Left(xs))) =>
+    case ArgProj(p)            => Proj(fn, p)
+    case ArgApp(arg, Right(i)) => App(fn, arg, Right(i))
+    case ArgApp(arg, Left(xs)) =>
       xs.foldLeft(fn)((b, x) => App(b, arg, Left(x)))
+    case ArgOp(op) => App(Var(op), fn, Right(Expl))
 
   def prepareSpine(sp: List[Arg]): List[Arg] = sp match
-    case Right((arg, Right(Expl))) :: Left(p) :: rest =>
-      prepareSpine(Right((Proj(arg, p), Right(Expl))) :: rest)
+    case ArgApp(arg, Right(Expl)) :: ArgProj(p) :: rest =>
+      prepareSpine(ArgApp(Proj(arg, p), Right(Expl)) :: rest)
     case arg :: rest => arg :: prepareSpine(rest)
-    case Nil         => List.empty
+    case Nil         => Nil
+
+  def splitSpine(sp: List[Arg]): List[Either[Name, Tm]] =
+    def appSpine(sp: List[Arg]): Tm = sp match
+      case Nil           => throw new Exception("impossible")
+      case ArgOp(_) :: _ => throw new Exception("impossible")
+      case ArgProj(_) :: _ =>
+        throw new Exception("projection in application head")
+      case ArgApp(fn, Left(_)) :: _ =>
+        throw new Exception("implicit in application head")
+      case ArgApp(fn, Right(Impl)) :: _ =>
+        throw new Exception("implicit in application head")
+      case ArgApp(fn, Right(Expl)) :: sp => sp.foldLeft(fn)(applyArg)
+    def split(
+        sp: List[Arg],
+        acc: List[Arg] = Nil
+    ): List[Either[Name, Tm]] =
+      (sp, acc) match
+        case (Nil, Nil)             => Nil
+        case (Nil, acc)             => List(Right(appSpine(acc.reverse)))
+        case (ArgOp(op) :: sp, Nil) => Left(op) :: split(sp, Nil)
+        case (ArgOp(op) :: sp, acc) =>
+          List(Right(appSpine(acc.reverse))) ++ (Left(op) :: split(sp, Nil))
+        case (arg :: sp, acc) => split(sp, arg :: acc)
+    split(sp)
+
+  def shunting(sp: List[Either[Name, Tm]]): Tm =
+    @tailrec
+    def stack(st: List[Tm], sp: List[Either[Name, Tm]]): Tm = (st, sp) match
+      case (t :: _, Nil)         => t
+      case (st, Right(t) :: ops) => stack(t :: st, ops)
+      case (b :: a :: st, Left(x) :: ops) =>
+        stack(App(App(Var(x), a, Right(Expl)), b, Right(Expl)) :: st, ops)
+      case _ => throw new Exception("impossible")
+    @tailrec
+    def go(
+        in: List[Either[Name, Tm]],
+        out: List[Either[Name, Tm]],
+        ops: List[Name]
+    ): List[Either[Name, Tm]] = (in, out, ops) match
+      case (Nil, out, Nil)            => out
+      case (Nil, out, op :: ops)      => go(Nil, Left(op) :: out, ops)
+      case (Right(t) :: st, out, ops) => go(st, Right(t) :: out, ops)
+      case (Left(o1) :: st, out, o2 :: ops)
+          if prec(o2) > prec(o1) || (prec(o1) == prec(o2) && !rightAssoc(
+            o1
+          )) =>
+        go(Left(o1) :: st, Left(o2) :: out, ops)
+      case (Left(o1) :: st, out, ops) => go(st, out, o1 :: ops)
+    sp match
+      case List(Left(op)) => Var(op)
+      case List(Left(op), Right(t)) =>
+        App(App(Var("flip"), Var(op), Right(Expl)), t, Right(Expl))
+      case List(Right(t), Left(op)) =>
+        App(Var(op), t, Right(Expl))
+      case st => stack(Nil, go(st, Nil, Nil).reverse)
 
   lazy val application: P[Tm] = positioned(expr ~ argument.+ ^^ {
-    case fn ~ args => prepareSpine(args).foldLeft(fn)(applyArg)
+    case fn ~ args =>
+      val sp = prepareSpine(args)
+      val spl = splitSpine(ArgApp(fn, Right(Expl)) :: sp)
+      shunting(spl)
   })
+  def operator: Parser[String] =
+    elem("operator", _.isInstanceOf[Lexer.Operator]) ^^ (_.chars)
   lazy val argument: P[Arg] =
     ("{" ~> ident.+ ~ "=" ~ expr <~ "}" ^^ { case xs ~ _ ~ t =>
-      Right((t, Left(xs)))
+      ArgApp(t, Left(xs))
     })
-      | ("{" ~> expr <~ "}" ^^ { case t => Right((t, Right(Impl))) })
-      | ("._1" ^^ { case _ => Left(Fst) })
-      | ("._2" ^^ { case _ => Left(Snd) })
-      | ("." ~ ident ^^ { case _ ~ x => Left(Named(x)) })
-      | notApp.map(t => Right((t, Right(Expl))))
+      | ("{" ~> expr <~ "}" ^^ { case t => ArgApp(t, Right(Impl)) })
+      | ("._1" ^^ { case _ => ArgProj(Fst) })
+      | ("._2" ^^ { case _ => ArgProj(Snd) })
+      | ("." ~ ident ^^ { case _ ~ x => ArgProj(Named(x)) })
+      | (operator ^^ { case op => ArgOp(op) })
+      | notApp.map(t => ArgApp(t, Right(Expl)))
 
   lazy val nat: P[Tm] = positioned(numericLit ^^ { n =>
     val m = n.toInt
@@ -176,8 +274,9 @@ object Parser extends StdTokenParsers with PackratParsers:
     lst =>
       Decls(lst)
   }
+  lazy val parameterIdent: P[Name] = ("(" ~> operator <~ ")") | ident
   lazy val decl: P[Decl] = positioned(
-    "def" ~> ident ~ defParam.* ~ opt(":" ~> expr) ~ "=" ~ expr ^^ {
+    "def" ~> parameterIdent ~ defParam.* ~ opt(":" ~> expr) ~ "=" ~ expr ^^ {
       case id ~ ps ~ ty ~ _ ~ v =>
         if ps.isEmpty then
           ty.fold(Def(id, v))(ty => Def(id, Let(id, Some(ty), v, Var(id))))
@@ -234,3 +333,28 @@ object Parser extends StdTokenParsers with PackratParsers:
       rep(chrExcept(EofCh, '-')) ~ '-' ~ '}' ^^ { _ => ' ' }
         | rep(chrExcept(EofCh, '-')) ~ '-' ~ commentEnd ^^ { _ => ' ' }
     )
+
+    private lazy val _delim: Parser[Token] = {
+      def parseDelim(s: String): Parser[Token] = accept(s.toList) ^^ { x =>
+        Keyword(s)
+      }
+
+      val d = new Array[String](delimiters.size)
+      delimiters.copyToArray(d, 0)
+      scala.util.Sorting.quickSort(d)
+      (d.toList map parseDelim).foldRight(
+        failure("no matching delimiter"): Parser[Token]
+      )((x, y) => y | x)
+    }
+
+    private val symbols = "~!@#$%^&*+=|\\-:?/><,;:."
+    private def symbol = elem("symbol", c => symbols.contains(c))
+
+    case class Operator(op: String) extends Token:
+      override def chars = op
+
+    lazy val operator: Parser[Token] = rep(symbol) ^^ { op =>
+      Operator(op.mkString)
+    }
+
+    override def delim: Parser[Token] = _delim | operator

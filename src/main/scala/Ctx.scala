@@ -60,4 +60,4 @@ final case class Ctx(
 
 object Ctx:
   def empty(pos: Position = NoPosition): Ctx =
-    Ctx(List.empty, initialLvl, List.empty, List.empty, pos)
+    Ctx(Nil, initialLvl, Nil, Nil, pos)

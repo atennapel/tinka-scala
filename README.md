@@ -36,12 +36,14 @@ sbt "run lib/sum.tinka"
 - [x] Identity type
 - [x] Basic importing
 - [x] REPL
+- [ ] Operators
+  - [x] Parsing
+  - [ ] Fix (::) operator
 - [ ] Inductive-recursive fixpoint type
 - [ ] Erasure annotations
 - [ ] Add a package name
 - [ ] Clean up error handling and output
 - [ ] Better name generation
-- [ ] Operators
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
 - [ ] Importing with toposort

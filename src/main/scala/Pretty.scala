@@ -51,7 +51,7 @@ object Pretty:
 
   def pretty(
       tm: CTm,
-      ns: List[Name] = List.empty,
+      ns: List[Name] = Nil,
       hideImplicitApps: Boolean = false
   ): String =
     prettyTm(tm, ns, hideImplicitApps).toString

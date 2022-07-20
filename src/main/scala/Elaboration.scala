@@ -228,8 +228,8 @@ object Elaboration:
     case Def(x, v) =>
       if getGlobal(x).isDefined then throw GlobalError(x)
       val (etm, ety) = elaborate(v, pos)
-      val vty = eval(List.empty, ety)
-      val vval = eval(List.empty, etm)
+      val vty = eval(Nil, ety)
+      val vval = eval(Nil, etm)
       addGlobal(
-        GlobalEntry(x, ety, vty, etm, vval, VGlobal(x, List.empty, () => vval))
+        GlobalEntry(x, ety, vty, etm, vval, VGlobal(x, Nil, () => vval))
       )

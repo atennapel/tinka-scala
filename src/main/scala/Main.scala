@@ -35,14 +35,17 @@ import scala.collection.mutable.Buffer
         else if inp.startsWith(":f ") then
           mode = "f"
           inp = inp.drop(3)
+        else if inp.startsWith(":p ") then
+          mode = "p"
+          inp = inp.drop(3)
         else if inp == ":defs" then
           mode = "s"
           getGlobals().foreach { case (x, e) =>
             println(s"$x : ${pretty(e.ty)}")
           }
-        else if inp.startsWith(":import") || inp.startsWith(":def") then
+        else if inp.startsWith("import") || inp.startsWith("def") then
           mode = "s"
-          runDecls(inp.drop(1))
+          runDecls(inp)
         else if inp.startsWith(":") then
           throw new Exception("invalid repl command")
 
@@ -53,12 +56,14 @@ import scala.collection.mutable.Buffer
               throw new Exception(err.toString)
             case err @ Parser.Error(msg, _) => throw new Exception(err.toString)
 
-          val (etm, ety) = elaborate(tm, OffsetPosition(inp, 0))
+          if mode == "p" then println(tm.toString)
+          else
+            val (etm, ety) = elaborate(tm, OffsetPosition(inp, 0))
 
-          if mode == "t" then println(pretty(ety))
-          else if mode == "e" then println(pretty(etm))
-          else if mode == "f" then println(pretty(nf(List.empty, etm)))
-          else println(pretty(nf(List.empty, etm), hideImplicitApps = true))
+            if mode == "t" then println(pretty(ety))
+            else if mode == "e" then println(pretty(etm))
+            else if mode == "f" then println(pretty(nf(Nil, etm)))
+            else println(pretty(nf(Nil, etm), hideImplicitApps = true))
     catch case exc: Exception => println(exc.getMessage)
 
 def run(filename: String, debug: Boolean = false): Unit =
@@ -74,7 +79,7 @@ def run(filename: String, debug: Boolean = false): Unit =
       case Some(ge) =>
         println(s"main : ${pretty(ge.ty)}")
         println(s"main = ${pretty(ge.value)}")
-        println(s"${pretty(nf(List.empty, ge.value), hideImplicitApps = true)}")
+        println(s"${pretty(nf(Nil, ge.value), hideImplicitApps = true)}")
   catch
     case exc: Exception =>
       println(exc.getMessage)

@@ -16,5 +16,6 @@ def caseNat {A} (n : Nat) (z : A) (s : Nat -> A) : A = elimNat (\_. A) z (\m _. 
 def cataNat {A} (n : Nat) (z : A) (s : A -> A) : A = elimNat (\_. A) z (\_. s) n;
 
 def add (a b : Nat) : Nat = cataNat a b S;
+def (+) = add;
 
-def prev (n : Nat) : Nat = caseNat n Z (\m. m);
+def pred (n : Nat) : Nat = caseNat n Z (\m. m);

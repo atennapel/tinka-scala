@@ -44,13 +44,14 @@ object Surface:
     case Hole(name: Option[Name])
 
     override def toString: String = this match
-      case Var(name)      => name
+      case Var(name)      => showIdent(name)
       case LabelLit(name) => s"'$name"
       case Let(name, Some(ty), value, body) =>
-        s"let $name : $ty = $value; $body"
-      case Let(name, _, value, body) => s"let $name = $value; $body"
-      case Type                      => "Type"
-      case Hole(name)                => s"_${name.getOrElse("")}"
+        s"let ${showIdent(name)} : $ty = $value; $body"
+      case Let(name, _, value, body) =>
+        s"let ${showIdent(name)} = $value; $body"
+      case Type       => "Type"
+      case Hole(name) => s"_${name.getOrElse("")}"
 
       case pi @ Pi(_, _, _, _) =>
         val (ps, rt) = pi.flattenPi()
@@ -82,22 +83,28 @@ object Surface:
     ) =
       if isSimple(appSimple, sigmaSimple) then this.toString else s"($this)"
 
+    private def showIdent(x: Name) = if x.head.isLetter then x else s"($x)"
+
     private def argToString(arg: (Tm, Either[Name, Icit])) = arg match
-      case (arg, Left(x))     => s"{$x = $arg}"
+      case (arg, Left(x))     => s"{${showIdent(x)} = $arg}"
       case (arg, Right(Impl)) => s"{$arg}"
       case (arg, Right(Expl)) => arg.toStringParens(appSimple = false)
 
     private def lamParamToString(p: (Name, Either[Name, Icit], Option[Tm])) =
       p match
         case (x, Left(y), tyopt) =>
-          tyopt.fold(s"{$x = $y}")(ty => s"{$x : $ty = $y}")
-        case (x, Right(Impl), tyopt) => tyopt.fold(s"{$x}")(ty => s"{$x : $ty}")
-        case (x, Right(Expl), tyopt) => tyopt.fold(x)(ty => s"($x : $ty)")
+          tyopt.fold(s"{${showIdent(x)} = $y}")(ty =>
+            s"{${showIdent(x)} : $ty = $y}"
+          )
+        case (x, Right(Impl), tyopt) =>
+          tyopt.fold(s"{${showIdent(x)}}")(ty => s"{${showIdent(x)} : $ty}")
+        case (x, Right(Expl), tyopt) =>
+          tyopt.fold(x)(ty => s"(${showIdent(x)} : $ty)")
 
     private def piParamToString(ps: (Name, Icit, Tm)) = ps match
       case ("_", Expl, ty) => ty.toStringParens()
-      case (x, Impl, ty)   => s"{$x : $ty}"
-      case (x, Expl, ty)   => s"($x : $ty)"
+      case (x, Impl, ty)   => s"{${showIdent(x)} : $ty}"
+      case (x, Expl, ty)   => s"(${showIdent(x)} : $ty)"
 
     @tailrec
     private def piToString(
@@ -140,7 +147,7 @@ object Surface:
 
     private def sigmaParamToString(ps: (Name, Tm)) = ps match
       case ("_", ty) => ty.toStringParens()
-      case (x, ty)   => s"($x : $ty)"
+      case (x, ty)   => s"(${showIdent(x)} : $ty)"
 
     @tailrec
     private def sigmaToString(
@@ -193,27 +200,27 @@ object Surface:
         case _              => false
 
     def flattenPi(
-        ns: List[(Name, Icit, Tm)] = List.empty
+        ns: List[(Name, Icit, Tm)] = Nil
     ): (List[(Name, Icit, Tm)], Tm) =
       this match
         case Pi(name, icit, ty, body) => body.flattenPi(ns :+ (name, icit, ty))
         case tm                       => (ns, tm)
 
     def flattenSigma(
-        ns: List[(Name, Tm)] = List.empty
+        ns: List[(Name, Tm)] = Nil
     ): (List[(Name, Tm)], Tm) =
       this match
         case Sigma(name, ty, body) => body.flattenSigma(ns :+ (name, ty))
         case tm                    => (ns, tm)
 
     def flattenLam(
-        ns: List[(Name, Either[Name, Icit], Option[Tm])] = List.empty
+        ns: List[(Name, Either[Name, Icit], Option[Tm])] = Nil
     ): (List[(Name, Either[Name, Icit], Option[Tm])], Tm) = this match
       case Lam(name, icit, ty, body) => body.flattenLam(ns :+ (name, icit, ty))
       case tm                        => (ns, tm)
 
     def flattenApp(
-        args: List[(Tm, Either[Name, Icit])] = List.empty
+        args: List[(Tm, Either[Name, Icit])] = Nil
     ): (Tm, List[(Tm, Either[Name, Icit])]) = this match
       case App(fn, arg, icit) => fn.flattenApp((arg, icit) :: args)
       case tm                 => (tm, args)
@@ -222,7 +229,7 @@ object Surface:
       case Pair(fst, snd) => fst :: snd.flattenPair()
       case tm             => List(tm)
 
-    def flattenProj(ps: List[ProjType] = List.empty): (Tm, List[ProjType]) =
+    def flattenProj(ps: List[ProjType] = Nil): (Tm, List[ProjType]) =
       this match
         case Proj(tm, proj) => tm.flattenProj(proj :: ps)
         case tm             => (tm, ps)

@@ -57,4 +57,4 @@ object Zonking:
 
     case Sigma(x, ty, b) => Sigma(x, zonk(l, e, ty), zonkLift(l, e, b))
 
-  def zonk(t: Tm): Tm = zonk(initialLvl, List.empty, t)
+  def zonk(t: Tm): Tm = zonk(initialLvl, Nil, t)

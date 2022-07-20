@@ -149,7 +149,7 @@ object Evaluation:
       name: Name,
       ty: Tm,
       i: Int = 0,
-      args: List[(Val, Icit)] = List.empty
+      args: List[(Val, Icit)] = Nil
   ): Val = ty match
     case Pi(x, icit, _, b) =>
       val y = if x == "_" then s"$x$i" else x

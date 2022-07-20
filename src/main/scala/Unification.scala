@@ -86,7 +86,7 @@ object Unification:
     val rhs = rename(id, pren, v)
     val solution = lams(sp.reverse, rhs)
     debug(s"solution: ?$id := $solution")
-    solveMeta(id, eval(List.empty, solution), solution)
+    solveMeta(id, eval(Nil, solution), solution)
 
   private def eqvProj(p1: ProjType, p2: ProjType): Boolean = (p1, p2) match
     case (Named(_, i1), Named(_, i2)) => i1 == i2
