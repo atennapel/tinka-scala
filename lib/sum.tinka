@@ -1,6 +1,7 @@
 import "lib/bool";
 
 def Sum (A B : Type) : Type = (tag : Bool) ** if tag A B;
+def (:+:) = Sum;
 
 def Left {A B} (x : A) : Sum A B = (True, x);
 def Right {A B} (x : B) : Sum A B = (False, x);

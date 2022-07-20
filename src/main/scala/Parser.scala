@@ -151,17 +151,20 @@ object Parser extends StdTokenParsers with PackratParsers:
     sp match
       case List(Left(op)) => Var(op)
       case List(Left(op), Right(t)) =>
-        App(App(Var("flip"), Var(op), Right(Expl)), t, Right(Expl))
-      case List(Right(t), Left(op)) =>
         App(Var(op), t, Right(Expl))
+      case List(Right(t), Left(op)) =>
+        App(App(Var("flip"), Var(op), Right(Expl)), t, Right(Expl))
       case st => stack(Nil, go(st, Nil, Nil).reverse)
 
-  lazy val application: P[Tm] = positioned(expr ~ argument.+ ^^ {
-    case fn ~ args =>
-      val sp = prepareSpine(args)
-      val spl = splitSpine(ArgApp(fn, Right(Expl)) :: sp)
-      shunting(spl)
-  })
+  lazy val application: P[Tm] = positioned(
+    (operator.map(Left.apply) | expr.map(Right.apply)) ~ argument.+ ^^ {
+      case fn ~ args =>
+        val sp = prepareSpine(args)
+        val spl =
+          splitSpine(fn.fold(o => ArgOp(o), t => ArgApp(t, Right(Expl))) :: sp)
+        shunting(spl)
+    }
+  )
   def operator: Parser[String] =
     elem("operator", _.isInstanceOf[Lexer.Operator]) ^^ (_.chars)
   lazy val argument: P[Arg] =

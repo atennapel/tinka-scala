@@ -1,4 +1,6 @@
 def Id1 {A} x y = Id {A} {A} x y;
+def (~~) = Id;
+def (~) = Id1;
 
 def idJ {A} (P : {a b : A} -> Id1 a b -> Type) (refl : {a} -> P {a} Refl) {a b : A} (p : Id1 a b) : P p
   = elimId (\{c} q. P {a} {c} q) refl p;
@@ -15,7 +17,7 @@ def sym {A} {a b : A} (p : Id1 a b) : Id1 b a
 def trans {A} {a b c : A} (p : Id1 b c) (q : Id1 a b) : Id1 a c
   = rewrite (Id1 a) p q;
 
-def cong {A B} {a b : A} (f : A -> B) (p : Id1 a b) : Id1 (f a) (f b)
+def ap {A B} {a b : A} (f : A -> B) (p : Id1 a b) : Id1 (f a) (f b)
   = rewrite (\x. Id1 (f a) (f x)) p Refl;
 
 def idRefl {A} {a : A} (p : Id1 a a) : Id1 p Refl

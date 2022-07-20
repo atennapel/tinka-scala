@@ -1,1 +1,12 @@
 def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;
+
+def not (b : Bool) : Bool = if b False True;
+def (!) = not;
+
+def unless {A} (b : Bool) (t f : A) : A = if (not b) t f;
+
+def and (a b : Bool) : Bool = if a b False;
+def (&&) = and;
+
+def or (a b : Bool) : Bool = if a True b;
+def (||) = or;
