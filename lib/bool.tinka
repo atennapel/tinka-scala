@@ -3,10 +3,17 @@ def if {A} (b : Bool) (t f : A) : A = elimBool (\_. A) t f b;
 def not (b : Bool) : Bool = if b False True;
 def (!) = not;
 
-def unless {A} (b : Bool) (t f : A) : A = if (not b) t f;
+def unless {A} (b : Bool) (t f : A) : A = if (!b) t f;
 
 def and (a b : Bool) : Bool = if a b False;
 def (&&) = and;
 
 def or (a b : Bool) : Bool = if a True b;
 def (||) = or;
+
+def xor (a b : Bool) : Bool = if a (!b) b;
+
+def eqBool (a b : Bool) : Bool = !(xor a b);
+def neqBool (a b : Bool) : Bool = xor a b;
+
+def liftBool (b : Bool) : Type = if b () Void;

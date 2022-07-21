@@ -1,33 +1,35 @@
 def Id1 {A} x y = Id {A} {A} x y;
 def (~~) = Id;
 def (~) = Id1;
+def (!~~) {A B : Type} (x : A) (y : B) = x ~~ y -> Void;
+def (!~) {A : Type} (x y : A) = x ~ y -> Void;
 
-def idJ {A} (P : {a b : A} -> Id1 a b -> Type) (refl : {a} -> P {a} Refl) {a b : A} (p : Id1 a b) : P p
+def idJ {A} (P : {a b : A} -> a ~ b -> Type) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
   = elimId (\{c} q. P {a} {c} q) refl p;
 
-def rewrite {A} (P : A -> Type) {a b} (p : Id1 {A} a b) (x : P a) : P b
+def rewrite {A} (P : A -> Type) {a b : A} (p : a ~ b) (x : P a) : P b
   = idJ (\_. P a -> P b) (\q. q) p x;
 
-def cast {A B : Type} (p : Id1 A B) (x : A) : B
+def cast {A B : Type} (p : A ~ B) (x : A) : B
   = rewrite (\y. y) p x;
 
-def sym {A} {a b : A} (p : Id1 a b) : Id1 b a
+def sym {A} {a b : A} (p : a ~ b) : b ~ a
   = idJ (\{x} {y} _. Id {A} y x) Refl p;
 
-def trans {A} {a b c : A} (p : Id1 b c) (q : Id1 a b) : Id1 a c
+def trans {A} {a b c : A} (p : b ~ c) (q : a ~ b) : a ~ c
   = rewrite (Id1 a) p q;
 
-def ap {A B} {a b : A} (f : A -> B) (p : Id1 a b) : Id1 (f a) (f b)
-  = rewrite (\x. Id1 (f a) (f x)) p Refl;
+def ap {A B} {a b : A} (f : A -> B) (p : a ~ b) : f a ~ f b
+  = rewrite (\x. f a ~ f x) p Refl;
 
-def idRefl {A} {a : A} (p : Id1 a a) : Id1 p Refl
-  = elimId (\{c} q. Id q (Refl {A} {c})) Refl p;
+def idRefl {A} {a : A} (p : a ~ a) : p ~ Refl
+  = elimId (\{c} q. q ~~ Refl {A} {c}) Refl p;
 
-def idK {A} {a : A} (P : Id1 a a -> Type) (p : Id1 a a) (h : P Refl) : P p
+def idK {A} {a : A} (P : a ~ a -> Type) (p : a ~ a) (h : P Refl) : P p
   = rewrite P (sym (idRefl p)) h;
 
-def uip {A} {a b : A} (p1 p2 : Id1 a b) : Id1 p1 p2
-  = (elimId (\{c} p. (q : Id1 a c) -> Id1 q p) idRefl p2) p1;
+def uip {A} {a b : A} (p1 p2 : a ~ b) : p1 ~ p2
+  = (elimId (\{c} p. (q : a ~ c) -> q ~ p) idRefl p2) p1;
 
-def rewriteBoth {A} (P : {x y : A} -> Id1 x y -> Type) {a b : A} (p : Id1 a b) (x : P p) : P (sym p)
+def rewriteBoth {A} (P : {x y : A} -> x ~ y -> Type) {a b : A} (p : a ~ b) (x : P p) : P (sym p)
   = (elimId {A} {a} (\e. P e -> P (sym e)) (\x. x) p) x;

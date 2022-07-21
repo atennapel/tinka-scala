@@ -1,4 +1,5 @@
 import "lib/fix";
+import "lib/bool";
 
 def NatF (R : Type) : Type = Sum R ();
 def Nat = Fix NatF;
@@ -12,6 +13,7 @@ def elimNat
   (n : Nat) : P n
   = elimFix {NatF} P (\rec y. elimSum (\z. P (In {NatF} z)) (\m. s m (rec m)) (\_. z) y) n;
 
+def paraNat {A} (n : Nat) (z : A) (s : Nat -> A -> A) : A = elimNat (\_. A) z s n;
 def caseNat {A} (n : Nat) (z : A) (s : Nat -> A) : A = elimNat (\_. A) z (\m _. s m) n;
 def cataNat {A} (n : Nat) (z : A) (s : A -> A) : A = elimNat (\_. A) z (\_. s) n;
 
@@ -19,3 +21,9 @@ def add (a b : Nat) : Nat = cataNat a b S;
 def (+) = add;
 
 def pred (n : Nat) : Nat = caseNat n Z (\m. m);
+
+def isZero (n : Nat) : Bool = caseNat n True (\_. False);
+
+def eqNat (a b : Nat) : Bool =
+  cataNat a isZero (\r b. caseNat b False r) b;
+def neqNat (a b : Nat) : Bool = !(eqNat a b);

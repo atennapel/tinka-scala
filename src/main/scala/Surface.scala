@@ -83,7 +83,10 @@ object Surface:
     ) =
       if isSimple(appSimple, sigmaSimple) then this.toString else s"($this)"
 
-    private def showIdent(x: Name) = if x.head.isLetter then x else s"($x)"
+    private def showIdent(x: Name) =
+      if x.head.isLetter || (x.size > 1 && x.head == '?' && x.charAt(1).isDigit)
+      then x
+      else s"($x)"
 
     private def argToString(arg: (Tm, Either[Name, Icit])) = arg match
       case (arg, Left(x))     => s"{${showIdent(x)} = $arg}"
