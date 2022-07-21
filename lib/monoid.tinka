@@ -8,10 +8,10 @@ def Monoid =
 
 def VerifiedMonoid =
   (monoid : Monoid) **
-  let A = monoid.A;
-  let unit = monoid.unit;
-  let (++) = monoid.(++);  
+  import monoid;
   (idL : (x : A) -> (unit ++ x) ~ x) **
   (idR : (x : A) -> x ~ (unit ++ x)) **
   (assoc : (x y z : A) -> (x ++ (y ++ z)) ~ ((x ++ y) ++ z)) **
   ();
+
+def main = VerifiedMonoid;

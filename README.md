@@ -40,19 +40,23 @@ sbt "run lib/sum.tinka"
   - [x] Parsing
   - [x] Fix (::) operator
   - [x] Fix prefix operators
+- [x] Sigma import expression
 - [ ] Erasure annotations
-- [ ] Sigma unpacking
-  - [ ] In binders
-  - [ ] Expose all
 - [ ] Inductive-recursive fixpoint type
 - [ ] Add a package name
 - [ ] Clean up error handling and output
 - [ ] Better name generation
 - [ ] Investigate laziness
 - [ ] Approximate solving for globals
-- [ ] Importing with toposort
+- [ ] Improve importing
+  - [ ] Qualified and selective imports
+  - [ ] Import renamings
+  - [ ] Toposort imports, check for cycles
+  - [ ] Make import statement and expression consistent with each other
 - [ ] Core language verification
 - [ ] Replace zonking with something more efficient
 - [ ] Pruning
 - [ ] First-class polymorphism
 - [ ] Clean up parser
+- [ ] Add explicit Skip in term, to replace shifting
+- [ ] Remove Ix and Lvl newtypes

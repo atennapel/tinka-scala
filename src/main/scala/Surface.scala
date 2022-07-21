@@ -17,6 +17,13 @@ object Surface:
   final case class Decls(val decls: List[Decl]):
     override def toString: String = decls.map(_.toString).mkString("\n")
 
+  private def showIdent(x: Name) =
+    if x.head.isLetter || (x.size > 1 && x.head == '?' && x
+        .charAt(1)
+        .isDigit) || x.head == '(' || x.head == '['
+    then x
+    else s"($x)"
+
   enum ProjType:
     case Fst
     case Snd
@@ -25,12 +32,13 @@ object Surface:
     override def toString: String = this match
       case Fst         => "._1"
       case Snd         => "._2"
-      case Named(name) => s".$name"
+      case Named(name) => s".${showIdent(name)}"
 
   enum Tm extends Positional:
     case Var(name: Name)
     case LabelLit(name: Name)
     case Let(name: Name, ty: Option[Tm], value: Tm, body: Tm)
+    case ImportLet(tm: Tm, names: Option[List[Name]], body: Tm)
     case Type
 
     case Pi(name: Name, icit: Icit, ty: Tm, body: Tm)
@@ -50,6 +58,10 @@ object Surface:
         s"let ${showIdent(name)} : $ty = $value; $body"
       case Let(name, _, value, body) =>
         s"let ${showIdent(name)} = $value; $body"
+      case ImportLet(tm, None, body) =>
+        s"import ${tm.toStringParens(appSimple = false)}; $body"
+      case ImportLet(tm, Some(ns), body) =>
+        s"import ${tm.toStringParens(appSimple = false)} (${ns.map(showIdent).mkString(", ")}); $body"
       case Type       => "Type"
       case Hole(name) => s"_${name.getOrElse("")}"
 
@@ -82,11 +94,6 @@ object Surface:
         sigmaSimple: Boolean = false
     ) =
       if isSimple(appSimple, sigmaSimple) then this.toString else s"($this)"
-
-    private def showIdent(x: Name) =
-      if x.head.isLetter || (x.size > 1 && x.head == '?' && x.charAt(1).isDigit)
-      then x
-      else s"($x)"
 
     private def argToString(arg: (Tm, Either[Name, Icit])) = arg match
       case (arg, Left(x))     => s"{${showIdent(x)} = $arg}"

@@ -54,3 +54,24 @@ object Core:
 
       case Meta(id)            => s"?$id"
       case InsertedMeta(id, _) => s"?$id"
+
+    def shift(i: Int, c: Int = 0): Tm = this match
+      case Var(ix) =>
+        if exposeIx(ix) < c then this else Var(mkIx(exposeIx(ix) + i))
+      case Prim(name)     => this
+      case Global(name)   => this
+      case LabelLit(name) => this
+      case Let(name, ty, value, body) =>
+        Let(name, ty.shift(i, c), value.shift(i, c), body.shift(i, c + 1))
+      case Type => this
+
+      case Pi(x, icit, ty, b) => Pi(x, icit, ty.shift(i, c), b.shift(i, c + 1))
+      case Lam(x, icit, b)    => Lam(x, icit, b.shift(i, c + 1))
+      case App(fn, arg, icit) => App(fn.shift(i, c), arg.shift(i, c), icit)
+
+      case Sigma(x, ty, b) => Sigma(x, ty.shift(i, c), b.shift(i, c + 1))
+      case Pair(fst, snd)  => Pair(fst.shift(i, c), snd.shift(i, c))
+      case Proj(tm, proj)  => Proj(tm.shift(i, c), proj)
+
+      case Meta(id)            => this
+      case InsertedMeta(id, _) => this

@@ -64,6 +64,76 @@ object Elaboration:
           s"${ctx.pretty(actual)} ~ ${ctx.pretty(expected)}: ${e.msg}\n${ctx.pos.longString}"
         )
 
+  @tailrec
+  def findNameInSigma(
+      x: Name,
+      tm: Val,
+      ty: Val,
+      i: Int = 0,
+      xs: Set[Name] = Set.empty
+  ): (Val, Int) = force(
+    ty
+  ) match
+    case VSigma(y, ty, c) if x == y => (ty, i)
+    case VSigma(y, ty, c) =>
+      val name = if x == "_" || xs.contains(x) then None else Some(y)
+      findNameInSigma(x, tm, vinst(c, vproj(tm, Named(name, i))), i + 1, xs + y)
+    case _ => throw NameNotInSigmaError(x)
+
+  private def inferImportLet(
+      ctx: Ctx,
+      stm: STm,
+      ns: Option[List[Name]]
+  ): (Ctx, Tm => Tm) =
+    val (tm, ty) = infer(ctx, stm)
+    val vtm = ctx.eval(tm)
+    ns match
+      case None =>
+        def go(ctx: Ctx, tm: Tm, ty: Val, i: Int): (Ctx, Tm => Tm) =
+          force(ty) match
+            case VSigma(x, pty, b) if x != "_" =>
+              val (nctx, builder) = go(
+                ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+                tm.shift(1),
+                vinst(b, vproj(vtm, Named(Some(x), i))),
+                i + 1
+              )
+              (
+                nctx,
+                b =>
+                  Let(
+                    x,
+                    ctx.quote(pty),
+                    Proj(tm, Named(Some(x), i)),
+                    builder(b)
+                  )
+              )
+            case VSigma(x, ty, b) =>
+              go(
+                ctx.bind(x, Expl, ty),
+                tm.shift(1),
+                vinst(b, vproj(vtm, Named(None, i))),
+                i + 1
+              )
+            case _ => (ctx, t => t)
+        go(ctx, tm, ty, 0)
+      case Some(ns) =>
+        def go(ctx: Ctx, tm: Tm, ns: List[Name]): (Ctx, Tm => Tm) = ns match
+          case Nil => (ctx, t => t)
+          case x :: rest =>
+            val (pty, i) = findNameInSigma(x, vtm, ty)
+            val (nctx, builder) = go(
+              ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+              tm.shift(1),
+              rest
+            )
+            (
+              nctx,
+              b =>
+                Let(x, ctx.quote(pty), Proj(tm, Named(Some(x), i)), builder(b))
+            )
+        go(ctx, tm, ns)
+
   private def checkOptionalTy(
       ctx: Ctx,
       ty: Option[STm],
@@ -104,6 +174,9 @@ object Elaboration:
         val (ety, vty, evalue) = checkOptionalTy(ctx, oty, value)
         val vvalue = ctx.eval(evalue)
         Let(x, ety, evalue, check(ctx.define(x, vty, vvalue), body, ty))
+      case (S.ImportLet(tm, ns, body), _) =>
+        val (nctx, etmbuilder) = inferImportLet(ctx, tm, ns)
+        etmbuilder(check(nctx, body, ty))
       case (S.Pair(fst, snd), VSigma(x, a, b)) =>
         val efst = check(ctx, fst, a)
         val esnd = check(ctx, snd, vinst(b, ctx.eval(efst)))
@@ -135,6 +208,10 @@ object Elaboration:
         val vvalue = ctx.eval(evalue)
         val (ebody, vbodyty) = infer(ctx.define(x, vty, vvalue), body)
         (Let(x, ety, evalue, ebody), vbodyty)
+      case S.ImportLet(tm, ns, body) =>
+        val (nctx, etmbuilder) = inferImportLet(ctx, tm, ns)
+        val (ebody, vbodyty) = infer(nctx, body)
+        (etmbuilder(ebody), vbodyty)
       case S.Pi(x, i, ty, body) =>
         val ety = checkType(ctx, ty)
         val ebody = checkType(ctx.bind(x, i, ctx.eval(ety)), body)
@@ -172,16 +249,7 @@ object Elaboration:
           case (VSigma(_, _, c), SP.Snd) =>
             (Proj(tm, Snd), vinst(c, vfst(ctx.eval(tm))))
           case (tty, SP.Named(x)) =>
-            @tailrec
-            def go(tm: Val, ty: Val, i: Int, xs: Set[Name]): (Val, Int) = force(
-              ty
-            ) match
-              case VSigma(y, ty, c) if x == y => (ty, i)
-              case VSigma(y, ty, c) =>
-                val name = if x == "_" || xs.contains(x) then None else Some(y)
-                go(tm, vinst(c, vproj(tm, Named(name, i))), i + 1, xs + y)
-              case _ => throw NameNotInSigmaError(x)
-            val (a, i) = go(ctx.eval(tm), tty, 0, Set.empty)
+            val (a, i) = findNameInSigma(x, ctx.eval(tm), tty, 0, Set.empty)
             (Proj(tm, Named(Some(x), i)), a)
           case (tty, _) if p == SP.Fst || p == SP.Snd =>
             val a = ctx.eval(newMeta(ctx))

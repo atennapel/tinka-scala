@@ -12,6 +12,8 @@ object Common:
   def lvl2ix(l: Lvl, x: Lvl): Ix = l - x - 1
   def lvlInc(l: Lvl): Lvl = l + 1
   def ixInc(ix: Ix): Ix = ix + 1
+  def mkIx(i: Int): Ix = i
+  def exposeIx(i: Ix): Int = i
   def exposeLvl(l: Lvl): Int = l
 
   type Name = String

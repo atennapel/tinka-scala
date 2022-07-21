@@ -19,7 +19,7 @@ object Parser extends StdTokenParsers with PackratParsers:
   lazy val notApp: P[Tm] =
     unitType | unit | ("(" ~> operator <~ ")" ^^ { case op =>
       Var(op)
-    }) | parens | listParens | unitParens | lambda | let | typeP | nat | variable
+    }) | parens | listParens | unitParens | lambda | let | importLetP | typeP | nat | variable
   lazy val lambda: P[Tm] = positioned(
     ("\\" | "λ") ~> lamParam.+ ~ "." ~ expr ^^ { case ps ~ _ ~ b =>
       annotatedLamFromParams(ps, b)
@@ -33,6 +33,15 @@ object Parser extends StdTokenParsers with PackratParsers:
           val pi = piFromParams(ps, ty.getOrElse(Hole(None)))
           val lams = unannotatedLamFromParams(ps, v)
           Let(x, Some(pi), lams, b)
+    }
+  )
+  lazy val importLetP: P[Tm] = positioned(
+    "import" ~> notApp ~ (("(" ~ ")" ^^ { case _ =>
+      List()
+    }) | ("(" ~> parameterIdent ~ ("," ~ parameterIdent).* <~ ")" ^^ {
+      case hd ~ tl => hd :: tl.map(_._2)
+    })).? ~ ";" ~ expr ^^ { case tm ~ ns ~ _ ~ b =>
+      ImportLet(tm, ns, b)
     }
   )
 
