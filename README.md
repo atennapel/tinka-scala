@@ -41,6 +41,9 @@ sbt "run lib/sum.tinka"
   - [x] Fix (::) operator
   - [x] Fix prefix operators
 - [ ] Erasure annotations
+- [ ] Sigma unpacking
+  - [ ] In binders
+  - [ ] Expose all
 - [ ] Inductive-recursive fixpoint type
 - [ ] Add a package name
 - [ ] Clean up error handling and output

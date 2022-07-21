@@ -26,7 +26,7 @@ object Parser extends StdTokenParsers with PackratParsers:
     }
   )
   lazy val let: P[Tm] = positioned(
-    "let" ~> ident ~ defParam.* ~ (":" ~> expr).? ~ "=" ~ expr ~ ";" ~ expr ^^ {
+    "let" ~> parameterIdent ~ defParam.* ~ (":" ~> expr).? ~ "=" ~ expr ~ ";" ~ expr ^^ {
       case x ~ ps ~ ty ~ _ ~ v ~ _ ~ b =>
         if ps.isEmpty then Let(x, ty, v, b)
         else
@@ -168,13 +168,13 @@ object Parser extends StdTokenParsers with PackratParsers:
   def operator: Parser[String] =
     elem("operator", _.isInstanceOf[Lexer.Operator]) ^^ (_.chars)
   lazy val argument: P[Arg] =
-    ("{" ~> ident.+ ~ "=" ~ expr <~ "}" ^^ { case xs ~ _ ~ t =>
+    ("{" ~> parameterIdent.+ ~ "=" ~ expr <~ "}" ^^ { case xs ~ _ ~ t =>
       ArgApp(t, Left(xs))
     })
       | ("{" ~> expr <~ "}" ^^ { case t => ArgApp(t, Right(Impl)) })
       | ("._1" ^^ { case _ => ArgProj(Fst) })
       | ("._2" ^^ { case _ => ArgProj(Snd) })
-      | ("." ~ ident ^^ { case _ ~ x => ArgProj(Named(x)) })
+      | ("." ~ parameterIdent ^^ { case _ ~ x => ArgProj(Named(x)) })
       | (operator ^^ { case op => ArgOp(op) })
       | notApp.map(t => ArgApp(t, Right(Expl)))
 
@@ -227,27 +227,28 @@ object Parser extends StdTokenParsers with PackratParsers:
     }
   )
   lazy val piParam: P[(List[Name], Option[Tm], Icit)] =
-    ("{" ~> ident.+ ~ ":" ~ expr <~ "}" ^^ { case xs ~ _ ~ ty =>
+    ("{" ~> parameterIdent.+ ~ ":" ~ expr <~ "}" ^^ { case xs ~ _ ~ ty =>
       (xs, Some(ty), Impl)
-    }) | ("{" ~> ident.+ <~ "}" ^^ { case xs =>
+    }) | ("{" ~> parameterIdent.+ <~ "}" ^^ { case xs =>
       (xs, None, Impl)
-    }) | ("(" ~> ident.+ ~ ":" ~ expr <~ ")" ^^ { case xs ~ _ ~ ty =>
+    }) | ("(" ~> parameterIdent.+ ~ ":" ~ expr <~ ")" ^^ { case xs ~ _ ~ ty =>
       (xs, Some(ty), Expl)
     })
 
   lazy val lamParam: P[(List[Name], Option[Tm], Either[Name, Icit])] =
     piParam.map { case (xs, ty, i) =>
       (xs, ty, Right(i))
-    } | ("{" ~> ident ~ ":" ~ expr ~ "=" ~ ident <~ "}" ^^ {
+    } | ("{" ~> parameterIdent ~ ":" ~ expr ~ "=" ~ parameterIdent <~ "}" ^^ {
       case x ~ _ ~ ty ~ _ ~ y => (List(x), Some(ty), Left(y))
-    }) | ("{" ~> ident ~ "=" ~ ident <~ "}" ^^ { case x ~ _ ~ y =>
-      (List(x), None, Left(y))
-    }) | ident.map(x => (List(x), None, Right(Expl)))
+    }) | ("{" ~> parameterIdent ~ "=" ~ parameterIdent <~ "}" ^^ {
+      case x ~ _ ~ y =>
+        (List(x), None, Left(y))
+    }) | parameterIdent.map(x => (List(x), None, Right(Expl)))
 
   lazy val defParam: P[(List[Name], Option[Tm], Icit)] =
     piParam.map { case (xs, ty, i) =>
       (xs, ty, i)
-    } | ident.map(x => (List(x), None, Expl))
+    } | parameterIdent.map(x => (List(x), None, Expl))
 
   def parse(str: String): ParseResult[Tm] =
     val tokens = new lexical.Scanner(str)
