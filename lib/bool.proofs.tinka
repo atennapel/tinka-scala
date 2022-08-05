@@ -1,5 +1,0 @@
-import "lib/bool";
-import "lib/id";
-
-def trueNeqFalse : True !~ False
-  = \p. rewrite liftBool p [];

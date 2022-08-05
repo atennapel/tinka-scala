@@ -1,47 +1,20 @@
-import scala.annotation.tailrec
-
 object Common:
   opaque type Ix = Int
+
+  extension (ix: Ix) def index[A](e: Seq[A]): A = e(ix)
+
   opaque type Lvl = Int
 
-  def ixEnv[A](env: Seq[A], ix: Ix): A = env(ix)
-  def lvlFromEnv[A](env: Seq[A]): Lvl = env.size
+  extension (lvl: Lvl)
+    def +(d: Lvl | Int): Lvl = lvl + d
 
-  def initialLvl: Lvl = 0
-  def initialIx: Ix = 0
-  def lvl2ix(l: Lvl, x: Lvl): Ix = l - x - 1
-  def lvlInc(l: Lvl): Lvl = l + 1
-  def ixInc(ix: Ix): Ix = ix + 1
-  def mkIx(i: Int): Ix = i
-  def exposeIx(i: Ix): Int = i
-  def exposeLvl(l: Lvl): Int = l
+    def toIx(implicit k: Lvl): Ix = k - lvl - 1
 
-  type Name = String
+  opaque type MetaId = Int
 
-  @tailrec
-  def freshName(x: Name, ns: Seq[Name]): Name =
-    if x == "_" then x
-    else if ns.contains(x) then freshName(nextName(x), ns)
-    else x
+  opaque type Name = String
 
-  // TODO: better name generation
-  def nextName(x: Name): Name =
-    if x == "_" then x
-    else s"$x'"
-
-  type MetaId = Int
-
-  def metaId(id: Int): MetaId = id
-  def exposeMetaId(ix: MetaId): Int = ix
-
-  enum BD:
-    case Bound(icit: Icit)
-    case Defined
-
-  type BDs = List[BD]
-
-  enum Icit:
-    case Expl
-    case Impl
-
-  type PrimName = String
+  enum Bind:
+    case Bound(name: Name)
+    case DontBind
+  export Bind.*

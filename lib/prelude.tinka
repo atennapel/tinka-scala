@@ -1,9 +1,0 @@
-import "lib/combinators";
-
-import "lib/bool";
-import "lib/id";
-import "lib/fix";
-
-import "lib/sum";
-import "lib/nat";
-import "lib/list";
