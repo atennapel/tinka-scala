@@ -1,0 +1,24 @@
+-- natural numbers
+let Nat = (A : Type) -> A -> (A -> A) -> A;
+let Z : Nat = \A z s. z;
+let S (n : Nat) : Nat = \A z s. s (n A z s);
+
+let n0 = Z;
+let n1 = S n0;
+let n2 = S n1;
+let n3 = S n2;
+let n4 = S n3;
+
+let foldNat (A : Type) (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+
+let add (a b : Nat) : Nat = foldNat Nat a b S;
+let mul (a b : Nat) : Nat = foldNat Nat a Z (add b);
+
+-- identity type
+let Id (A : Type) (x y : A) = (F : A -> Type) -> F x -> F y;
+let Refl (A : Type) (x : A) : Id A x x = \F y. y;
+
+let add11eq2 : Id Nat (add n1 n1) n2 = Refl Nat n2;
+let mul22eq4 : Id Nat (mul n2 n2) n4 = Refl Nat n4;
+
+mul22eq4

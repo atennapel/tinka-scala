@@ -4,15 +4,19 @@ import Value.*
 import Errors.*
 
 object Evaluation:
+  extension (c: Clos) def apply(v: Val): Val = c.tm.eval(v :: c.env)
+
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
-      case Var(ix)                    => ix.index(env)
-      case Let(bind, ty, value, body) => ???
-      case Type                       => VType
+      case Var(ix)                => ix.index(env)
+      case Let(_, _, value, body) => body.eval(value.eval :: env)
+      case Type                   => VType
       case Pi(bind, ty, body) =>
-        VPi(bind, ty.eval, Clos(v => body.eval(v :: env)))
+        VPi(bind, ty.eval, Clos(env, body))
       case App(fn, arg)    => fn.eval(env)(arg.eval)
-      case Lam(bind, body) => VLam(bind, Clos(v => body.eval(v :: env)))
+      case Lam(bind, body) => VLam(bind, Clos(env, body))
+
+    def nf: Tm = c.eval(Nil).quote(lvl0)
 
   extension (hd: Head)
     def quote(implicit k: Lvl): Tm = hd match

@@ -1,10 +1,10 @@
 import Common.*
+import Core.*
 
 object Value:
   type Env = List[Val]
 
-  sealed case class Clos(fn: Val => Val):
-    def apply(v: Val): Val = fn(v)
+  final case class Clos(env: Env, tm: Tm)
 
   enum Head:
     case HVar(lvl: Lvl)
