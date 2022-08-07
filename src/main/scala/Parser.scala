@@ -123,38 +123,29 @@ object Parser:
       attempt(userOpStart(o)).map(op => (l, r) => App(App(Var(Name(op)), l), r))
     private def opP(o: String): Parsley[Prefix.Op[Tm]] =
       attempt(userOpStart(o)).map(op => t => App(Var(Name(op)), t))
+    private def opLevel(s: String): List[Ops[Tm, Tm]] =
+      val chars = s.toList
+      List(
+        Ops(Prefix)(chars.map(c => opP(c.toString))*),
+        Ops(InfixL)(chars.map(c => opL(c.toString))*),
+        Ops(InfixR)(chars.map(c => opR(c.toString))*)
+      )
+    private def ops(ss: String*): Seq[Ops[Tm, Tm]] =
+      ss.map(opLevel).flatten
     private lazy val app: Parsley[Tm] =
       precedence[Tm](appAtom)(
-        Ops(Prefix)(opP("`"), opP("@"), opP("#"), opP("?"), opP(","), opP(".")),
-        Ops(InfixL)(opL("`"), opL("@"), opL("#"), opL("?"), opL(","), opL(".")),
-        Ops(InfixR)(opR("`"), opR("@"), opR("#"), opR("?"), opR(","), opR(".")),
-        Ops(Prefix)(opP("*"), opP("/"), opP("%")),
-        Ops(InfixL)(opL("*"), opL("/"), opL("%")),
-        Ops(InfixR)(opR("*"), opR("/"), opR("%")),
-        Ops(Prefix)(opP("+"), opP("-")),
-        Ops(InfixL)(opL("+"), opL("-")),
-        Ops(InfixR)(opR("+"), opR("-")),
-        Ops(Prefix)(opP(":")),
-        Ops(InfixL)(opL(":")),
-        Ops(InfixR)(opR(":")),
-        Ops(Prefix)(opP("="), opP("!")),
-        Ops(InfixL)(opL("="), opL("!")),
-        Ops(InfixR)(opR("="), opR("!")),
-        Ops(Prefix)(opP("<"), opP(">")),
-        Ops(InfixL)(opL("<"), opL(">")),
-        Ops(InfixR)(opR("<"), opR(">")),
-        Ops(Prefix)(opP("&")),
-        Ops(InfixL)(opL("&")),
-        Ops(InfixR)(opR("&")),
-        Ops(Prefix)(opP("^")),
-        Ops(InfixL)(opL("^")),
-        Ops(InfixR)(opR("^")),
-        Ops(Prefix)(opP("|")),
-        Ops(InfixL)(opL("|")),
-        Ops(InfixR)(opR("|")),
-        Ops(Prefix)(opP("$")),
-        Ops(InfixL)(opL("$")),
-        Ops(InfixR)(opR("$"))
+        ops(
+          "`@#?,.",
+          "*/%",
+          "+-",
+          ":",
+          "=!",
+          "<>",
+          "&",
+          "^",
+          "|",
+          "$"
+        )*
       )
 
     private lazy val appAtom: Parsley[Tm] =
