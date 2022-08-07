@@ -13,9 +13,9 @@ object Common:
 
   opaque type MetaId = Int
 
-  opaque type Name = String
-
-  def mkName(x: String): Name = x
+  case class Name(x: String):
+    override def toString: String =
+      if x.head.isLetter then x else s"($x)"
 
   enum Bind:
     case Bound(name: Name)
