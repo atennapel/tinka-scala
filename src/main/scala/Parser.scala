@@ -44,7 +44,7 @@ object Parser:
           else void(lexer.symbol_(s))
 
   object TmParser:
-    import parsley.expr.{precedence, Ops, InfixR}
+    import parsley.expr.{precedence, Ops, InfixL, InfixR}
     import parsley.combinator.{many, some, option}
 
     import LangLexer.{ident as ident0, userOp as userOp0, natural}
@@ -52,6 +52,8 @@ object Parser:
 
     private lazy val ident: Parsley[Name] = ident0.map(Name.apply)
     private lazy val userOp: Parsley[Name] = userOp0.map(Name.apply)
+    private def userOpStart(s: String): Parsley[Name] =
+      userOp0.filter(_.startsWith(s)).map(Name.apply)
     private lazy val identOrOp: Parsley[Name] = ("(" *> userOp <* ")") <|> ident
 
     private lazy val bind: Parsley[Bind] =
@@ -107,11 +109,29 @@ object Parser:
       )
         <|> bind.map(x => (List(x), None))
 
+    /*
     private lazy val app: Parsley[Tm] =
       (atom <~> many(arg) <~> option(let <|> lam)).map {
         case ((fn, args0), opt) =>
           val args = args0 ++ opt.map(Right.apply)
           args.foldLeft(fn)((f, a) => a.fold(op => App(Var(op), f), App(f, _)))
+      }
+     */
+
+    private lazy val app: Parsley[Tm] =
+      precedence[Tm](appAtom)(
+        Ops(InfixL)(
+          userOpStart("*").map(op => (l, r) => App(App(Var(op), l), r))
+        ),
+        Ops(InfixL)(
+          userOpStart("+").map(op => (l, r) => App(App(Var(op), l), r))
+        )
+      )
+
+    private lazy val appAtom: Parsley[Tm] =
+      (atom <~> many(atom) <~> option(let <|> lam)).map {
+        case ((fn, args), opt) =>
+          (args ++ opt).foldLeft(fn)(App.apply)
       }
 
     private type Arg = Either[Name, Tm]
