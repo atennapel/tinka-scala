@@ -69,6 +69,10 @@ object Elaboration:
         val ety = checkType(ty)
         val eb = checkType(b)(ctx.bind(x, ety.evalCtx))
         (Pi(x, ety, eb), VType)
+      case S.Sigma(x, ty, b) =>
+        val ety = checkType(ty)
+        val eb = checkType(b)(ctx.bind(x, ety.evalCtx))
+        (Sigma(x, ety, eb), VType)
       case S.App(f, a) =>
         val (ef, fty) = infer(f)
         fty match

@@ -15,10 +15,11 @@ object Unification:
     unify(a(v), b(v))(k + 1)
 
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit = (a, b) match
-    case (VType, VType)                   => ()
-    case (VUnitType, VUnitType)           => ()
-    case (VPi(_, t1, b1), VPi(_, t2, b2)) => unify(t1, t2); unify(b1, b2)
-    case (VLam(_, b1), VLam(_, b2))       => unify(b1, b2)
+    case (VType, VType)                         => ()
+    case (VUnitType, VUnitType)                 => ()
+    case (VPi(_, t1, b1), VPi(_, t2, b2))       => unify(t1, t2); unify(b1, b2)
+    case (VSigma(_, t1, b1), VSigma(_, t2, b2)) => unify(t1, t2); unify(b1, b2)
+    case (VLam(_, b1), VLam(_, b2))             => unify(b1, b2)
     case (VLam(_, b), w) => val v = VVar(k); unify(b(v), w(v))(k + 1)
     case (w, VLam(_, b)) => val v = VVar(k); unify(w(v), b(v))(k + 1)
     case (VUnit, _)      => ()

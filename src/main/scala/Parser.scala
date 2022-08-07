@@ -19,7 +19,7 @@ object Parser:
       commentEnd = "-}",
       nestedComments = true,
       keywords = Set("Type", "let", "if", "then", "else"),
-      operators = Set("=", ":", ";", "\\", ".", "->", "_"),
+      operators = Set("=", ":", ";", "\\", ".", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter = Predicate(c => c.isLetterOrDigit || c == '_'),
       opStart = Predicate(userOps.contains(_)),
@@ -71,19 +71,26 @@ object Parser:
       c
     )
 
-    lazy val tm: Parsley[Tm] = attempt(pi) <|> ifTm <|> let <|> lam <|>
-      precedence[Tm](app)(Ops(InfixR)("->" #> ((l, r) => Pi(DontBind, l, r))))
-
-    private lazy val pi: Parsley[Tm] =
-      (some(piParam) <~> "->" *> tm).map((ps, rt) =>
-        ps.foldRight(rt) { case ((xs, ty), rt) =>
-          xs.foldRight(rt)((x, rt) => Pi(x, ty.getOrElse(Hole), rt))
-        }
+    lazy val tm: Parsley[Tm] = attempt(piOrSigma) <|> ifTm <|> let <|> lam <|>
+      precedence[Tm](app)(
+        Ops(InfixR)("**" #> ((l, r) => Sigma(DontBind, l, r))),
+        Ops(InfixR)("->" #> ((l, r) => Pi(DontBind, l, r)))
       )
 
-    private type PiParam = (List[Bind], Option[Ty])
+    private lazy val piOrSigma: Parsley[Tm] =
+      (some(piSigmaParam) <~> ("->" #> false <|> "**" #> true) <~> tm).map {
+        case ((ps, isSigma), rt) =>
+          ps.foldRight(rt) { case ((xs, ty), rt) =>
+            xs.foldRight(rt)((x, rt) =>
+              if isSigma then Sigma(x, ty.getOrElse(Hole), rt)
+              else Pi(x, ty.getOrElse(Hole), rt)
+            )
+          }
+      }
 
-    private lazy val piParam: Parsley[PiParam] =
+    private type PiSigmaParam = (List[Bind], Option[Ty])
+
+    private lazy val piSigmaParam: Parsley[PiSigmaParam] =
       ("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) => (xs, Some(ty)))
 
     private val ifVar: Tm = Var(Name("if_"))

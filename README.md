@@ -19,7 +19,10 @@ sbt "run examples/church.tinka"
 - [x] Unit type
 - [ ] Pretty printing
 - [ ] Sigma types
-  - [ ] Named projections
+  - [x] Type
+  - [ ] Pairs
+  - [ ] Projection
+  - [ ] Named projection
   - [ ] Tuples
   - [ ] List syntax
 - [ ] Metas
