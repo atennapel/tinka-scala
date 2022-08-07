@@ -113,48 +113,20 @@ object Parser:
       )
         <|> bind.map(x => (List(x), None))
 
-    private def userOpStart(s: String): Parsley[String] =
-      userOp0.filter(_.startsWith(s))
-    private def opL(o: String): Parsley[InfixL.Op[Tm]] =
-      attempt(userOpStart(o).filterNot(_.endsWith(":"))).map(op =>
-        (l, r) => App(App(Var(Name(op)), l), r)
-      )
-    private def opR(o: String): Parsley[InfixR.Op[Tm]] =
-      attempt(userOpStart(o)).map(op => (l, r) => App(App(Var(Name(op)), l), r))
-    private def opP(o: String): Parsley[Prefix.Op[Tm]] =
-      attempt(userOpStart(o)).map(op => t => App(Var(Name(op)), t))
     private lazy val app: Parsley[Tm] =
       precedence[Tm](appAtom)(
-        Ops(Prefix)(opP("`"), opP("@"), opP("#"), opP("?"), opP(","), opP(".")),
-        Ops(InfixL)(opL("`"), opL("@"), opL("#"), opL("?"), opL(","), opL(".")),
-        Ops(InfixR)(opR("`"), opR("@"), opR("#"), opR("?"), opR(","), opR(".")),
-        Ops(Prefix)(opP("*"), opP("/"), opP("%")),
-        Ops(InfixL)(opL("*"), opL("/"), opL("%")),
-        Ops(InfixR)(opR("*"), opR("/"), opR("%")),
-        Ops(Prefix)(opP("+"), opP("-")),
-        Ops(InfixL)(opL("+"), opL("-")),
-        Ops(InfixR)(opR("+"), opR("-")),
-        Ops(Prefix)(opP(":")),
-        Ops(InfixL)(opL(":")),
-        Ops(InfixR)(opR(":")),
-        Ops(Prefix)(opP("="), opP("!")),
-        Ops(InfixL)(opL("="), opL("!")),
-        Ops(InfixR)(opR("="), opR("!")),
-        Ops(Prefix)(opP("<"), opP(">")),
-        Ops(InfixL)(opL("<"), opL(">")),
-        Ops(InfixR)(opR("<"), opR(">")),
-        Ops(Prefix)(opP("&")),
-        Ops(InfixL)(opL("&")),
-        Ops(InfixR)(opR("&")),
-        Ops(Prefix)(opP("^")),
-        Ops(InfixL)(opL("^")),
-        Ops(InfixR)(opR("^")),
-        Ops(Prefix)(opP("|")),
-        Ops(InfixL)(opL("|")),
-        Ops(InfixR)(opR("|")),
-        Ops(Prefix)(opP("$")),
-        Ops(InfixL)(opL("$")),
-        Ops(InfixR)(opR("$"))
+        ops(
+          "`@#?,.",
+          "*/%",
+          "+-",
+          ":",
+          "=!",
+          "<>",
+          "&",
+          "^",
+          "|",
+          "$"
+        )*
       )
 
     private lazy val appAtom: Parsley[Tm] =
@@ -162,11 +134,6 @@ object Parser:
         case ((fn, args), opt) =>
           (args ++ opt).foldLeft(fn)(App.apply)
       }
-
-    private type Arg = Either[Name, Tm]
-
-    private lazy val arg: Parsley[Arg] =
-      userOp.map(Left.apply) <|> atom.map(Right.apply)
 
     private def typeFromParams(ps: List[Param], rt: Ty): Ty =
       ps.foldRight(rt)((x, b) =>
@@ -180,5 +147,25 @@ object Parser:
           case (xs, ty) =>
             xs.foldRight(b)(Lam(_, if useTypes then ty else None, _))
       )
+
+    private def userOpStart(s: String): Parsley[String] =
+      userOp0.filter(_.startsWith(s))
+    private def opL(o: String): Parsley[InfixL.Op[Tm]] =
+      attempt(userOpStart(o).filterNot(_.endsWith(":"))).map(op =>
+        (l, r) => App(App(Var(Name(op)), l), r)
+      )
+    private def opR(o: String): Parsley[InfixR.Op[Tm]] =
+      attempt(userOpStart(o)).map(op => (l, r) => App(App(Var(Name(op)), l), r))
+    private def opP(o: String): Parsley[Prefix.Op[Tm]] =
+      attempt(userOpStart(o)).map(op => t => App(Var(Name(op)), t))
+    private def opLevel(s: String): List[Ops[Tm, Tm]] =
+      val chars = s.toList
+      List(
+        Ops(Prefix)(chars.map(c => opP(c.toString))*),
+        Ops(InfixL)(chars.map(c => opL(c.toString))*),
+        Ops(InfixR)(chars.map(c => opR(c.toString))*)
+      )
+    private def ops(ss: String*): Seq[Ops[Tm, Tm]] =
+      ss.map(opLevel).flatten
 
   lazy val parser: Parsley[Tm] = LangLexer.fully(TmParser.tm)
