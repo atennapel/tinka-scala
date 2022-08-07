@@ -16,9 +16,12 @@ object Unification:
 
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit = (a, b) match
     case (VType, VType)                   => ()
+    case (VUnitType, VUnitType)           => ()
     case (VPi(_, t1, b1), VPi(_, t2, b2)) => unify(t1, t2); unify(b1, b2)
     case (VLam(_, b1), VLam(_, b2))       => unify(b1, b2)
     case (VLam(_, b), w) => val v = VVar(k); unify(b(v), w(v))(k + 1)
     case (w, VLam(_, b)) => val v = VVar(k); unify(w(v), b(v))(k + 1)
+    case (VUnit, _)      => ()
+    case (_, VUnit)      => ()
     case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unify(sp1, sp2)
     case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")

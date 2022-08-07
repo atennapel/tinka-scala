@@ -12,6 +12,9 @@ object Surface:
     case App(fn: Tm, arg: Tm)
     case Lam(bind: Bind, ty: Option[Ty], body: Ty)
 
+    case UnitType
+    case Unit
+
     case Hole
 
     override def toString: String = this match
@@ -25,4 +28,6 @@ object Surface:
       case App(l, r)             => s"($l $r)"
       case Lam(x, Some(t), b)    => s"(\\($x : $t). $b)"
       case Lam(x, None, b)       => s"(\\$x. $b)"
+      case UnitType              => "()"
+      case Unit                  => "[]"
   export Tm.*

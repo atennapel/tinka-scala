@@ -58,8 +58,10 @@ object Parser:
       "_" #> DontBind <|> identOrOp.map(Bound.apply)
 
     private lazy val atom: Parsley[Tm] =
-      "(" *> (userOp.map(Var.apply) <|> tm) <* ")" <|>
-        "_" #> Hole <|> "Type" #> Type <|> nat <|> ident.map(Var.apply)
+      ("(" *> (userOp.map(Var.apply) <|> tm <|> pure(UnitType)) <* ")") <|>
+        ("[" *> pure(Unit) <* "]") <|>
+        "_" #> Hole <|> "Type" #> Type <|> nat <|>
+        ident.map(Var.apply)
 
     private val nZ = Var(Name("Z"))
     private val nS = Var(Name("S"))

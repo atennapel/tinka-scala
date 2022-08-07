@@ -33,8 +33,11 @@ object Elaboration:
   private def check(tm: S.Tm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
     (tm, ty) match
-      case (S.Type, VType) => Type
-      case (S.Hole, _)     => throw HoleFoundError(ty.quoteCtx.toString)
+      case (S.Type, VType)     => Type
+      case (S.UnitType, VType) => UnitType
+      case (S.Unit, VUnitType) => Unit
+      case (S.Hole, VUnitType) => Unit
+      case (S.Hole, _)         => throw HoleFoundError(ty.quoteCtx.toString)
       case (S.Lam(x, oty, b), VPi(y, pty, rty)) =>
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
@@ -51,7 +54,9 @@ object Elaboration:
   private def infer(tm: S.Tm)(implicit ctx: Ctx): (Tm, VTy) =
     debug(s"infer $tm")
     tm match
-      case S.Type => (Type, VType)
+      case S.Type     => (Type, VType)
+      case S.UnitType => (UnitType, VType)
+      case S.Unit     => (Unit, VUnitType)
       case S.Var(x) =>
         lookupCtx(x) match
           case Some((ix, vty)) => (Var(ix), vty)

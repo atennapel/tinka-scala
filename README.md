@@ -16,8 +16,11 @@ sbt "run examples/church.tinka"
   - [x] Precendence and associativity
   - [x] Unary operators
   - [x] "if-then-else" operator
+- [x] Unit type
 - [ ] Pretty printing
-- [ ] Unit type
 - [ ] Sigma types
+  - [ ] Named projections
+  - [ ] Tuples
+  - [ ] List syntax
 - [ ] Metas
 - [ ] Universes

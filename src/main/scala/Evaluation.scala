@@ -15,6 +15,8 @@ object Evaluation:
         VPi(bind, ty.eval, Clos(env, body))
       case App(fn, arg)    => fn.eval(env)(arg.eval)
       case Lam(bind, body) => VLam(bind, Clos(env, body))
+      case UnitType        => VUnitType
+      case Unit            => VUnit
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
@@ -39,3 +41,5 @@ object Evaluation:
       case VLam(bind, body) => Lam(bind, body(VVar(k)).quote(k + 1))
       case VPi(bind, ty, body) =>
         Pi(bind, ty.quote, body(VVar(k)).quote(k + 1))
+      case VUnitType => UnitType
+      case VUnit     => Unit
