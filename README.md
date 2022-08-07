@@ -11,13 +11,13 @@ sbt "run examples/church.tinka"
 
 ## TODO
 - [x] Parser
-- [ ] Scala-style operators
+- [x] Scala-style operators
   - [x] Basic operators
-  - [ ] Unary operators
-  - [ ] Precendence and associativity
-  - [ ] Operator slicing
-  - [ ] "if-then-else" operator
+  - [x] Precendence and associativity
+  - [x] Unary operators
+  - [x] "if-then-else" operator
 - [ ] Pretty printing
-- [ ] Metas
+- [ ] Unit type
 - [ ] Sigma types
+- [ ] Metas
 - [ ] Universes

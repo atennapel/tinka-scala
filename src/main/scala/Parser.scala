@@ -10,18 +10,18 @@ object Parser:
     import parsley.character.{alphaNum, isWhitespace}
     import parsley.combinator.eof
 
-    private val userOps = "`~!@#$%^&*-+=|:;/?><,."
-    private val userOpsTail = userOps + "_"
+    private val userOps = "`~!@#$%^&*-+=|:/?><,."
+    private val userOpsTail = userOps + "_;"
 
     val lang = LanguageDef.plain.copy(
       commentLine = "--",
       commentStart = "{-",
       commentEnd = "-}",
       nestedComments = true,
-      keywords = Set("Type", "let"),
+      keywords = Set("Type", "let", "if", "then", "else"),
       operators = Set("=", ":", ";", "\\", ".", "->", "_"),
       identStart = Predicate(_.isLetter),
-      identLetter = Predicate(_.isLetterOrDigit),
+      identLetter = Predicate(c => c.isLetterOrDigit || c == '_'),
       opStart = Predicate(userOps.contains(_)),
       opLetter = Predicate(userOpsTail.contains(_)),
       space = Predicate(isWhitespace)
@@ -44,7 +44,7 @@ object Parser:
           else void(lexer.symbol_(s))
 
   object TmParser:
-    import parsley.expr.{precedence, Ops, InfixL, InfixR}
+    import parsley.expr.{precedence, Ops, InfixL, InfixR, Prefix, Postfix}
     import parsley.combinator.{many, some, option}
 
     import LangLexer.{ident as ident0, userOp as userOp0, natural}
@@ -52,8 +52,6 @@ object Parser:
 
     private lazy val ident: Parsley[Name] = ident0.map(Name.apply)
     private lazy val userOp: Parsley[Name] = userOp0.map(Name.apply)
-    private def userOpStart(s: String): Parsley[Name] =
-      userOp0.filter(_.startsWith(s)).map(Name.apply)
     private lazy val identOrOp: Parsley[Name] = ("(" *> userOp <* ")") <|> ident
 
     private lazy val bind: Parsley[Bind] =
@@ -71,7 +69,7 @@ object Parser:
       c
     )
 
-    lazy val tm: Parsley[Tm] = attempt(pi) <|> let <|> lam <|>
+    lazy val tm: Parsley[Tm] = attempt(pi) <|> ifTm <|> let <|> lam <|>
       precedence[Tm](app)(Ops(InfixR)("->" #> ((l, r) => Pi(DontBind, l, r))))
 
     private lazy val pi: Parsley[Tm] =
@@ -85,6 +83,12 @@ object Parser:
 
     private lazy val piParam: Parsley[PiParam] =
       ("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) => (xs, Some(ty)))
+
+    private val ifVar: Tm = Var(Name("if_"))
+    private lazy val ifTm: Parsley[Tm] =
+      ("if" *> tm <~> "then" *> tm <~> "else" *> tm).map { case ((c, t), f) =>
+        App(App(App(ifVar, c), Lam(DontBind, None, t)), Lam(DontBind, None, f))
+      }
 
     private lazy val let: Parsley[Tm] =
       ("let" *> identOrOp <~> many(param) <~>
@@ -109,23 +113,48 @@ object Parser:
       )
         <|> bind.map(x => (List(x), None))
 
-    /*
-    private lazy val app: Parsley[Tm] =
-      (atom <~> many(arg) <~> option(let <|> lam)).map {
-        case ((fn, args0), opt) =>
-          val args = args0 ++ opt.map(Right.apply)
-          args.foldLeft(fn)((f, a) => a.fold(op => App(Var(op), f), App(f, _)))
-      }
-     */
-
+    private def userOpStart(s: String): Parsley[String] =
+      userOp0.filter(_.startsWith(s))
+    private def opL(o: String): Parsley[InfixL.Op[Tm]] =
+      attempt(userOpStart(o).filterNot(_.endsWith(":"))).map(op =>
+        (l, r) => App(App(Var(Name(op)), l), r)
+      )
+    private def opR(o: String): Parsley[InfixR.Op[Tm]] =
+      attempt(userOpStart(o)).map(op => (l, r) => App(App(Var(Name(op)), l), r))
+    private def opP(o: String): Parsley[Prefix.Op[Tm]] =
+      attempt(userOpStart(o)).map(op => t => App(Var(Name(op)), t))
     private lazy val app: Parsley[Tm] =
       precedence[Tm](appAtom)(
-        Ops(InfixL)(
-          userOpStart("*").map(op => (l, r) => App(App(Var(op), l), r))
-        ),
-        Ops(InfixL)(
-          userOpStart("+").map(op => (l, r) => App(App(Var(op), l), r))
-        )
+        Ops(Prefix)(opP("`"), opP("@"), opP("#"), opP("?"), opP(","), opP(".")),
+        Ops(InfixL)(opL("`"), opL("@"), opL("#"), opL("?"), opL(","), opL(".")),
+        Ops(InfixR)(opR("`"), opR("@"), opR("#"), opR("?"), opR(","), opR(".")),
+        Ops(Prefix)(opP("*"), opP("/"), opP("%")),
+        Ops(InfixL)(opL("*"), opL("/"), opL("%")),
+        Ops(InfixR)(opR("*"), opR("/"), opR("%")),
+        Ops(Prefix)(opP("+"), opP("-")),
+        Ops(InfixL)(opL("+"), opL("-")),
+        Ops(InfixR)(opR("+"), opR("-")),
+        Ops(Prefix)(opP(":")),
+        Ops(InfixL)(opL(":")),
+        Ops(InfixR)(opR(":")),
+        Ops(Prefix)(opP("="), opP("!")),
+        Ops(InfixL)(opL("="), opL("!")),
+        Ops(InfixR)(opR("="), opR("!")),
+        Ops(Prefix)(opP("<"), opP(">")),
+        Ops(InfixL)(opL("<"), opL(">")),
+        Ops(InfixR)(opR("<"), opR(">")),
+        Ops(Prefix)(opP("&")),
+        Ops(InfixL)(opL("&")),
+        Ops(InfixR)(opR("&")),
+        Ops(Prefix)(opP("^")),
+        Ops(InfixL)(opL("^")),
+        Ops(InfixR)(opR("^")),
+        Ops(Prefix)(opP("|")),
+        Ops(InfixL)(opL("|")),
+        Ops(InfixR)(opR("|")),
+        Ops(Prefix)(opP("$")),
+        Ops(InfixL)(opL("$")),
+        Ops(InfixR)(opR("$"))
       )
 
     private lazy val appAtom: Parsley[Tm] =

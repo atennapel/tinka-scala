@@ -3,14 +3,20 @@ let Bool = (A : Type) -> A -> A -> A;
 let True : Bool = \A t f. t;
 let False : Bool = \A t f. f;
 
-let if (A : Type) (b : Bool) (t : A) (f : A) : A = b A t f;
+let cond (A : Type) (b : Bool) (t : A) (f : A) : A = b A t f;
 
-let not (b : Bool) : Bool = if Bool b False True;
-let (&&) (a b : Bool) : Bool = if Bool a b False;
-let (||) (a b : Bool) : Bool = if Bool a True b;
+-- defining if_ allows for if-then-else syntax
+-- TODO: implement unit types and implicit functions
+let if_ (b : Bool) (t : Type -> Bool) (f : Type -> Bool) : Bool = (cond (Type -> Bool) b t f) Type;
+
+let (!) (b : Bool) : Bool = if b then False else True;
+let (&&) (a b : Bool) : Bool = if a then b else False;
+let (||) (a b : Bool) : Bool = if a then True else b;
 
 -- natural numbers
 let Nat = (A : Type) -> A -> (A -> A) -> A;
+
+-- defining Z and S provides support for natural number literals
 let Z : Nat = \A z s. z;
 let S (n : Nat) : Nat = \A z s. s (n A z s);
 
