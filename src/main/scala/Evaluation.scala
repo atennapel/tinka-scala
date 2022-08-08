@@ -39,10 +39,12 @@ object Evaluation:
       case _             => throw Impossible
 
     def proj(proj: ProjType): Val = (v, proj) match
-      case (VPair(fst, _), Fst) => fst
-      case (VPair(_, snd), Snd) => snd
-      case (VNe(hd, sp), _)     => VNe(hd, SProj(sp, proj))
-      case _                    => throw Impossible
+      case (VPair(fst, _), Fst)         => fst
+      case (VPair(_, snd), Snd)         => snd
+      case (VPair(fst, _), Named(_, 0)) => fst
+      case (VPair(_, snd), Named(x, i)) => snd.proj(Named(x, i - 1))
+      case (VNe(hd, sp), _)             => VNe(hd, SProj(sp, proj))
+      case _                            => throw Impossible
 
     def quote(implicit k: Lvl): Tm = v match
       case VType               => Type

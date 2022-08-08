@@ -160,7 +160,7 @@ object Parser:
       (atom <~> many(proj)).map((t, ps) => ps.foldLeft(t)(Proj.apply))
 
     private lazy val proj: Parsley[ProjType] =
-      ("." *> ("_1" #> Fst <|> "_2" #> Snd))
+      ("." *> ("1" #> Fst <|> "2" #> Snd <|> identOrOp.map(Named.apply)))
 
     private def typeFromParams(ps: List[Param], rt: Ty): Ty =
       ps.foldRight(rt)((x, b) =>

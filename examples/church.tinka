@@ -7,7 +7,7 @@ let indSigma
   (P : ((x : A) ** B x) -> Type)
   (h : (fst : A) (snd : B fst) -> P (fst, snd))
   (s : (x : A) ** B x) : P s
-  = h s._1 s._2;
+  = h s.1 s.2;
 
 -- booleans
 let Bool = (A : Type) -> A -> A -> A;

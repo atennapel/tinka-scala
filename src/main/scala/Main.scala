@@ -13,7 +13,8 @@ import parsley.io.given
   println(tm.toString)
   val time = System.nanoTime
   val (etm, ety) = elaborate(tm)
-  println(s"time: ${System.nanoTime - time}ns")
+  val time1 = System.nanoTime - time
+  println(s"time: ${time1 / 1000000}ms (${time1}ns)")
   println("type:")
   println(ety.toString)
   println("elaborated term:")

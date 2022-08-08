@@ -7,6 +7,7 @@ import Unification.*
 import Ctx.*
 import Errors.*
 import Debug.*
+import scala.annotation.tailrec
 
 object Elaboration:
   private def unify(a: Val, b: Val)(implicit ctx: Ctx): Unit =
@@ -54,6 +55,30 @@ object Elaboration:
         unify(ty2, ty)
         etm
 
+  private def projIndex(tm: Val, x: Bind, ix: Int, clash: Boolean): Val =
+    x match
+      case Bound(x) if !clash => tm.proj(Named(x, ix))
+      case _ =>
+        @tailrec
+        def go(tm: Val, ix: Int): Val = ix match
+          case 0 => tm.proj(Fst)
+          case n => go(tm.proj(Snd), n - 1)
+        go(tm, ix)
+  private def projNamed(tm: Val, ty: VTy, x: Name)(implicit
+      ctx: Ctx
+  ): (ProjType, VTy) =
+    @tailrec
+    def go(ty: VTy, ix: Int, ns: Set[Name]): (ProjType, VTy) = ty match
+      case VSigma(Bound(y), fstty, _) if x == y => (Named(x, ix), fstty)
+      case VSigma(y, _, sndty) =>
+        val (clash, newns) = y match
+          case Bound(y) => (ns.contains(y), ns + y)
+          case DontBind => (false, ns)
+        go(sndty(projIndex(tm, y, ix, clash)), ix + 1, newns)
+      case _ =>
+        throw ExpectedSigmaError(s"in named project $x, got ${ty.quoteCtx}")
+    go(ty, 0, Set.empty)
+
   private def infer(tm: S.Tm)(implicit ctx: Ctx): (Tm, VTy) =
     debug(s"infer $tm")
     tm match
@@ -86,6 +111,9 @@ object Elaboration:
       case S.Proj(t, p) =>
         val (et, ty) = infer(t)
         (ty, p) match
+          case (_, S.Named(x)) =>
+            val (p, pty) = projNamed(et.evalCtx, ty, x)
+            (Proj(et, p), pty)
           case (VSigma(_, fstty, _), S.Fst) => (Proj(et, Fst), fstty)
           case (VSigma(_, _, sndty), S.Snd) =>
             (Proj(et, Snd), sndty(et.evalCtx.proj(Fst)))

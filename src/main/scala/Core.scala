@@ -6,10 +6,12 @@ object Core:
   enum ProjType:
     case Fst
     case Snd
+    case Named(name: Name, ix: Int)
 
     override def toString: String = this match
-      case Fst => "._1"
-      case Snd => "._2"
+      case Fst         => ".1"
+      case Snd         => ".2"
+      case Named(x, _) => s".$x"
   export ProjType.*
 
   enum Tm:
