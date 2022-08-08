@@ -42,6 +42,10 @@ object Elaboration:
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
         Lam(x, eb)
+      case (S.Pair(fst, snd), VSigma(_, fstty, sndty)) =>
+        val efst = check(fst, fstty)
+        val esnd = check(snd, sndty(efst.evalCtx))
+        Pair(efst, esnd)
       case (S.Let(x, oty, v, b), _) =>
         val (ev, ety, vty) = checkOptionalType(v, oty)
         val eb = check(b, ty)(ctx.define(x, vty, ev.evalCtx))
@@ -86,6 +90,7 @@ object Elaboration:
         (Lam(x, eb), VPi(x, vty, rty.closeCtx))
       case S.Lam(_, None, _) => throw CannotInferError(tm.toString)
       case S.Hole            => throw CannotInferError(tm.toString)
+      case S.Pair(_, _)      => throw CannotInferError(tm.toString)
 
   def elaborate(tm: S.Tm): (Tm, Ty) =
     implicit val ctx = Ctx.empty

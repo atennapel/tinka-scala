@@ -13,6 +13,7 @@ object Surface:
     case Lam(bind: Bind, ty: Option[Ty], body: Ty)
 
     case Sigma(bind: Bind, ty: Ty, body: Ty)
+    case Pair(fst: Tm, snd: Tm)
 
     case UnitType
     case Unit
@@ -32,6 +33,7 @@ object Surface:
       case App(l, r)             => s"($l $r)"
       case Lam(x, Some(t), b)    => s"(\\($x : $t). $b)"
       case Lam(x, None, b)       => s"(\\$x. $b)"
+      case Pair(fst, snd)        => s"($fst, $snd)"
       case UnitType              => "()"
       case Unit                  => "[]"
   export Tm.*

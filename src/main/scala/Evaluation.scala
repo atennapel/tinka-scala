@@ -8,15 +8,16 @@ object Evaluation:
 
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
-      case Var(ix)                => ix.index(env)
-      case Let(_, _, value, body) => body.eval(value.eval :: env)
       case Type                   => VType
-      case Pi(bind, ty, body)     => VPi(bind, ty.eval, Clos(env, body))
-      case Sigma(bind, ty, body)  => VSigma(bind, ty.eval, Clos(env, body))
-      case App(fn, arg)           => fn.eval(env)(arg.eval)
-      case Lam(bind, body)        => VLam(bind, Clos(env, body))
       case UnitType               => VUnitType
       case Unit                   => VUnit
+      case Var(ix)                => ix.index(env)
+      case Let(_, _, value, body) => body.eval(value.eval :: env)
+      case App(fn, arg)           => fn.eval(env)(arg.eval)
+      case Pi(bind, ty, body)     => VPi(bind, ty.eval, Clos(env, body))
+      case Sigma(bind, ty, body)  => VSigma(bind, ty.eval, Clos(env, body))
+      case Lam(bind, body)        => VLam(bind, Clos(env, body))
+      case Pair(fst, snd)         => VPair(fst.eval, snd.eval)
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
@@ -36,11 +37,12 @@ object Evaluation:
       case _             => throw Impossible
 
     def quote(implicit k: Lvl): Tm = v match
-      case VNe(head, spine)    => spine.quote(head.quote)
       case VType               => Type
+      case VUnitType           => UnitType
+      case VUnit               => Unit
+      case VNe(head, spine)    => spine.quote(head.quote)
+      case VPair(fst, snd)     => Pair(fst.quote, snd.quote)
       case VLam(bind, body)    => Lam(bind, body(VVar(k)).quote(k + 1))
       case VPi(bind, ty, body) => Pi(bind, ty.quote, body(VVar(k)).quote(k + 1))
       case VSigma(bind, ty, body) =>
         Sigma(bind, ty.quote, body(VVar(k)).quote(k + 1))
-      case VUnitType => UnitType
-      case VUnit     => Unit

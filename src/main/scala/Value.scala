@@ -23,6 +23,7 @@ object Value:
     case VLam(bind: Bind, body: Clos)
     case VPi(bind: Bind, ty: VTy, body: Clos)
     case VSigma(bind: Bind, ty: VTy, body: Clos)
+    case VPair(fst: Val, snd: Val)
     case VUnitType
     case VUnit
   export Val.*

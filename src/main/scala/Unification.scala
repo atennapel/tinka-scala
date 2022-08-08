@@ -22,7 +22,9 @@ object Unification:
     case (VLam(_, b1), VLam(_, b2))             => unify(b1, b2)
     case (VLam(_, b), w) => val v = VVar(k); unify(b(v), w(v))(k + 1)
     case (w, VLam(_, b)) => val v = VVar(k); unify(w(v), b(v))(k + 1)
-    case (VUnit, _)      => ()
-    case (_, VUnit)      => ()
+    case (VPair(fst1, snd1), VPair(fst2, snd2)) =>
+      unify(fst1, fst2); unify(snd1, snd2)
+    case (VUnit, _)                               => ()
+    case (_, VUnit)                               => ()
     case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unify(sp1, sp2)
     case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")

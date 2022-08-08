@@ -13,6 +13,7 @@ object Core:
     case Lam(bind: Bind, body: Ty)
 
     case Sigma(bind: Bind, ty: Ty, body: Ty)
+    case Pair(fst: Tm, snd: Tm)
 
     case UnitType
     case Unit
@@ -27,6 +28,7 @@ object Core:
       case Sigma(DontBind, t, b) => s"($t ** $b)"
       case App(l, r)             => s"($l $r)"
       case Lam(x, b)             => s"(\\$x. $b)"
+      case Pair(fst, snd)        => s"($fst, $snd)"
       case UnitType              => "()"
       case Unit                  => "[]"
   export Tm.*
