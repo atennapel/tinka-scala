@@ -36,7 +36,6 @@ object Elaboration:
       case (S.Type, VType)     => Type
       case (S.UnitType, VType) => UnitType
       case (S.Unit, VUnitType) => Unit
-      case (S.Hole, VUnitType) => Unit
       case (S.Hole, _)         => throw HoleFoundError(ty.quoteCtx.toString)
       case (S.Lam(x, oty, b), VPi(y, pty, rty)) =>
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
@@ -83,7 +82,15 @@ object Elaboration:
           case VPi(_, pty, rty) =>
             val ea = check(a, pty)
             (App(ef, ea), rty(ea.evalCtx))
-          case _ => throw ExpectedPiError(s"in ${tm}, but got ${fty.quoteCtx}")
+          case _ => throw ExpectedPiError(s"in $tm, but got ${fty.quoteCtx}")
+      case S.Proj(t, p) =>
+        val (et, ty) = infer(t)
+        (ty, p) match
+          case (VSigma(_, fstty, _), S.Fst) => (Proj(et, Fst), fstty)
+          case (VSigma(_, _, sndty), S.Snd) =>
+            (Proj(et, Snd), sndty(et.evalCtx.proj(Fst)))
+          case (_, _) =>
+            throw ExpectedSigmaError(s"in $tm, but got ${ty.quoteCtx}")
       case S.Lam(x, Some(ty), b) =>
         val vty = checkType(ty).evalCtx
         val (eb, rty) = infer(b)(ctx.bind(x, vty))

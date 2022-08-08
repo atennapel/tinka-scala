@@ -18,6 +18,7 @@ object Evaluation:
       case Sigma(bind, ty, body)  => VSigma(bind, ty.eval, Clos(env, body))
       case Lam(bind, body)        => VLam(bind, Clos(env, body))
       case Pair(fst, snd)         => VPair(fst.eval, snd.eval)
+      case Proj(tm, proj)         => tm.eval.proj(proj)
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
@@ -27,14 +28,21 @@ object Evaluation:
 
   extension (sp: Spine)
     def quote(hd: Tm)(implicit k: Lvl): Tm = sp match
-      case SId           => hd
-      case SApp(sp, arg) => App(sp.quote(hd), arg.quote)
+      case SId             => hd
+      case SApp(sp, arg)   => App(sp.quote(hd), arg.quote)
+      case SProj(sp, proj) => Proj(sp.quote(hd), proj)
 
   extension (v: Val)
     def apply(arg: Val): Val = v match
       case VLam(_, body) => body(arg)
       case VNe(hd, sp)   => VNe(hd, SApp(sp, arg))
       case _             => throw Impossible
+
+    def proj(proj: ProjType): Val = (v, proj) match
+      case (VPair(fst, _), Fst) => fst
+      case (VPair(_, snd), Snd) => snd
+      case (VNe(hd, sp), _)     => VNe(hd, SProj(sp, proj))
+      case _                    => throw Impossible
 
     def quote(implicit k: Lvl): Tm = v match
       case VType               => Type

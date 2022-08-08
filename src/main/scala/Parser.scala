@@ -151,10 +151,16 @@ object Parser:
       )
 
     private lazy val appAtom: Parsley[Tm] =
-      (atom <~> many(atom) <~> option(let <|> lam)).map {
+      (projAtom <~> many(projAtom) <~> option(let <|> lam)).map {
         case ((fn, args), opt) =>
           (args ++ opt).foldLeft(fn)(App.apply)
       }
+
+    private lazy val projAtom: Parsley[Tm] =
+      (atom <~> many(proj)).map((t, ps) => ps.foldLeft(t)(Proj.apply))
+
+    private lazy val proj: Parsley[ProjType] =
+      ("." *> ("_1" #> Fst <|> "_2" #> Snd))
 
     private def typeFromParams(ps: List[Param], rt: Ty): Ty =
       ps.foldRight(rt)((x, b) =>

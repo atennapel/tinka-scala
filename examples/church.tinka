@@ -1,4 +1,13 @@
+-- primitive unit type with (weak) eta
 let indUnit (P : () -> Type) (p : P []) (x : ()) : P x = p;
+
+-- sigma type with eta
+let indSigma
+  (A : Type) (B : A -> Type)
+  (P : ((x : A) ** B x) -> Type)
+  (h : (fst : A) (snd : B fst) -> P (fst, snd))
+  (s : (x : A) ** B x) : P s
+  = h s._1 s._2;
 
 -- booleans
 let Bool = (A : Type) -> A -> A -> A;

@@ -17,13 +17,13 @@ sbt "run examples/church.tinka"
   - [x] Unary operators
   - [x] "if-then-else" operator
 - [x] Unit type
-- [ ] Pretty printing
 - [ ] Sigma types
   - [x] Type
   - [x] Pairs
   - [x] Tuples
   - [x] List syntax
-  - [ ] Projection
+  - [x] Projection
   - [ ] Named projection
+- [ ] Pretty printing
 - [ ] Metas
 - [ ] Universes

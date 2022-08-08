@@ -13,6 +13,7 @@ object Value:
   enum Spine:
     case SId
     case SApp(spine: Spine, arg: Val)
+    case SProj(spine: Spine, proj: ProjType)
   export Spine.*
 
   type VTy = Val

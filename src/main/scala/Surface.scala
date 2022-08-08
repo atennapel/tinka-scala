@@ -3,6 +3,15 @@ import Common.*
 object Surface:
   type Ty = Tm
 
+  enum ProjType:
+    case Fst
+    case Snd
+
+    override def toString: String = this match
+      case Fst => "._1"
+      case Snd => "._2"
+  export ProjType.*
+
   enum Tm:
     case Var(name: Name)
     case Let(name: Name, ty: Option[Ty], value: Tm, body: Tm)
@@ -14,6 +23,7 @@ object Surface:
 
     case Sigma(bind: Bind, ty: Ty, body: Ty)
     case Pair(fst: Tm, snd: Tm)
+    case Proj(tm: Tm, proj: ProjType)
 
     case UnitType
     case Unit
@@ -33,6 +43,7 @@ object Surface:
       case App(l, r)             => s"($l $r)"
       case Lam(x, Some(t), b)    => s"(\\($x : $t). $b)"
       case Lam(x, None, b)       => s"(\\$x. $b)"
+      case Proj(tm, proj)        => s"$tm$proj"
       case Pair(fst, snd)        => s"($fst, $snd)"
       case UnitType              => "()"
       case Unit                  => "[]"

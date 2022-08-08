@@ -10,6 +10,8 @@ object Errors:
       extends Exception(s"cannot infer: $msg")
   final case class ExpectedPiError(msg: String)
       extends Exception(s"expected a pi type: $msg")
+  final case class ExpectedSigmaError(msg: String)
+      extends Exception(s"expected a sigma type: $msg")
   final case class UndefinedVarError(msg: String)
       extends Exception(s"undefined variable: $msg")
   final case class HoleFoundError(msg: String)
