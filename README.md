@@ -20,10 +20,10 @@ sbt "run examples/church.tinka"
 - [ ] Pretty printing
 - [ ] Sigma types
   - [x] Type
-  - [ ] Pairs
+  - [x] Pairs
+  - [x] Tuples
+  - [x] List syntax
   - [ ] Projection
   - [ ] Named projection
-  - [ ] Tuples
-  - [ ] List syntax
 - [ ] Metas
 - [ ] Universes

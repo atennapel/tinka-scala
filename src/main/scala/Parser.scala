@@ -19,7 +19,7 @@ object Parser:
       commentEnd = "-}",
       nestedComments = true,
       keywords = Set("Type", "let", "if", "then", "else"),
-      operators = Set("=", ":", ";", "\\", ".", "->", "**", "_"),
+      operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter = Predicate(c => c.isLetterOrDigit || c == '_'),
       opStart = Predicate(userOps.contains(_)),
@@ -45,7 +45,7 @@ object Parser:
 
   object TmParser:
     import parsley.expr.{precedence, Ops, InfixL, InfixR, Prefix, Postfix}
-    import parsley.combinator.{many, some, option}
+    import parsley.combinator.{many, some, option, sepEndBy}
 
     import LangLexer.{ident as ident0, userOp as userOp0, natural}
     import LangLexer.Implicits.given
@@ -58,10 +58,22 @@ object Parser:
       "_" #> DontBind <|> identOrOp.map(Bound.apply)
 
     private lazy val atom: Parsley[Tm] =
-      ("(" *> (userOp.map(Var.apply) <|> tm <|> pure(UnitType)) <* ")") <|>
-        ("[" *> pure(Unit) <* "]") <|>
+      ("(" *> (userOp
+        .map(Var.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
+        (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
+          .map(mkUnitPair) <|>
         "_" #> Hole <|> "Type" #> Type <|> nat <|>
         ident.map(Var.apply)
+
+    private def mkPair(ts: List[Tm]): Tm = ts match
+      case Nil => UnitType
+      case ts  => ts.reduceRight(Pair.apply)
+
+    private val nil = Var(Name("Nil"))
+    private val cons = Var(Name("::"))
+    private def mkUnitPair(isList: Boolean, ts: List[Tm]): Tm =
+      if isList then ts.foldRight(nil)((x, y) => App(App(cons, x), y))
+      else ts.foldRight(Unit)(Pair.apply)
 
     private val nZ = Var(Name("Z"))
     private val nS = Var(Name("S"))
