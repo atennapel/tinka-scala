@@ -7,7 +7,7 @@ import java.io.File
 import parsley.io.given
 
 @main def run(filename: String): Unit =
-  setDebug(false)
+  setDebug(true)
   val tm = parser.parseFromFile(new File(filename)).flatMap(_.toTry).get
   println("input:")
   println(tm.toString)

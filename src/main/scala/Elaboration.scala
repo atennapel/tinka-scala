@@ -31,6 +31,13 @@ object Elaboration:
         val (etm, vty) = infer(tm)
         (etm, vty.quoteCtx, vty)
 
+  private def icitMatch(i1: S.ArgInfo, b: Bind, i2: Icit): Boolean = i1 match
+    case S.ArgNamed(x) =>
+      b match
+        case Bound(y) => x == y && i2 == Impl
+        case DontBind => false
+    case S.ArgIcit(i) => i == i2
+
   private def check(tm: S.Tm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
     (tm, ty) match
@@ -38,10 +45,13 @@ object Elaboration:
       case (S.UnitType, VType) => UnitType
       case (S.Unit, VUnitType) => Unit
       case (S.Hole, _)         => throw HoleFoundError(ty.quoteCtx.toString)
-      case (S.Lam(x, oty, b), VPi(y, pty, rty)) =>
+      case (S.Lam(x, i, oty, b), VPi(y, i2, pty, rty)) if icitMatch(i, y, i2) =>
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
-        Lam(x, eb)
+        Lam(x, i2, eb)
+      case (tm, VPi(x, Impl, pty, rty)) =>
+        val etm = check(tm, rty.underCtx)(ctx.bind(x, pty, true))
+        Lam(x, Impl, etm)
       case (S.Pair(fst, snd), VSigma(_, fstty, sndty)) =>
         val efst = check(fst, fstty)
         val esnd = check(snd, sndty(efst.evalCtx))
@@ -93,20 +103,20 @@ object Elaboration:
         val (ev, ety, vty) = checkOptionalType(v, oty)
         val (eb, rty) = infer(b)(ctx.define(x, vty, ev.evalCtx))
         (Let(x, ety, ev, eb), rty)
-      case S.Pi(x, ty, b) =>
+      case S.Pi(x, i, ty, b) =>
         val ety = checkType(ty)
         val eb = checkType(b)(ctx.bind(x, ety.evalCtx))
-        (Pi(x, ety, eb), VType)
+        (Pi(x, i, ety, eb), VType)
       case S.Sigma(x, ty, b) =>
         val ety = checkType(ty)
         val eb = checkType(b)(ctx.bind(x, ety.evalCtx))
         (Sigma(x, ety, eb), VType)
-      case S.App(f, a) =>
+      case S.App(f, a, i) =>
         val (ef, fty) = infer(f)
         fty match
-          case VPi(_, pty, rty) =>
+          case VPi(x, i2, pty, rty) if icitMatch(i, x, i2) =>
             val ea = check(a, pty)
-            (App(ef, ea), rty(ea.evalCtx))
+            (App(ef, ea, i2), rty(ea.evalCtx))
           case _ => throw ExpectedPiError(s"in $tm, but got ${fty.quoteCtx}")
       case S.Proj(t, p) =>
         val (et, ty) = infer(t)
@@ -119,11 +129,11 @@ object Elaboration:
             (Proj(et, Snd), sndty(et.evalCtx.proj(Fst)))
           case (_, _) =>
             throw ExpectedSigmaError(s"in $tm, but got ${ty.quoteCtx}")
-      case S.Lam(x, Some(ty), b) =>
+      case S.Lam(x, S.ArgIcit(i), Some(ty), b) =>
         val vty = checkType(ty).evalCtx
         val (eb, rty) = infer(b)(ctx.bind(x, vty))
-        (Lam(x, eb), VPi(x, vty, rty.closeCtx))
-      case S.Lam(_, None, _) => throw CannotInferError(tm.toString)
+        (Lam(x, i, eb), VPi(x, i, vty, rty.closeCtx))
+      case S.Lam(_, _, _, _) => throw CannotInferError(tm.toString)
       case S.Hole            => throw CannotInferError(tm.toString)
       case S.Pair(_, _)      => throw CannotInferError(tm.toString)
 

@@ -24,3 +24,8 @@ object Common:
       case Bound(x) => x.toString
       case DontBind => "_"
   export Bind.*
+
+  enum Icit:
+    case Expl
+    case Impl
+  export Icit.*

@@ -19,9 +19,9 @@ object Core:
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
     case Type
 
-    case Pi(bind: Bind, ty: Ty, body: Ty)
-    case App(fn: Tm, arg: Tm)
-    case Lam(bind: Bind, body: Ty)
+    case Pi(bind: Bind, icit: Icit, ty: Ty, body: Ty)
+    case App(fn: Tm, arg: Tm, icit: Icit)
+    case Lam(bind: Bind, icit: Icit, body: Ty)
 
     case Sigma(bind: Bind, ty: Ty, body: Ty)
     case Pair(fst: Tm, snd: Tm)
@@ -31,17 +31,25 @@ object Core:
     case Unit
 
     override def toString: String = this match
-      case Var(ix)               => s"'$ix"
-      case Let(x, t, v, b)       => s"(let $x : $t = $v; $b)"
-      case Type                  => "Type"
-      case Pi(Bound(x), t, b)    => s"(($x : $t) -> $b)"
-      case Pi(DontBind, t, b)    => s"($t -> $b)"
+      case Var(ix)         => s"'$ix"
+      case Let(x, t, v, b) => s"(let $x : $t = $v; $b)"
+      case Type            => "Type"
+
+      case Pi(x, Impl, t, b)        => s"({$x : $t} -> $b)"
+      case Pi(Bound(x), Expl, t, b) => s"(($x : $t) -> $b)"
+      case Pi(DontBind, Expl, t, b) => s"($t -> $b)"
+
       case Sigma(Bound(x), t, b) => s"(($x : $t) ** $b)"
       case Sigma(DontBind, t, b) => s"($t ** $b)"
-      case App(l, r)             => s"($l $r)"
-      case Lam(x, b)             => s"(\\$x. $b)"
-      case Proj(tm, proj)        => s"$tm$proj"
-      case Pair(fst, snd)        => s"($fst, $snd)"
-      case UnitType              => "()"
-      case Unit                  => "[]"
+
+      case App(l, r, Expl) => s"($l $r)"
+      case App(l, r, Impl) => s"($l {$r})"
+
+      case Lam(x, Expl, b) => s"(\\$x. $b)"
+      case Lam(x, Impl, b) => s"(\\{$x}. $b)"
+
+      case Proj(tm, proj) => s"$tm$proj"
+      case Pair(fst, snd) => s"($fst, $snd)"
+      case UnitType       => "()"
+      case Unit           => "[]"
   export Tm.*

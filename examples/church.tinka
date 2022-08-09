@@ -3,7 +3,7 @@ let indUnit (P : () -> Type) (p : P []) (x : ()) : P x = p;
 
 -- sigma type with eta
 let indSigma
-  (A : Type) (B : A -> Type)
+  {A : Type} {B : A -> Type}
   (P : ((x : A) ** B x) -> Type)
   (h : (fst : A) (snd : B fst) -> P (fst, snd))
   (s : (x : A) ** B x) : P s
@@ -14,10 +14,10 @@ let Bool = (A : Type) -> A -> A -> A;
 let True : Bool = \A t f. t;
 let False : Bool = \A t f. f;
 
-let cond (A : Type) (b : Bool) (t : A) (f : A) : A = b A t f;
+let cond {A : Type} (b : Bool) (t : A) (f : A) : A = b A t f;
 
 -- defining if_ allows for if-then-else syntax
-let if_ (b : Bool) (t : () -> Bool) (f : () -> Bool) : Bool = (cond (() -> Bool) b t f) [];
+let if_ (b : Bool) (t : {_ : ()} -> Bool) (f : {_ : ()} -> Bool) : Bool = (cond {{_ : ()} -> Bool} b (\{u}. t {u}) (\{u}. f {u})) {[]};
 
 let (!) (b : Bool) : Bool = if b then False else True;
 let (&&) (a b : Bool) : Bool = if a then b else False;
@@ -30,18 +30,18 @@ let Nat = (A : Type) -> A -> (A -> A) -> A;
 let Z : Nat = \A z s. z;
 let S (n : Nat) : Nat = \A z s. s (n A z s);
 
-let foldNat (A : Type) (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+let foldNat {A : Type} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
 
-let isZero (n : Nat) : Bool = foldNat Bool n True (\_. False);
+let isZero (n : Nat) : Bool = foldNat {Bool} n True (\_. False);
 
-let (+) (a b : Nat) : Nat = foldNat Nat a b S;
-let (*) (a b : Nat) : Nat = foldNat Nat a Z ((+) b);
+let (+) (a b : Nat) : Nat = foldNat {Nat} a b S;
+let (*) (a b : Nat) : Nat = foldNat {Nat} a Z ((+) b);
 
 -- identity type
-let Id (A : Type) (x y : A) = (F : A -> Type) -> F x -> F y;
-let Refl (A : Type) (x : A) : Id A x x = \F y. y;
+let Id {A : Type} (x y : A) = (F : A -> Type) -> F x -> F y;
+let Refl {A : Type} {x : A} : Id {A} x x = \F y. y;
 
-let add11eq2 : Id Nat (1 + 1) 2 = Refl Nat 2;
-let mul22eq4 : Id Nat (2 * 2) 4 = Refl Nat 4;
+let add11eq2 : Id {Nat} (1 + 1) 2 = Refl {Nat} {2};
+let mul22eq4 : Id {Nat} (2 * 2) 4 = Refl {Nat} {4};
 
 mul22eq4

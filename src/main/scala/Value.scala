@@ -12,7 +12,7 @@ object Value:
 
   enum Spine:
     case SId
-    case SApp(spine: Spine, arg: Val)
+    case SApp(spine: Spine, arg: Val, icit: Icit)
     case SProj(spine: Spine, proj: ProjType)
   export Spine.*
 
@@ -21,8 +21,8 @@ object Value:
   enum Val:
     case VNe(head: Head, spine: Spine)
     case VType
-    case VLam(bind: Bind, body: Clos)
-    case VPi(bind: Bind, ty: VTy, body: Clos)
+    case VLam(bind: Bind, icit: Icit, body: Clos)
+    case VPi(bind: Bind, icit: Icit, ty: VTy, body: Clos)
     case VSigma(bind: Bind, ty: VTy, body: Clos)
     case VPair(fst: Val, snd: Val)
     case VUnitType

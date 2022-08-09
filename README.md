@@ -24,10 +24,10 @@ sbt "run examples/church.tinka"
   - [x] List syntax
   - [x] Projection
   - [x] Named projection
-- [ ] Pretty printing
 - [ ] Metas
-  - [ ] Implicit functions and application
+  - [x] Implicit functions and application
   - [ ] Meta context
   - [ ] Meta solving
   - [ ] Meta insertion
+- [ ] Pretty printing
 - [ ] Universes

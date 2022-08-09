@@ -6,20 +6,22 @@ import Unification.{unify as unify0}
 import Errors.*
 import scala.annotation.tailrec
 
+type Inserted = Boolean
+
 final case class Ctx(
     lvl: Lvl,
     env: Env,
-    types: List[(Name, Lvl, VTy)]
+    types: List[(Name, Lvl, Inserted, VTy)]
 ):
   def names: List[Name] = types.map(_._1)
 
-  def bind(x: Bind, ty: VTy): Ctx =
+  def bind(x: Bind, ty: VTy, inserted: Inserted = false): Ctx =
     val newtypes = x match
-      case Bound(x) => (x, lvl, ty) :: types
+      case Bound(x) => (x, lvl, inserted, ty) :: types
       case DontBind => types
     copy(lvl + 1, VVar(lvl) :: env, newtypes)
   def define(x: Name, ty: VTy, value: Val): Ctx =
-    copy(lvl + 1, value :: env, (x, lvl, ty) :: types)
+    copy(lvl + 1, value :: env, (x, lvl, false, ty) :: types)
 
   def eval(t: Tm): Val = t.eval(env)
   def quote(v: Val): Tm = v.quote(lvl)
@@ -31,10 +33,10 @@ final case class Ctx(
 
   def lookup(x: Name): Option[(Ix, VTy)] =
     @tailrec
-    def go(ts: List[(Name, Lvl, VTy)]): Option[(Ix, VTy)] = ts match
-      case (y, k, ty) :: _ if x == y => Some((k.toIx(lvl), ty))
-      case _ :: ts                   => go(ts)
-      case _                         => None
+    def go(ts: List[(Name, Lvl, Inserted, VTy)]): Option[(Ix, VTy)] = ts match
+      case (y, k, false, ty) :: _ if x == y => Some((k.toIx(lvl), ty))
+      case _ :: ts                          => go(ts)
+      case _                                => None
     go(types)
 
 object Ctx:
