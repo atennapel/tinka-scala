@@ -46,4 +46,10 @@ let Refl {A} {x : A} : x ~ x = \F y. y;
 let add11eq2 : (1 + 1) ~ 2 = Refl;
 let mul22eq4 : (2 * 2) ~ 4 = Refl;
 
-mul22eq4
+-- named projection
+let Sig = (A : Type) ** (fn : A -> A) ** ();
+
+let sigA (x : Sig) : x.A ~ x.1 = Refl;
+let sigfn (x : Sig) : x.fn ~ x.2.1 = Refl;
+
+[]

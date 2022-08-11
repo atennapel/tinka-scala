@@ -208,6 +208,7 @@ object Elaboration:
       case S.Lam(_, _, _, _) => throw CannotInferError(tm.toString)
 
   def elaborate(tm: S.Tm): (Tm, Ty) =
+    resetMetas()
     implicit val ctx = Ctx.empty
     val (etm, vty) = infer(tm)
     val ums = unsolvedMetas()
