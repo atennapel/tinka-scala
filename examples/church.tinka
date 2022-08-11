@@ -44,7 +44,7 @@ let (+) (a b : Nat) : Nat = foldNat a b S;
 let (*) (a b : Nat) : Nat = foldNat a Z ((+) b);
 
 -- identity type
-let Id {A} (x y : A) = (F : A -> Type) -> F x -> F y;
+let Id {A} x y = (F : A -> Type) -> F x -> F y;
 let (~) = Id;
 let Refl {A} {x : A} : x ~ x = \F y. y;
 

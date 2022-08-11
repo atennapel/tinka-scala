@@ -48,7 +48,7 @@ object Elaboration:
     try unifyCtx(a, b)
     catch
       case err: UnifyError =>
-        throw ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}")
+        throw ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}: ${err.msg}")
 
   private def checkType(ty: S.Ty)(implicit ctx: Ctx): Ty = check(ty, VType)
 
@@ -192,8 +192,7 @@ object Elaboration:
         (Lam(x, i, eb), VPi(x, i, vty, rty.closeCtx))
       case S.Lam(x, S.ArgIcit(i), None, b) =>
         val pty = newMeta.evalCtx
-        val newctx = ctx.bind(x, pty)
-        val (eb, rty) = insert(infer(b))
+        val (eb, rty) = insert(infer(b)(ctx.bind(x, pty)))
         (Lam(x, i, eb), VPi(x, i, pty, rty.closeCtx))
       case S.Pair(fst, snd) =>
         val pty = newMeta.evalCtx
