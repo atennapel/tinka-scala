@@ -17,12 +17,17 @@ let False : Bool = \_ t f. f;
 let cond {A} (b : Bool) (t : A) (f : A) : A = b _ t f;
 
 -- defining if_ allows for if-then-else syntax
-let if_ (b : Bool) (t : {_ : ()} -> Bool) (f : {_ : ()} -> Bool) : Bool =
-  (cond {{_ : ()} -> Bool} b (\{u}. t {u}) (\{u}. f {u})) {[]};
+let if_ {A} (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
+  (cond {{_ : ()} -> A} b (\{u}. t {u}) (\{u}. f {u})) {[]};
+-- and another for if-then-else with an explicit return type
+let if-ind_ (A : Type) (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
+  (cond {{_ : ()} -> A} b (\{u}. t {u}) (\{u}. f {u})) {[]};
 
 let (!) (b : Bool) : Bool = if b then False else True;
 let (&&) (a b : Bool) : Bool = if a then b else False;
-let (||) (a b : Bool) : Bool = if a then True else b;
+
+-- if with explicit return type
+let (||) (a b : Bool) : Bool = if a : Bool then True else b;
 
 -- natural numbers
 let Nat = (A : Type) -> A -> (A -> A) -> A;

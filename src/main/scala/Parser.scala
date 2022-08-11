@@ -21,7 +21,8 @@ object Parser:
       keywords = Set("Type", "let", "if", "then", "else"),
       operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
-      identLetter = Predicate(c => c.isLetterOrDigit || c == '_'),
+      identLetter =
+        Predicate(c => c.isLetterOrDigit || c == '_' || c == '\'' || c == '-'),
       opStart = Predicate(userOps.contains(_)),
       opLetter = Predicate(userOpsTail.contains(_)),
       space = Predicate(isWhitespace)
@@ -114,14 +115,24 @@ object Parser:
         )
 
     private val ifVar: Tm = Var(Name("if_"))
+    private val ifIndVar: Tm = Var(Name("if-ind_"))
     private lazy val ifTm: Parsley[Tm] =
-      ("if" *> tm <~> "then" *> tm <~> "else" *> tm).map { case ((c, t), f) =>
-        App(
-          App(App(ifVar, c, ArgIcit(Expl)), t, ArgIcit(Expl)),
-          f,
-          ArgIcit(Expl)
-        )
-      }
+      ("if" *> tm <~> option(":" *> tm) <~> "then" *> tm <~> "else" *> tm)
+        .map { case (((c, ty), t), f) =>
+          App(
+            App(
+              App(
+                ty.map(App(ifIndVar, _, ArgIcit(Expl))).getOrElse(ifVar),
+                c,
+                ArgIcit(Expl)
+              ),
+              t,
+              ArgIcit(Expl)
+            ),
+            f,
+            ArgIcit(Expl)
+          )
+        }
 
     private lazy val let: Parsley[Tm] =
       ("let" *> identOrOp <~> many(defParam) <~>
