@@ -2,13 +2,79 @@ import Common.*
 import Core.*
 import Value.*
 import Evaluation.*
+import Metas.*
 import Errors.*
+import Debug.*
+
+import scala.collection.immutable.IntMap
 
 object Unification:
+  private final case class PRen(dom: Lvl, cod: Lvl, ren: IntMap[Lvl]):
+    def lift: PRen = PRen(dom + 1, cod + 1, ren + (cod.expose, dom))
+
+  private def invert(sp: Spine)(implicit gamma: Lvl): PRen =
+    def go(sp: Spine): (Lvl, IntMap[Lvl]) = sp match
+      case SId => (lvl0, IntMap.empty)
+      case SApp(sp, t, _) =>
+        val (dom, ren) = go(sp)
+        t.force match
+          case VVar(x) if !ren.contains(x.expose) =>
+            (dom + 1, ren + (x.expose, dom))
+          case VVar(_) => throw UnifyError("non-linear meta spine")
+          case _       => throw UnifyError("non-var in meta spine")
+      case _ => throw UnifyError("non-app in meta spine")
+    val (dom, ren) = go(sp)
+    PRen(dom, gamma, ren)
+
+  private def rename(m: MetaId, v: Val)(implicit pren: PRen): Tm =
+    def goSp(t: Tm, sp: Spine)(implicit pren: PRen): Tm = sp match
+      case SId            => t
+      case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
+      case SProj(sp, p)   => Proj(goSp(t, sp), p)
+    def go(v: Val)(implicit pren: PRen): Tm = v match
+      case VNe(HVar(x), sp) =>
+        pren.ren.get(x.expose) match
+          case None     => throw UnifyError("escaping variable")
+          case Some(x2) => goSp(Var(x2.toIx(pren.dom)), sp)
+      case VNe(HMeta(x), _) if m == x =>
+        throw UnifyError(s"occurs check failed ?$x")
+      case VNe(HMeta(x), sp) => goSp(Meta(x), sp)
+      case VType             => Type
+      case VUnitType         => UnitType
+      case VUnit             => Unit
+      case VPair(fst, snd)   => Pair(go(fst), go(snd))
+      case VLam(bind, icit, body) =>
+        Lam(bind, icit, go(body(VVar(pren.cod)))(pren.lift))
+      case VPi(bind, icit, ty, body) =>
+        Pi(bind, icit, go(ty), go(body(VVar(pren.cod)))(pren.lift))
+      case VSigma(bind, ty, body) =>
+        Sigma(bind, go(ty), go(body(VVar(pren.cod)))(pren.lift))
+    go(v)
+
+  private def icits(sp: Spine): List[Icit] = sp match
+    case SId            => Nil
+    case SApp(sp, _, i) => icits(sp) ++ List(i)
+    case _              => throw Impossible
+
+  private def lams(icits: List[Icit], body: Tm): Tm =
+    def go(icits: List[Icit], ix: Int): Tm = icits match
+      case Nil        => body
+      case i :: icits => Lam(DoBind(Name(s"x$ix")), i, go(icits, ix + 1))
+    go(icits, 0)
+
+  private def solve(id: MetaId, sp: Spine, v: Val)(implicit gamma: Lvl): Unit =
+    debug(s"solve ?$id := ${v.quote}")
+    implicit val pren: PRen = invert(sp)
+    val rhs = rename(id, v)
+    val solution = lams(icits(sp), rhs)
+    debug(s"solution ?$id := $solution")
+    solveMeta(id, solution.eval(Nil))
+
   private def unify(a: Spine, b: Spine)(implicit k: Lvl): Unit = (a, b) match
-    case (SId, SId)                               => ()
-    case (SApp(a, v1, _), SApp(b, v2, _))         => unify(a, b); unify(v1, v2)
-    case (SProj(a, p1), SProj(b, p2)) if p1 == p2 => unify(a, b)
+    case (SId, SId)                       => ()
+    case (SApp(a, v1, _), SApp(b, v2, _)) => unify(a, b); unify(v1, v2)
+    case (SProj(a, p1), SProj(b, p2)) if p1 == p2 =>
+      unify(a, b) // TODO: named ~ fst/snd matching
     case _ => throw UnifyError(s"spine mismatch")
 
   private def unify(a: Clos, b: Clos)(implicit k: Lvl): Unit =
@@ -33,8 +99,12 @@ object Unification:
     case (v, VPair(fst, snd)) =>
       unify(v.proj(Fst), fst); unify(v.proj(Snd), snd)
 
+    case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unify(sp1, sp2)
+
+    case (VNe(HMeta(m), sp), v) => solve(m, sp, v)
+    case (v, VNe(HMeta(m), sp)) => solve(m, sp, v)
+
     case (VUnit, _) => ()
     case (_, VUnit) => ()
 
-    case (VNe(h1, sp1), VNe(h2, sp2)) if h1 == h2 => unify(sp1, sp2)
     case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")

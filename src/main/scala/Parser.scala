@@ -55,7 +55,7 @@ object Parser:
     private lazy val identOrOp: Parsley[Name] = ("(" *> userOp <* ")") <|> ident
 
     private lazy val bind: Parsley[Bind] =
-      "_" #> DontBind <|> identOrOp.map(Bound.apply)
+      "_" #> DontBind <|> identOrOp.map(DoBind.apply)
 
     private lazy val atom: Parsley[Tm] =
       ("(" *> (userOp
@@ -153,7 +153,7 @@ object Parser:
     private lazy val app: Parsley[Tm] =
       precedence[Tm](appAtom)(
         ops(
-          "`@#?,.",
+          "`~@#?,.",
           "*/%",
           "+-",
           ":",
@@ -203,7 +203,12 @@ object Parser:
         x match
           case (xs, i, ty) =>
             xs.foldRight(b)(
-              Lam(_, ArgIcit(i), if useTypes then ty else None, _)
+              Lam(
+                _,
+                ArgIcit(i),
+                if useTypes then Some(ty.getOrElse(Hole)) else None,
+                _
+              )
             )
       )
     private def lamFromLamParams(ps: List[LamParam], b: Tm): Tm =

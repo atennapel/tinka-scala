@@ -8,6 +8,7 @@ object Value:
 
   enum Head:
     case HVar(lvl: Lvl)
+    case HMeta(id: MetaId)
   export Head.*
 
   enum Spine:
@@ -34,3 +35,9 @@ object Value:
     def unapply(value: Val): Option[Lvl] = value match
       case VNe(HVar(head), SId) => Some(head)
       case _                    => None
+
+  object VMeta:
+    def apply(id: MetaId) = VNe(HMeta(id), SId)
+    def unapply(value: Val): Option[MetaId] = value match
+      case VNe(HMeta(head), SId) => Some(head)
+      case _                     => None

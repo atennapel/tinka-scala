@@ -45,12 +45,12 @@ object Surface:
       case Let(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case Let(x, None, v, b)    => s"(let $x = $v; $b)"
 
-      case Pi(x, Impl, t, b)     => s"({$x : $t} -> $b)"
-      case Pi(Bound(x), _, t, b) => s"(($x : $t) -> $b)"
-      case Pi(DontBind, _, t, b) => s"($t -> $b)"
+      case Pi(x, Impl, t, b)      => s"({$x : $t} -> $b)"
+      case Pi(DoBind(x), _, t, b) => s"(($x : $t) -> $b)"
+      case Pi(DontBind, _, t, b)  => s"($t -> $b)"
 
-      case Sigma(Bound(x), t, b) => s"(($x : $t) ** $b)"
-      case Sigma(DontBind, t, b) => s"($t ** $b)"
+      case Sigma(DoBind(x), t, b) => s"(($x : $t) ** $b)"
+      case Sigma(DontBind, t, b)  => s"($t ** $b)"
 
       case App(l, r, ArgNamed(x))   => s"($l {$x = $r})"
       case App(l, r, ArgIcit(Impl)) => s"($l {$r})"

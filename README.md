@@ -26,8 +26,11 @@ sbt "run examples/church.tinka"
   - [x] Named projection
 - [ ] Metas
   - [x] Implicit functions and application
-  - [ ] Meta context
-  - [ ] Meta solving
-  - [ ] Meta insertion
+  - [x] Basic metas
+  - [ ] Pruning
+  - [ ] First-class polymorphism
+  - [ ] Zonking (?)
 - [ ] Pretty printing
 - [ ] Universes
+- [ ] Definitions
+- [ ] Imports

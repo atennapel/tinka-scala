@@ -11,17 +11,18 @@ type Inserted = Boolean
 final case class Ctx(
     lvl: Lvl,
     env: Env,
-    types: List[(Name, Lvl, Inserted, VTy)]
+    types: List[(Name, Lvl, Inserted, VTy)],
+    bds: BDs
 ):
   def names: List[Name] = types.map(_._1)
 
   def bind(x: Bind, ty: VTy, inserted: Inserted = false): Ctx =
     val newtypes = x match
-      case Bound(x) => (x, lvl, inserted, ty) :: types
-      case DontBind => types
-    copy(lvl + 1, VVar(lvl) :: env, newtypes)
+      case DoBind(x) => (x, lvl, inserted, ty) :: types
+      case DontBind  => types
+    Ctx(lvl + 1, VVar(lvl) :: env, newtypes, Bound :: bds)
   def define(x: Name, ty: VTy, value: Val): Ctx =
-    copy(lvl + 1, value :: env, (x, lvl, false, ty) :: types)
+    Ctx(lvl + 1, value :: env, (x, lvl, false, ty) :: types, Defined :: bds)
 
   def eval(t: Tm): Val = t.eval(env)
   def quote(v: Val): Tm = v.quote(lvl)
@@ -40,7 +41,7 @@ final case class Ctx(
     go(types)
 
 object Ctx:
-  def empty = Ctx(lvl0, Nil, Nil)
+  def empty = Ctx(lvl0, Nil, Nil, Nil)
 
 extension (t: Tm) def evalCtx(implicit ctx: Ctx): Val = ctx.eval(t)
 

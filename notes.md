@@ -1,4 +1,5 @@
 # Performance
+- try out first-order closure
 - try out `inline`
 - try out making env lazy
 - try out making eliminators lazy

@@ -1,10 +1,22 @@
 import Common.*
 import Core.*
 import Value.*
+import Metas.*
 import Errors.*
 
 object Evaluation:
   extension (c: Clos) def apply(v: Val): Val = c.tm.eval(v :: c.env)
+
+  private def vmeta(id: MetaId): Val = getMeta(id) match
+    case Solved(v) => v
+    case Unsolved  => VMeta(id)
+
+  private def vinsertedmeta(id: MetaId, bds: BDs)(implicit env: Env): Val =
+    (env, bds) match
+      case (Nil, Nil)                 => vmeta(id)
+      case (t :: env, Bound :: bds)   => vinsertedmeta(id, bds)(env)(t, Expl)
+      case (_ :: env, Defined :: bds) => vinsertedmeta(id, bds)(env)
+      case _                          => throw Impossible
 
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
@@ -19,12 +31,15 @@ object Evaluation:
       case Lam(bind, icit, body)    => VLam(bind, icit, Clos(env, body))
       case Pair(fst, snd)           => VPair(fst.eval, snd.eval)
       case Proj(tm, proj)           => tm.eval.proj(proj)
+      case Meta(id)                 => vmeta(id)
+      case InsertedMeta(id, bds)    => vinsertedmeta(id, bds)
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
   extension (hd: Head)
     def quote(implicit k: Lvl): Tm = hd match
       case HVar(lvl) => Var(lvl.toIx)
+      case HMeta(id) => Meta(id)
 
   extension (sp: Spine)
     def quote(hd: Tm)(implicit k: Lvl): Tm = sp match
@@ -37,6 +52,18 @@ object Evaluation:
       case VLam(_, _, body) => body(arg)
       case VNe(hd, sp)      => VNe(hd, SApp(sp, arg, icit))
       case _                => throw Impossible
+
+    def apply(sp: Spine): Val = sp match
+      case SId            => v
+      case SApp(sp, a, i) => v(sp)(a, i)
+      case SProj(sp, p)   => v(sp).proj(p)
+
+    def force: Val = v match
+      case VNe(HMeta(m), sp) =>
+        getMeta(m) match
+          case Solved(v) => (v(sp)).force
+          case Unsolved  => v
+      case _ => v
 
     def proj(proj: ProjType): Val = (v, proj) match
       case (VPair(fst, _), Fst)         => fst

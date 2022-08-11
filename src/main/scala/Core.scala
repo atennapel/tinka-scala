@@ -30,17 +30,22 @@ object Core:
     case UnitType
     case Unit
 
+    case Meta(id: MetaId)
+    case InsertedMeta(id: MetaId, spine: BDs)
+
     override def toString: String = this match
-      case Var(ix)         => s"'$ix"
-      case Let(x, t, v, b) => s"(let $x : $t = $v; $b)"
-      case Type            => "Type"
+      case Var(ix)             => s"'$ix"
+      case Let(x, t, v, b)     => s"(let $x : $t = $v; $b)"
+      case Type                => "Type"
+      case Meta(id)            => s"?$id"
+      case InsertedMeta(id, _) => s"?$id"
 
-      case Pi(x, Impl, t, b)        => s"({$x : $t} -> $b)"
-      case Pi(Bound(x), Expl, t, b) => s"(($x : $t) -> $b)"
-      case Pi(DontBind, Expl, t, b) => s"($t -> $b)"
+      case Pi(x, Impl, t, b)         => s"({$x : $t} -> $b)"
+      case Pi(DoBind(x), Expl, t, b) => s"(($x : $t) -> $b)"
+      case Pi(DontBind, Expl, t, b)  => s"($t -> $b)"
 
-      case Sigma(Bound(x), t, b) => s"(($x : $t) ** $b)"
-      case Sigma(DontBind, t, b) => s"($t ** $b)"
+      case Sigma(DoBind(x), t, b) => s"(($x : $t) ** $b)"
+      case Sigma(DontBind, t, b)  => s"($t ** $b)"
 
       case App(l, r, Expl) => s"($l $r)"
       case App(l, r, Impl) => s"($l {$r})"
