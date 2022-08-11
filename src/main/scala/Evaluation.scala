@@ -8,15 +8,15 @@ object Evaluation:
   extension (c: Clos) def apply(v: Val): Val = c.tm.eval(v :: c.env)
 
   private def vmeta(id: MetaId): Val = getMeta(id) match
-    case Solved(v) => v
-    case Unsolved  => VMeta(id)
+    case Solved(v, _) => v
+    case Unsolved(_)  => VMeta(id)
 
-  private def vinsertedmeta(id: MetaId, bds: BDs)(implicit env: Env): Val =
-    (env, bds) match
-      case (Nil, Nil)                 => vmeta(id)
-      case (t :: env, Bound :: bds)   => vinsertedmeta(id, bds)(env)(t, Expl)
-      case (_ :: env, Defined :: bds) => vinsertedmeta(id, bds)(env)
-      case _                          => throw Impossible
+  private def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
+    (env, pr) match
+      case (Nil, Nil)                => v
+      case (t :: env, Some(i) :: pr) => vappPruning(v, pr)(env)(t, i)
+      case (_ :: env, None :: pr)    => vappPruning(v, pr)(env)
+      case _                         => throw Impossible
 
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
@@ -32,7 +32,7 @@ object Evaluation:
       case Pair(fst, snd)           => VPair(fst.eval, snd.eval)
       case Proj(tm, proj)           => tm.eval.proj(proj)
       case Meta(id)                 => vmeta(id)
-      case InsertedMeta(id, bds)    => vinsertedmeta(id, bds)
+      case AppPruning(tm, pr)       => vappPruning(tm.eval, pr)
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
@@ -61,8 +61,8 @@ object Evaluation:
     def force: Val = v match
       case VNe(HMeta(m), sp) =>
         getMeta(m) match
-          case Solved(v) => (v(sp)).force
-          case Unsolved  => v
+          case Solved(v, _) => (v(sp)).force
+          case Unsolved(_)  => v
       case _ => v
 
     def proj(proj: ProjType): Val = (v, proj) match
@@ -73,7 +73,7 @@ object Evaluation:
       case (VNe(hd, sp), _)             => VNe(hd, SProj(sp, proj))
       case _                            => throw Impossible
 
-    def quote(implicit k: Lvl): Tm = v match
+    def quote(implicit k: Lvl): Tm = v.force match
       case VType                  => Type
       case VUnitType              => UnitType
       case VUnit                  => Unit

@@ -39,9 +39,9 @@ object Common:
     case Impl
   export Icit.*
 
-  enum BD:
-    case Bound
-    case Defined
-  export BD.*
+  // pruning
+  type Pruning = List[Option[Icit]]
 
-  type BDs = List[BD]
+  opaque type RevPruning = Pruning
+  inline def revPruning(p: Pruning): RevPruning = p.reverse
+  extension (p: RevPruning) inline def expose: List[Option[Icit]] = p

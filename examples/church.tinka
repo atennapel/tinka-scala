@@ -18,10 +18,10 @@ let cond {A} (b : Bool) (t : A) (f : A) : A = b _ t f;
 
 -- defining if_ allows for if-then-else syntax
 let if_ {A} (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
-  (cond {{_ : ()} -> A} b (\{u}. t {u}) (\{u}. f {u})) {[]};
+  cond {{_ : ()} -> A} b t f;
 -- and another for if-then-else with an explicit return type
 let if-ind_ (A : Type) (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
-  (cond {{_ : ()} -> A} b (\{u}. t {u}) (\{u}. f {u})) {[]};
+  cond {{_ : ()} -> A} b t f;
 
 let (!) (b : Bool) : Bool = if b then False else True;
 let (&&) (a b : Bool) : Bool = if a then b else False;

@@ -31,7 +31,7 @@ object Unification:
       case SId            => t
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
-    def go(v: Val)(implicit pren: PRen): Tm = v match
+    def go(v: Val)(implicit pren: PRen): Tm = v.force match
       case VNe(HVar(x), sp) =>
         pren.ren.get(x.expose) match
           case None     => throw UnifyError("escaping variable")
@@ -90,7 +90,7 @@ object Unification:
 
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit =
     debug(s"unify ${a.quote} ~ ${b.quote}")
-    (a, b) match
+    (a.force, b.force) match
       case (VType, VType)         => ()
       case (VUnitType, VUnitType) => ()
       case (VPi(_, i1, t1, b1), VPi(_, i2, t2, b2)) if i1 == i2 =>

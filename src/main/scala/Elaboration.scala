@@ -12,15 +12,18 @@ import Debug.*
 import scala.annotation.tailrec
 
 object Elaboration:
-  private def newMeta(implicit ctx: Ctx): Tm =
-    val m = freshMeta()
-    InsertedMeta(m, ctx.bds)
+  private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
+    case VUnitType => Unit
+    case _ =>
+      val closed = closeTyCtx(ty.quoteCtx).eval(Nil)
+      val m = freshMeta(closed)
+      AppPruning(Meta(m), ctx.pruning)
 
   private def insertPi(inp: (Tm, VTy))(implicit ctx: Ctx): (Tm, VTy) =
     @tailrec
     def go(tm: Tm, ty: VTy): (Tm, VTy) = ty.force match
       case VPi(x, Impl, a, b) =>
-        val m = newMeta
+        val m = newMeta(a)
         val mv = m.evalCtx
         go(App(tm, m, Impl), b(mv))
       case _ => (tm, ty)
@@ -38,7 +41,7 @@ object Elaboration:
       case VPi(y, Impl, a, b) =>
         if x == y then (tm, ty)
         else
-          val m = newMeta
+          val m = newMeta(a)
           val mv = m.evalCtx
           go(App(tm, m, Impl), b(mv))
       case _ => throw NamedImplicitError(s"no implicit found with name $x")
@@ -78,7 +81,7 @@ object Elaboration:
       case (S.Type, VType)     => Type
       case (S.UnitType, VType) => UnitType
       case (S.Unit, VUnitType) => Unit
-      case (S.Hole, _)         => newMeta
+      case (S.Hole, _)         => newMeta(ty)
       case (S.Lam(x, i, oty, b), VPi(y, i2, pty, rty)) if icitMatch(i, y, i2) =>
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
@@ -92,7 +95,7 @@ object Elaboration:
         Pair(efst, esnd)
       case (S.Let(x, oty, v, b), _) =>
         val (ev, ety, vty) = checkOptionalType(v, oty)
-        val eb = check(b, ty)(ctx.define(x, vty, ev.evalCtx))
+        val eb = check(b, ty)(ctx.define(x, vty, ety, ev.evalCtx, ev))
         Let(x, ety, ev, eb)
       case _ =>
         val (etm, ty2) = insert(infer(tm))
@@ -135,7 +138,7 @@ object Elaboration:
           case None            => throw UndefinedVarError(x.toString)
       case S.Let(x, oty, v, b) =>
         val (ev, ety, vty) = checkOptionalType(v, oty)
-        val (eb, rty) = infer(b)(ctx.define(x, vty, ev.evalCtx))
+        val (eb, rty) = infer(b)(ctx.define(x, vty, ety, ev.evalCtx, ev))
         (Let(x, ety, ev, eb), rty)
       case S.Pi(x, i, ty, b) =>
         val ety = checkType(ty)
@@ -161,8 +164,9 @@ object Elaboration:
             if icit != icit2 then throw IcitMismatchError(tm.toString)
             (pty, rty)
           case tty =>
-            val pty = newMeta.evalCtx
-            val rty = Clos(ctx.env, newMeta(ctx.bind(DoBind(Name("x")), pty)))
+            val pty = newMeta(VType).evalCtx
+            val rty =
+              Clos(ctx.env, newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))
             unify(tty, VPi(DoBind(Name("x")), icit, pty, rty))
             (pty, rty)
         val ea = check(a, pty)
@@ -177,13 +181,15 @@ object Elaboration:
           case (VSigma(_, _, sndty), S.Snd) =>
             (Proj(et, Snd), sndty(et.evalCtx.proj(Fst)))
           case (tty, S.Fst) =>
-            val pty = newMeta.evalCtx
-            val rty = Clos(ctx.env, newMeta(ctx.bind(DoBind(Name("x")), pty)))
+            val pty = newMeta(VType).evalCtx
+            val rty =
+              Clos(ctx.env, newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))
             unify(tty, VSigma(DoBind(Name("x")), pty, rty))
             (Proj(et, Fst), pty)
           case (tty, S.Snd) =>
-            val pty = newMeta.evalCtx
-            val rty = Clos(ctx.env, newMeta(ctx.bind(DoBind(Name("x")), pty)))
+            val pty = newMeta(VType).evalCtx
+            val rty =
+              Clos(ctx.env, newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))
             unify(tty, VSigma(DoBind(Name("x")), pty, rty))
             (Proj(et, Snd), rty(et.evalCtx.proj(Fst)))
       case S.Lam(x, S.ArgIcit(i), Some(ty), b) =>
@@ -191,18 +197,19 @@ object Elaboration:
         val (eb, rty) = insert(infer(b)(ctx.bind(x, vty)))
         (Lam(x, i, eb), VPi(x, i, vty, rty.closeCtx))
       case S.Lam(x, S.ArgIcit(i), None, b) =>
-        val pty = newMeta.evalCtx
+        val pty = newMeta(VType).evalCtx
         val (eb, rty) = insert(infer(b)(ctx.bind(x, pty)))
         (Lam(x, i, eb), VPi(x, i, pty, rty.closeCtx))
       case S.Pair(fst, snd) =>
-        val pty = newMeta.evalCtx
-        val rty = Clos(ctx.env, newMeta(ctx.bind(DoBind(Name("x")), pty)))
+        val pty = newMeta(VType).evalCtx
+        val rty =
+          Clos(ctx.env, newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))
         val ty = VSigma(DoBind(Name("x")), pty, rty)
         val ep = check(tm, ty)
         (ep, ty)
       case S.Hole =>
-        val a = newMeta.evalCtx
-        val t = newMeta
+        val a = newMeta(VType).evalCtx
+        val t = newMeta(a)
         (t, a)
       case S.Lam(_, _, _, _) => throw CannotInferError(tm.toString)
 
@@ -212,5 +219,7 @@ object Elaboration:
     val (etm, vty) = infer(tm)
     val ums = unsolvedMetas()
     if ums.nonEmpty then
-      throw UnsolvedMetasError(ums.map(id => s"?$id").mkString(", "))
+      throw UnsolvedMetasError(
+        s"\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
+      )
     (etm, vty.quoteCtx)

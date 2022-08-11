@@ -31,14 +31,14 @@ object Core:
     case Unit
 
     case Meta(id: MetaId)
-    case InsertedMeta(id: MetaId, spine: BDs)
+    case AppPruning(fn: Tm, spine: Pruning)
 
     override def toString: String = this match
-      case Var(ix)             => s"'$ix"
-      case Let(x, t, v, b)     => s"(let $x : $t = $v; $b)"
-      case Type                => "Type"
-      case Meta(id)            => s"?$id"
-      case InsertedMeta(id, _) => s"?$id"
+      case Var(ix)           => s"'$ix"
+      case Let(x, t, v, b)   => s"(let $x : $t = $v; $b)"
+      case Type              => "Type"
+      case Meta(id)          => s"?$id"
+      case AppPruning(fn, _) => s"?*$fn"
 
       case Pi(x, Impl, t, b)         => s"({$x : $t} -> $b)"
       case Pi(DoBind(x), Expl, t, b) => s"(($x : $t) -> $b)"
