@@ -1,7 +1,7 @@
 -- this file requires pruning to typecheck
 -- taken from https://github.com/AndrasKovacs/elaboration-zoo/blob/master/05-pruning/example.txt
 let Id {A} x y = (F : A -> Type) -> F x -> F y;
-let Refl {A} {x} : Id x x = \_ p. p;
+let Refl {A} {x : A} : Id x x = \_ p. p;
 
 let the A (x : A) = x;
 

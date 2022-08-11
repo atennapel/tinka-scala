@@ -7,6 +7,7 @@ object Common:
 
   opaque type Lvl = Int
   inline def lvl0: Lvl = 0
+  inline def mkLvl(k: Int): Lvl = k
 
   extension (lvl: Lvl)
     inline def +(d: Lvl | Int): Lvl = lvl + d

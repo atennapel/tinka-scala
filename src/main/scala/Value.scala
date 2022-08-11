@@ -1,5 +1,6 @@
 import Common.*
 import Core.*
+import scala.annotation.tailrec
 
 object Value:
   type Env = List[Val]
@@ -15,6 +16,14 @@ object Value:
     case SId
     case SApp(spine: Spine, arg: Val, icit: Icit)
     case SProj(spine: Spine, proj: ProjType)
+
+    def size: Int =
+      @tailrec
+      def go(sp: Spine, i: Int): Int = sp match
+        case SId            => 0
+        case SApp(sp, _, _) => go(sp, i + 1)
+        case SProj(sp, _)   => go(sp, i + 1)
+      go(this, 0)
   export Spine.*
 
   type VTy = Val
