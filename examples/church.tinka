@@ -48,8 +48,8 @@ let Id {A} (x y : A) = (F : A -> Type) -> F x -> F y;
 let (~) = Id;
 let Refl {A} {x : A} : x ~ x = \F y. y;
 
-let add11eq2 : (1 + 1) ~ 2 = Refl;
-let mul22eq4 : (2 * 2) ~ 4 = Refl;
+let add11eq2 : 1 + 1 ~ 2 = Refl;
+let mul22eq4 : 2 * 2 ~ 4 = Refl;
 
 -- named projection
 let Sig = (A : Type) ** (fn : A -> A) ** ();

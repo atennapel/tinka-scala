@@ -164,7 +164,7 @@ object Parser:
     private lazy val app: Parsley[Tm] =
       precedence[Tm](appAtom)(
         ops(
-          "`~@#?,.",
+          "`@#?,.",
           "*/%",
           "+-",
           ":",
@@ -173,7 +173,8 @@ object Parser:
           "&",
           "^",
           "|",
-          "$"
+          "$",
+          "~"
         )*
       )
 
