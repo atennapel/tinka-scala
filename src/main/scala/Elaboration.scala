@@ -75,6 +75,14 @@ object Elaboration:
         case DontBind  => false
     case S.ArgIcit(i) => i == i2
 
+  private def hasMetaType(x: Name)(implicit ctx: Ctx): Boolean =
+    lookupCtx(x) match
+      case Some((_, vty)) =>
+        vty.force match
+          case VNe(HMeta(_), _) => true
+          case _                => false
+      case None => throw UndefinedVarError(x.toString)
+
   private def check(tm: S.Tm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
     (tm, ty.force) match
@@ -86,6 +94,10 @@ object Elaboration:
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
         Lam(x, i2, eb)
+      case (S.Var(x), VPi(_, Impl, _, _)) if hasMetaType(x) =>
+        val Some((ix, varty)) = lookupCtx(x)
+        unify(varty, ty)
+        Var(ix)
       case (tm, VPi(x, Impl, pty, rty)) =>
         val etm = check(tm, rty.underCtx)(ctx.bind(x, pty, true))
         Lam(x, Impl, etm)
