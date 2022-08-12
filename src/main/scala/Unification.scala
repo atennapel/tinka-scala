@@ -9,7 +9,7 @@ import Debug.*
 import scala.collection.immutable.IntMap
 import scala.util.Try
 
-object Unification:
+class Unification(elab: IElaboration) extends IUnification:
   private final case class PRen(
       occ: Option[MetaId],
       dom: Lvl,
@@ -52,9 +52,10 @@ object Unification:
     go(pr.expose, ty)
 
   private def pruneMeta(pr: Pruning, m: MetaId): MetaId =
-    val mty = getMetaUnsolved(m).ty
+    val u = getMetaUnsolved(m)
+    val mty = u.ty
     val prunedty = pruneTy(revPruning(pr), mty).eval(Nil)
-    val m2 = freshMeta(prunedty)
+    val m2 = freshMeta(u.blocking, prunedty)
     val solution = lams(mkLvl(pr.size), mty, AppPruning(Meta(m2), pr)).eval(Nil)
     solveMeta(m, solution)
     m2
@@ -140,12 +141,14 @@ object Unification:
       v: Val
   ): Unit =
     val (pren, pruneNonLinear) = res
-    val mty = getMetaUnsolved(m).ty
+    val u = getMetaUnsolved(m)
+    val mty = u.ty
     pruneNonLinear.foreach(pr => pruneTy(revPruning(pr), mty))
     val rhs = rename(v)(pren.copy(occ = Some(m)))
     val solution = lams(pren.dom, mty, rhs)
     debug(s"solution ?$m := $solution")
     solveMeta(m, solution.eval(Nil))
+    u.blocking.foreach(elab.retryCheck)
 
   private def unifyProj(a: Spine, b: Spine, n: Int)(implicit k: Lvl): Unit =
     (a, n) match

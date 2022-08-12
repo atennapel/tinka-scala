@@ -2,14 +2,18 @@ import scala.annotation.targetName
 
 object Common:
   opaque type Ix = Int
+  inline def ix0: Ix = 0
 
-  extension (ix: Ix) inline def index[A](e: Seq[A]): A = e(ix)
+  extension (ix: Ix)
+    inline def index[A](e: Seq[A]): A = e(ix)
+    inline def +(d: Ix | Int): Ix = ix + d
 
   opaque type Lvl = Int
   inline def lvl0: Lvl = 0
   inline def mkLvl(k: Int): Lvl = k
 
   extension (lvl: Lvl)
+    @targetName("addLvl")
     inline def +(d: Lvl | Int): Lvl = lvl + d
     inline def toIx(implicit k: Lvl): Ix = k - lvl - 1
     inline def expose: Int = lvl
@@ -20,6 +24,14 @@ object Common:
 
   extension (id: MetaId)
     @targetName("exposeMetaId")
+    inline def expose: Int = id
+
+  opaque type CheckId = Int
+
+  inline def checkId(id: Int): CheckId = id
+
+  extension (id: CheckId)
+    @targetName("exposeCheckId")
     inline def expose: Int = id
 
   case class Name(x: String):

@@ -3,7 +3,7 @@
 Dependently typed programming language implemented in Scala 3.
 Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-zoo
 
-Try it out using:
+Try it out implicit:
 
 ```
 sbt "run examples/church.tinka"
@@ -27,10 +27,15 @@ sbt "run examples/church.tinka"
 - [ ] Metas
   - [x] Implicit functions and application
   - [x] Basic metas
-  - [ ] Pruning
-  - [ ] First-class polymorphism
-  - [ ] Zonking (?)
+  - [x] Pruning
+  - [x] First-class polymorphism
+  - [ ] Zonk or let-def metas
 - [ ] Pretty printing
+- [ ] Source positions in errors
 - [ ] Universes
 - [ ] Definitions
 - [ ] Imports
+
+## Problems
+- Investigate pruning failure (examples/pruning.tinka)
+- Parser problem: Nat -> {A} -> A -> A

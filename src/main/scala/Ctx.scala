@@ -2,7 +2,6 @@ import Common.*
 import Core.*
 import Value.*
 import Evaluation.*
-import Unification.{unify as unify0}
 import Errors.*
 
 import scala.annotation.tailrec
@@ -43,8 +42,8 @@ final case class Ctx(
   def under(c: Clos): Val = c(VVar(lvl))
   def close(v: Val): Clos = Clos(env, v.quote(lvl + 1))
   def closeTy(body: Ty): Ty = path.closeTy(body)
-
-  def unify(a: Val, b: Val): Unit = unify0(a, b)(lvl)
+  def closeTm(body: Tm): Tm = path.closeTm(body)
+  def closeVTy(ty: VTy): VTy = closeTy(quote(ty)).eval(Nil)
 
   def lookup(x: Name): Option[(Ix, VTy)] =
     @tailrec
@@ -57,15 +56,18 @@ final case class Ctx(
 object Ctx:
   def empty = Ctx(lvl0, Nil, Nil, PHere, Nil)
 
-extension (t: Tm) def evalCtx(implicit ctx: Ctx): Val = ctx.eval(t)
+extension (t: Tm)
+  def evalCtx(implicit ctx: Ctx): Val = ctx.eval(t)
+  def closeTyCtx(implicit ctx: Ctx): Ty = ctx.closeTy(t)
+  def closeTmCtx(implicit ctx: Ctx): Tm = ctx.closeTm(t)
 
 extension (v: Val)
   def quoteCtx(implicit ctx: Ctx): Tm = ctx.quote(v)
   def closeCtx(implicit ctx: Ctx): Clos = ctx.close(v)
+  def closeVTyCtx(implicit ctx: Ctx): VTy = ctx.closeVTy(v)
 
 extension (c: Clos) def underCtx(implicit ctx: Ctx): Val = ctx.under(c)
 
-def unifyCtx(a: Val, b: Val)(implicit ctx: Ctx): Unit = ctx.unify(a, b)
 def lookupCtx(x: Name)(implicit ctx: Ctx): Option[(Ix, VTy)] = ctx.lookup(x)
 
 enum Path:
@@ -77,6 +79,9 @@ enum Path:
     case PHere               => b
     case PBind(p, x, a)      => p.closeTy(Pi(x, Expl, a, b))
     case PDefine(p, x, a, v) => p.closeTy(Let(x, a, v, b))
-export Path.*
 
-def closeTyCtx(body: Ty)(implicit ctx: Ctx): Ty = ctx.closeTy(body)
+  def closeTm(b: Tm): Tm = this match
+    case PHere               => b
+    case PBind(p, x, _)      => p.closeTm(Lam(x, Expl, b))
+    case PDefine(p, x, a, v) => p.closeTm(Let(x, a, v, b))
+export Path.*

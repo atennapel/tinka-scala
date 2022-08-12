@@ -32,13 +32,22 @@ object Core:
 
     case Meta(id: MetaId)
     case AppPruning(fn: Tm, spine: Pruning)
+    case PostponedCheck(id: CheckId)
+
+    def appPruning(pr: Pruning): Tm =
+      def go(x: Ix, pr: Pruning): Tm = pr match
+        case Nil           => this
+        case Some(i) :: pr => App(go(x + 1, pr), Var(x), i)
+        case None :: pr    => go(x + 1, pr)
+      go(ix0, pr)
 
     override def toString: String = this match
-      case Var(ix)           => s"'$ix"
-      case Let(x, t, v, b)   => s"(let $x : $t = $v; $b)"
-      case Type              => "Type"
-      case Meta(id)          => s"?$id"
-      case AppPruning(fn, _) => s"?*$fn"
+      case Var(ix)            => s"'$ix"
+      case Let(x, t, v, b)    => s"(let $x : $t = $v; $b)"
+      case Type               => "Type"
+      case Meta(id)           => s"?$id"
+      case AppPruning(fn, _)  => s"?*$fn"
+      case PostponedCheck(id) => s"(?check $id)"
 
       case Pi(x, Impl, t, b)         => s"({$x : $t} -> $b)"
       case Pi(DoBind(x), Expl, t, b) => s"(($x : $t) -> $b)"

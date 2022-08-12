@@ -3,15 +3,20 @@ import Core.*
 import Value.*
 import Metas.*
 import Errors.*
+import Debug.*
 
 object Evaluation:
   extension (c: Clos) def apply(v: Val): Val = c.tm.eval(v :: c.env)
 
   private def vmeta(id: MetaId): Val = getMeta(id) match
-    case Solved(v, _) => v
-    case Unsolved(_)  => VMeta(id)
+    case Solved(v, _)   => v
+    case Unsolved(_, _) => VMeta(id)
 
-  private def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
+  private def vcheck(id: CheckId)(implicit env: Env): Val = getCheck(id) match
+    case Unchecked(ctx, t, a, m) => vappPruning(vmeta(m), ctx.pruning)
+    case Checked(t)              => t.eval
+
+  def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
     (env, pr) match
       case (Nil, Nil)                => v
       case (t :: env, Some(i) :: pr) => vappPruning(v, pr)(env)(t, i)
@@ -33,6 +38,7 @@ object Evaluation:
       case Proj(tm, proj)           => tm.eval.proj(proj)
       case Meta(id)                 => vmeta(id)
       case AppPruning(tm, pr)       => vappPruning(tm.eval, pr)
+      case PostponedCheck(c)        => vcheck(c)
 
     def nf: Tm = c.eval(Nil).quote(lvl0)
 
@@ -61,8 +67,8 @@ object Evaluation:
     def force: Val = v match
       case VNe(HMeta(m), sp) =>
         getMeta(m) match
-          case Solved(v, _) => (v(sp)).force
-          case Unsolved(_)  => v
+          case Solved(v, _)   => (v(sp)).force
+          case Unsolved(_, _) => v
       case _ => v
 
     def proj(proj: ProjType): Val = (v, proj) match

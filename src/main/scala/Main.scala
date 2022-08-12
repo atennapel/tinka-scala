@@ -1,5 +1,5 @@
 import Parser.parser
-import Elaboration.elaborate
+import Elaborator.elaborate
 import Evaluation.nf
 import Debug.*
 

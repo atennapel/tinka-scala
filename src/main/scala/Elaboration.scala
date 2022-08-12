@@ -3,7 +3,6 @@ import Core.*
 import Surface as S
 import Value.*
 import Evaluation.*
-import Unification.*
 import Ctx.*
 import Metas.*
 import Errors.*
@@ -11,12 +10,65 @@ import Debug.*
 
 import scala.annotation.tailrec
 
-object Elaboration:
+class Elaboration extends IElaboration:
+  // unification
+  private var unif: Option[IUnification] = None
+  def setUnification(unif: IUnification): Unit = this.unif = Some(unif)
+
+  private def unifyPlaceholder(tm: Tm, m: MetaId)(implicit ctx: Ctx): Unit =
+    getMeta(m) match
+      case Unsolved(bs, a) =>
+        debug(s"solve unconstrained placeholder ?$m")
+        val solution = tm.closeTmCtx
+        debug(s"?$m := $solution")
+        solveMeta(m, solution.eval(Nil))
+        bs.foreach(retryCheck)
+      case Solved(v, _) =>
+        debug(s"unify solved placeholder ?$m")
+        unify(tm.evalCtx, vappPruning(v, ctx.pruning)(ctx.env))
+
+  override def retryCheck(c: CheckId): Unit = getCheck(c) match
+    case Unchecked(ctxU, t, a, m) =>
+      implicit val ctx: Ctx = ctxU
+      a.force match
+        case VNe(HMeta(m2), _) => addBlocking(m2, c)
+        case _ =>
+          debug(s"retry check (check ?$c) with ?$m")
+          val etm = check(t, a)
+          unifyPlaceholder(etm, m)
+          solveCheck(c, etm)
+    case _ =>
+
+  private def checkEverything(): Unit =
+    @tailrec
+    def go(c: Int): Unit =
+      val c2 = nextCheckId()
+      if c < c2 then
+        val id = checkId(c)
+        getCheck(id) match
+          case Unchecked(ctxU, t, a, m) =>
+            implicit val ctx: Ctx = ctxU
+            debug(s"check everything: $c < $c2")
+            val (etm, ty) = insert(infer(t))
+            solveCheck(id, etm)
+            unify(a, ty)
+            unifyPlaceholder(etm, m)
+          case _ =>
+        go(c + 1)
+    go(0)
+
+  private def unify(a: Val, b: Val)(implicit ctx: Ctx): Unit =
+    try unif.get.unify(a, b)(ctx.lvl)
+    catch
+      case err: UnifyError =>
+        throw ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}: ${err.msg}")
+
+  // elaboration
   private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
     case VUnitType => Unit
     case _ =>
-      val closed = closeTyCtx(ty.quoteCtx).eval(Nil)
-      val m = freshMeta(closed)
+      val closed = ty.quoteCtx.closeTyCtx.eval(Nil)
+      val m = freshMeta(Set.empty, closed)
       AppPruning(Meta(m), ctx.pruning)
 
   private def insertPi(inp: (Tm, VTy))(implicit ctx: Ctx): (Tm, VTy) =
@@ -46,12 +98,6 @@ object Elaboration:
           go(App(tm, m, Impl), b(mv))
       case _ => throw NamedImplicitError(s"no implicit found with name $x")
     go(inp._1, inp._2)
-
-  private def unify(a: Val, b: Val)(implicit ctx: Ctx): Unit =
-    try unifyCtx(a, b)
-    catch
-      case err: UnifyError =>
-        throw ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}: ${err.msg}")
 
   private def checkType(ty: S.Ty)(implicit ctx: Ctx): Ty = check(ty, VType)
 
@@ -101,6 +147,12 @@ object Elaboration:
       case (tm, VPi(x, Impl, pty, rty)) =>
         val etm = check(tm, rty.underCtx)(ctx.bind(x, pty, true))
         Lam(x, Impl, etm)
+      case (tm, VNe(HMeta(m), _)) =>
+        val placeholder = freshMeta(Set.empty, ty.closeVTyCtx)
+        val c = freshCheck(tm, ty, placeholder)
+        addBlocking(m, c)
+        debug(s"postpone $tm : ${ty.quoteCtx} as ?$placeholder")
+        PostponedCheck(c)
       case (S.Pair(fst, snd), VSigma(_, fstty, sndty)) =>
         val efst = check(fst, fstty)
         val esnd = check(snd, sndty(efst.evalCtx))
@@ -226,9 +278,10 @@ object Elaboration:
       case S.Lam(_, _, _, _) => throw CannotInferError(tm.toString)
 
   def elaborate(tm: S.Tm): (Tm, Ty) =
-    resetMetas()
+    reset()
     implicit val ctx = Ctx.empty
     val (etm, vty) = infer(tm)
+    checkEverything()
     val ums = unsolvedMetas()
     if ums.nonEmpty then
       throw UnsolvedMetasError(
