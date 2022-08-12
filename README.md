@@ -29,12 +29,10 @@ sbt "run examples/church.tinka"
   - [x] Basic metas
   - [x] Pruning
   - [x] First-class polymorphism
+  - [ ] Try unification postponing
   - [ ] Zonk or let-def metas
 - [ ] Pretty printing
 - [ ] Source positions in errors
 - [ ] Universes
 - [ ] Definitions
 - [ ] Imports
-
-## Problems
-- Parser problem: Nat -> {A} -> A -> A

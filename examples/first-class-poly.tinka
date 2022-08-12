@@ -63,7 +63,7 @@ let D5 = revapp argST runST;
 let E3 = \(r : ({A} -> A -> ({B} -> B -> B) -> Nat)). r (\x y. y);
 
 let E2 =
-  \(h : Nat -> ({A} -> A -> A)) (k : {A} -> A -> List A -> A) (lst : List ({A} -> Nat -> A -> A)).
+  \(h : Nat -> {A} -> A -> A) (k : {A} -> A -> List A -> A) (lst : List ({A} -> Nat -> A -> A)).
     k (\x. h x) lst;
 
 []

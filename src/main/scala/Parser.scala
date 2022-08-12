@@ -94,15 +94,17 @@ object Parser:
       )
 
     private lazy val piOrSigma: Parsley[Tm] =
-      (some(piSigmaParam) <~> ("->" #> false <|> "**" #> true) <~> tm).map {
-        case ((ps, isSigma), rt) =>
+      ((some(piSigmaParam) <|> app.map(t =>
+        List((List(DontBind), Expl, Some(t)))
+      )) <~> ("->" #> false <|> "**" #> true) <~> tm)
+        .map { case ((ps, isSigma), rt) =>
           ps.foldRight(rt) { case ((xs, i, ty), rt) =>
             xs.foldRight(rt)((x, rt) =>
               if isSigma then Sigma(x, ty.getOrElse(Hole), rt)
               else Pi(x, i, ty.getOrElse(Hole), rt)
             )
           }
-      }
+        }
 
     private type PiSigmaParam = (List[Bind], Icit, Option[Ty])
 
