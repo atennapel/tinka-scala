@@ -12,7 +12,6 @@ let m2 : Type -> Type -> Type -> Type = _;
 let test2 = \a b c. the (Id (m2 a b c) (m2 c b a)) Refl;
 
 let pr1 = \f x. f x;
-let pr2 = \f x y. f x y;
 let pr3 = \f. f Type;
 
 []

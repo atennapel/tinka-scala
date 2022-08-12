@@ -285,6 +285,6 @@ class Elaboration extends IElaboration:
     val ums = unsolvedMetas()
     if ums.nonEmpty then
       throw UnsolvedMetasError(
-        s"\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
+        s"\n$etm\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
       )
     (etm, vty.quoteCtx)

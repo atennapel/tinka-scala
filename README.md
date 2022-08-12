@@ -37,5 +37,4 @@ sbt "run examples/church.tinka"
 - [ ] Imports
 
 ## Problems
-- Investigate pruning failure (examples/pruning.tinka)
 - Parser problem: Nat -> {A} -> A -> A
