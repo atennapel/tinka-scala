@@ -12,7 +12,9 @@ object Evaluation:
     case Solved(v, _)   => v
     case Unsolved(_, _) => VMeta(id)
 
-  private def vcheck(id: CheckId)(implicit env: Env): Val = getCheck(id) match
+  private def vcheck(id: PostponeId)(implicit env: Env): Val = getCheck(
+    id
+  ) match
     case Unchecked(ctx, t, a, m) => vappPruning(vmeta(m), ctx.pruning)
     case Checked(t)              => t.eval
 

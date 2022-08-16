@@ -7,28 +7,56 @@ import Surface as S
 import scala.collection.mutable.ArrayBuffer
 
 object Metas:
-  private val checks: ArrayBuffer[CheckEntry] = ArrayBuffer.empty
+  private val checks: ArrayBuffer[PostponeEntry] = ArrayBuffer.empty
 
   enum CheckEntry:
     case Unchecked(ctx: Ctx, tm: S.Tm, ty: VTy, meta: MetaId)
     case Checked(tm: Tm)
   export CheckEntry.*
 
-  def freshCheck(tm: S.Tm, ty: VTy, meta: MetaId)(implicit ctx: Ctx): CheckId =
-    val id = checkId(checks.size)
-    checks.addOne(Unchecked(ctx, tm, ty, meta))
+  enum UnifyEntry:
+    case UnifyPostpone(k: Lvl, v1: Val, v2: Val)
+    case UnifyDone
+  export UnifyEntry.*
+
+  enum PostponeEntry:
+    case PostponeCheck(entry: CheckEntry)
+    case PostponeUnify(entry: UnifyEntry)
+  export PostponeEntry.*
+
+  def freshCheck(tm: S.Tm, ty: VTy, meta: MetaId)(implicit
+      ctx: Ctx
+  ): PostponeId =
+    val id = postponeId(checks.size)
+    checks.addOne(PostponeCheck(Unchecked(ctx, tm, ty, meta)))
     id
 
-  def getCheck(id: CheckId): CheckEntry = checks(id.expose)
+  def freshPostponedUnif(
+      k: Lvl,
+      v1: Val,
+      v2: Val
+  ): PostponeId =
+    val cid = postponeId(checks.size)
+    checks.addOne(PostponeUnify(UnifyPostpone(k, v1, v2)))
+    cid
 
-  def solveCheck(id: CheckId, tm: Tm): Unit =
-    checks(id.expose) = Checked(tm)
+  def getPostpone(id: PostponeId): PostponeEntry = checks(id.expose)
+
+  def getCheck(id: PostponeId): CheckEntry = checks(id.expose) match
+    case PostponeCheck(entry) => entry
+    case _                    => throw Impossible
+
+  def solveCheck(id: PostponeId, tm: Tm): Unit =
+    checks(id.expose) = PostponeCheck(Checked(tm))
+
+  def solvePostponeUnify(id: PostponeId): Unit =
+    checks(id.expose) = PostponeUnify(UnifyDone)
 
   def nextCheckId(): Int = checks.size
 
   private val metas: ArrayBuffer[MetaEntry] = ArrayBuffer.empty
 
-  type Blocking = Set[CheckId]
+  type Blocking = Set[PostponeId]
 
   enum MetaEntry:
     case Unsolved(blocking: Blocking, ty: VTy)
@@ -48,7 +76,7 @@ object Metas:
     case Unsolved(_, _)   => throw Impossible
     case s @ Solved(_, _) => s
 
-  def addBlocking(id: MetaId, c: CheckId): Unit =
+  def addBlocking(id: MetaId, c: PostponeId): Unit =
     val u = getMetaUnsolved(id)
     metas(id.expose) = u.copy(blocking = u.blocking + c)
 

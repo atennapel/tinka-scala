@@ -26,12 +26,12 @@ object Common:
     @targetName("exposeMetaId")
     inline def expose: Int = id
 
-  opaque type CheckId = Int
+  opaque type PostponeId = Int
 
-  inline def checkId(id: Int): CheckId = id
+  inline def postponeId(id: Int): PostponeId = id
 
-  extension (id: CheckId)
-    @targetName("exposeCheckId")
+  extension (id: PostponeId)
+    @targetName("exposePostponeId")
     inline def expose: Int = id
 
   case class Name(x: String):

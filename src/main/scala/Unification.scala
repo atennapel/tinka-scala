@@ -19,26 +19,36 @@ class Unification(elab: IElaboration) extends IUnification:
     def lift: PRen = PRen(occ, dom + 1, cod + 1, ren + (cod.expose, dom))
     def skip: PRen = PRen(occ, dom, cod + 1, ren)
 
-  private def invert(sp: Spine)(implicit gamma: Lvl): (PRen, Option[Pruning]) =
-    def go(sp: Spine): (Lvl, Set[Lvl], IntMap[Lvl], Pruning, Boolean) = sp match
-      case SId => (lvl0, Set.empty, IntMap.empty, Nil, true)
-      case SApp(sp, t, i) =>
-        val (dom, domvars, ren, pr, isLinear) = go(sp)
-        t.force match
-          case VVar(x) if domvars.contains(x) =>
-            (dom + 1, domvars, ren - x.expose, None :: pr, false)
-          case VVar(x) =>
-            (
-              dom + 1,
-              domvars + x,
-              ren + (x.expose, dom),
-              Some(i) :: pr,
-              isLinear
-            )
-          case _ => throw UnifyError("non-var in meta spine")
-      case _ => throw UnifyError("non-app in meta spine")
-    val (dom, domvars, ren, pr, isLinear) = go(sp)
-    (PRen(None, dom, gamma, ren), if isLinear then Some(pr) else None)
+  private def invert(sp: Spine)(implicit
+      gamma: Lvl
+  ): Either[MetaId, (PRen, Option[Pruning])] =
+    def go(
+        sp: Spine
+    ): Either[MetaId, (Lvl, Set[Lvl], IntMap[Lvl], Pruning, Boolean)] =
+      sp match
+        case SId => Right((lvl0, Set.empty, IntMap.empty, Nil, true))
+        case SApp(sp, t, i) =>
+          go(sp).flatMap { (dom, domvars, ren, pr, isLinear) =>
+            t.force match
+              case VVar(x) if domvars.contains(x) =>
+                Right((dom + 1, domvars, ren - x.expose, None :: pr, false))
+              case VVar(x) =>
+                Right(
+                  (
+                    dom + 1,
+                    domvars + x,
+                    ren + (x.expose, dom),
+                    Some(i) :: pr,
+                    isLinear
+                  )
+                )
+              case VNe(HMeta(m), _) => Left(m)
+              case _                => throw UnifyError("non-var in meta spine")
+          }
+        case _ => throw UnifyError("non-app in meta spine")
+    go(sp).map { (dom, domvars, ren, pr, isLinear) =>
+      (PRen(None, dom, gamma, ren), if isLinear then Some(pr) else None)
+    }
 
   private def pruneTy(pr: RevPruning, ty: VTy): Ty =
     def go(pr: Pruning, ty: VTy)(implicit pren: PRen): Ty = (pr, ty.force) match
@@ -132,8 +142,12 @@ class Unification(elab: IElaboration) extends IUnification:
 
   private def solve(id: MetaId, sp: Spine, v: Val)(implicit gamma: Lvl): Unit =
     debug(s"solve ?$id := ${v.quote}")
-    val res = invert(sp)
-    solveWithPRen(id, res, v)
+    invert(sp) match
+      case Right(res) => solveWithPRen(id, res, v)
+      case Left(m) =>
+        val pid = freshPostponedUnif(gamma, VNe(HMeta(id), sp), v)
+        debug(s"postpone solve ?$id := ${v.quote} as !$pid blocked by ?$m")
+        addBlocking(m, pid)
 
   private def solveWithPRen(
       m: MetaId,
@@ -148,7 +162,7 @@ class Unification(elab: IElaboration) extends IUnification:
     val solution = lams(pren.dom, mty, rhs)
     debug(s"solution ?$m := $solution")
     solveMeta(m, solution.eval(Nil))
-    u.blocking.foreach(elab.retryCheck)
+    u.blocking.foreach(elab.retryPostpone)
 
   private def unifyProj(a: Spine, b: Spine, n: Int)(implicit k: Lvl): Unit =
     (a, n) match
@@ -174,7 +188,8 @@ class Unification(elab: IElaboration) extends IUnification:
     debug(s"flexFlex ?$m ~ ?$m2")
     def go(m: MetaId, sp: Spine, m2: MetaId, sp2: Spine): Unit =
       Try(invert(sp)).toEither match
-        case Right(res)          => solveWithPRen(m, res, VNe(HMeta(m2), sp2))
+        case Right(Right(res))   => solveWithPRen(m, res, VNe(HMeta(m2), sp2))
+        case Right(_)            => solve(m2, sp2, VNe(HMeta(m), sp))
         case Left(_: UnifyError) => solve(m2, sp2, VNe(HMeta(m), sp))
         case Left(err)           => throw err
     if sp.size < sp2.size then go(m2, sp2, m, sp) else go(m, sp, m2, sp2)

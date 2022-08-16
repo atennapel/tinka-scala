@@ -32,7 +32,7 @@ object Core:
 
     case Meta(id: MetaId)
     case AppPruning(fn: Tm, spine: Pruning)
-    case PostponedCheck(id: CheckId)
+    case PostponedCheck(id: PostponeId)
 
     def appPruning(pr: Pruning): Tm =
       def go(x: Ix, pr: Pruning): Tm = pr match
@@ -47,7 +47,7 @@ object Core:
       case Type               => "Type"
       case Meta(id)           => s"?$id"
       case AppPruning(fn, _)  => s"?*$fn"
-      case PostponedCheck(id) => s"(?check $id)"
+      case PostponedCheck(id) => s"!$id"
 
       case Pi(x, Impl, t, b)         => s"({$x : $t} -> $b)"
       case Pi(DoBind(x), Expl, t, b) => s"(($x : $t) -> $b)"

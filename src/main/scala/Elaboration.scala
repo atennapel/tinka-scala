@@ -22,37 +22,44 @@ class Elaboration extends IElaboration:
         val solution = tm.closeTmCtx
         debug(s"?$m := $solution")
         solveMeta(m, solution.eval(Nil))
-        bs.foreach(retryCheck)
+        bs.foreach(retryPostpone)
       case Solved(v, _) =>
         debug(s"unify solved placeholder ?$m")
         unify(tm.evalCtx, vappPruning(v, ctx.pruning)(ctx.env))
 
-  override def retryCheck(c: CheckId): Unit = getCheck(c) match
-    case Unchecked(ctxU, t, a, m) =>
+  override def retryPostpone(c: PostponeId): Unit = getPostpone(c) match
+    case PostponeCheck(Unchecked(ctxU, t, a, m)) =>
       implicit val ctx: Ctx = ctxU
       a.force match
         case VNe(HMeta(m2), _) => addBlocking(m2, c)
         case _ =>
-          debug(s"retry check (check ?$c) with ?$m")
+          debug(s"retry check !$c with ?$m")
           val etm = check(t, a)
           unifyPlaceholder(etm, m)
           solveCheck(c, etm)
+    case PostponeUnify(UnifyPostpone(k, v1, v2)) =>
+      debug(s"retry unify !$c: ${v1.quote(k)} ~ ${v2.quote(k)}")
+      unif.get.unify(v1, v2)(k)
     case _ =>
 
+  // TODO: do not postpone more at this stage
   private def checkEverything(): Unit =
     @tailrec
     def go(c: Int): Unit =
       val c2 = nextCheckId()
       if c < c2 then
-        val id = checkId(c)
-        getCheck(id) match
-          case Unchecked(ctxU, t, a, m) =>
+        val id = postponeId(c)
+        getPostpone(id) match
+          case PostponeCheck(Unchecked(ctxU, t, a, m)) =>
             implicit val ctx: Ctx = ctxU
-            debug(s"check everything: $c < $c2")
+            debug(s"check everything: !$c < !$c2")
             val (etm, ty) = insert(infer(t))
             solveCheck(id, etm)
             unify(a, ty)
             unifyPlaceholder(etm, m)
+          case PostponeUnify(UnifyPostpone(k, v1, v2)) =>
+            debug(s"check everything: !$c < !$c2")
+            unif.get.unify(v1, v2)(k)
           case _ =>
         go(c + 1)
     go(0)
@@ -282,9 +289,10 @@ class Elaboration extends IElaboration:
     implicit val ctx = Ctx.empty
     val (etm, vty) = infer(tm)
     checkEverything()
+    val qty = vty.quoteCtx
     val ums = unsolvedMetas()
     if ums.nonEmpty then
       throw UnsolvedMetasError(
-        s"\n$etm\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
+        s"\n$etm : $qty\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
       )
-    (etm, vty.quoteCtx)
+    (etm, qty)

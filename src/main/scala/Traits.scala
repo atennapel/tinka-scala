@@ -6,4 +6,4 @@ trait IUnification:
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit
 
 trait IElaboration:
-  def retryCheck(id: CheckId): Unit
+  def retryPostpone(id: PostponeId): Unit

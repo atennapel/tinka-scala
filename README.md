@@ -29,7 +29,7 @@ sbt "run examples/church.tinka"
   - [x] Basic metas
   - [x] Pruning
   - [x] First-class polymorphism
-  - [ ] Try unification postponing
+  - [x] Unification postponing
   - [ ] Zonk or let-def metas
 - [ ] Pretty printing
 - [ ] Source positions in errors
