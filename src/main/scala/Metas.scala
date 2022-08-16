@@ -60,7 +60,7 @@ object Metas:
 
   enum MetaEntry:
     case Unsolved(blocking: Blocking, ty: VTy)
-    case Solved(value: Val, ty: VTy)
+    case Solved(value: Val, core: Tm, ty: VTy)
   export MetaEntry.*
 
   def freshMeta(blocking: Blocking, ty: VTy): MetaId =
@@ -71,18 +71,18 @@ object Metas:
   def getMeta(id: MetaId): MetaEntry = metas(id.expose)
   def getMetaUnsolved(id: MetaId): Unsolved = getMeta(id) match
     case u @ Unsolved(_, _) => u
-    case Solved(_, _)       => throw Impossible
+    case Solved(_, _, _)    => throw Impossible
   def getMetaSolved(id: MetaId): Solved = getMeta(id) match
-    case Unsolved(_, _)   => throw Impossible
-    case s @ Solved(_, _) => s
+    case Unsolved(_, _)      => throw Impossible
+    case s @ Solved(_, _, _) => s
 
   def addBlocking(id: MetaId, c: PostponeId): Unit =
     val u = getMetaUnsolved(id)
     metas(id.expose) = u.copy(blocking = u.blocking + c)
 
-  def solveMeta(id: MetaId, v: Val): Unit =
+  def solveMeta(id: MetaId, v: Val, core: Tm): Unit =
     val ty = getMetaUnsolved(id).ty
-    metas(id.expose) = Solved(v, ty)
+    metas(id.expose) = Solved(v, core, ty)
 
   def unsolvedMetas(): List[(MetaId, VTy)] = metas.zipWithIndex.collect {
     case (Unsolved(_, ty), ix) => (metaId(ix), ty)

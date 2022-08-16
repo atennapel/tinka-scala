@@ -8,9 +8,9 @@ import Debug.*
 object Evaluation:
   extension (c: Clos) def apply(v: Val): Val = c.tm.eval(v :: c.env)
 
-  private def vmeta(id: MetaId): Val = getMeta(id) match
-    case Solved(v, _)   => v
-    case Unsolved(_, _) => VMeta(id)
+  def vmeta(id: MetaId): Val = getMeta(id) match
+    case Solved(v, _, _) => v
+    case Unsolved(_, _)  => VMeta(id)
 
   private def vcheck(id: PostponeId)(implicit env: Env): Val = getCheck(
     id
@@ -69,8 +69,8 @@ object Evaluation:
     def force: Val = v match
       case VNe(HMeta(m), sp) =>
         getMeta(m) match
-          case Solved(v, _)   => (v(sp)).force
-          case Unsolved(_, _) => v
+          case Solved(v, _, _) => (v(sp)).force
+          case Unsolved(_, _)  => v
       case _ => v
 
     def proj(proj: ProjType): Val = (v, proj) match

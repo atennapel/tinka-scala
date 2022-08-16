@@ -24,13 +24,13 @@ sbt "run examples/church.tinka"
   - [x] List syntax
   - [x] Projection
   - [x] Named projection
-- [ ] Metas
+- [x] Metas
   - [x] Implicit functions and application
   - [x] Basic metas
   - [x] Pruning
   - [x] First-class polymorphism
   - [x] Unification postponing
-  - [ ] Zonk or let-def metas
+  - [x] Zonking
 - [ ] Pretty printing
 - [ ] Source positions in errors
 - [ ] Universes

@@ -2,6 +2,7 @@ import Common.*
 import Core.*
 import Value.*
 import Evaluation.*
+import Zonking.{zonk as zonk0}
 import Errors.*
 
 import scala.annotation.tailrec
@@ -38,6 +39,7 @@ final case class Ctx(
 
   def eval(t: Tm): Val = t.eval(env)
   def quote(v: Val): Tm = v.quote(lvl)
+  def zonk(t: Tm): Tm = zonk0(t)(lvl, env)
 
   def under(c: Clos): Val = c(VVar(lvl))
   def close(v: Val): Clos = Clos(env, v.quote(lvl + 1))
@@ -60,6 +62,7 @@ extension (t: Tm)
   def evalCtx(implicit ctx: Ctx): Val = ctx.eval(t)
   def closeTyCtx(implicit ctx: Ctx): Ty = ctx.closeTy(t)
   def closeTmCtx(implicit ctx: Ctx): Tm = ctx.closeTm(t)
+  def zonkCtx(implicit ctx: Ctx): Tm = ctx.zonk(t)
 
 extension (v: Val)
   def quoteCtx(implicit ctx: Ctx): Tm = ctx.quote(v)

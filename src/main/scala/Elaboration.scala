@@ -7,6 +7,7 @@ import Ctx.*
 import Metas.*
 import Errors.*
 import Debug.*
+import Zonking.*
 
 import scala.annotation.tailrec
 
@@ -21,9 +22,9 @@ class Elaboration extends IElaboration:
         debug(s"solve unconstrained placeholder ?$m")
         val solution = tm.closeTmCtx
         debug(s"?$m := $solution")
-        solveMeta(m, solution.eval(Nil))
+        solveMeta(m, solution.eval(Nil), solution)
         bs.foreach(retryPostpone)
-      case Solved(v, _) =>
+      case Solved(v, _, _) =>
         debug(s"unify solved placeholder ?$m")
         unify(tm.evalCtx, vappPruning(v, ctx.pruning)(ctx.env))
 
@@ -289,10 +290,11 @@ class Elaboration extends IElaboration:
     implicit val ctx = Ctx.empty
     val (etm, vty) = infer(tm)
     checkEverything()
-    val qty = vty.quoteCtx
+    val ztm = etm.zonkCtx
+    val zty = vty.quoteCtx.zonkCtx
     val ums = unsolvedMetas()
     if ums.nonEmpty then
       throw UnsolvedMetasError(
-        s"\n$etm : $qty\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx}").mkString("\n")}"
+        s"\n$ztm : $zty\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx.zonkCtx}").mkString("\n")}"
       )
-    (etm, qty)
+    (ztm, zty)

@@ -66,8 +66,8 @@ class Unification(elab: IElaboration) extends IUnification:
     val mty = u.ty
     val prunedty = pruneTy(revPruning(pr), mty).eval(Nil)
     val m2 = freshMeta(u.blocking, prunedty)
-    val solution = lams(mkLvl(pr.size), mty, AppPruning(Meta(m2), pr)).eval(Nil)
-    solveMeta(m, solution)
+    val solution = lams(mkLvl(pr.size), mty, AppPruning(Meta(m2), pr))
+    solveMeta(m, solution.eval(Nil), solution)
     m2
 
   private enum SpinePruneStatus:
@@ -161,7 +161,7 @@ class Unification(elab: IElaboration) extends IUnification:
     val rhs = rename(v)(pren.copy(occ = Some(m)))
     val solution = lams(pren.dom, mty, rhs)
     debug(s"solution ?$m := $solution")
-    solveMeta(m, solution.eval(Nil))
+    solveMeta(m, solution.eval(Nil), solution)
     u.blocking.foreach(elab.retryPostpone)
 
   private def unifyProj(a: Spine, b: Spine, n: Int)(implicit k: Lvl): Unit =
