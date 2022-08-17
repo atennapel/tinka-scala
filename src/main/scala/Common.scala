@@ -45,6 +45,10 @@ object Common:
     override def toString: String = this match
       case DoBind(x) => x.toString
       case DontBind  => "_"
+
+    def toName: Name = this match
+      case DoBind(x) => x
+      case DontBind  => Name("_")
   export Bind.*
 
   enum Icit:

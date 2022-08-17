@@ -112,9 +112,9 @@ object Parser:
       ("{" *> some(bind) <~> option(":" *> tm) <* "}").map((xs, ty) =>
         (xs, Impl, ty)
       ) <|>
-        ("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) =>
+        attempt("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) =>
           (xs, Expl, Some(ty))
-        )
+        ) <|> ("(" <~> ")").map(_ => (List(DontBind), Expl, Some(UnitType)))
 
     private val ifVar: Tm = Var(Name("if_"))
     private val ifIndVar: Tm = Var(Name("if-ind_"))

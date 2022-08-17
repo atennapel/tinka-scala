@@ -4,6 +4,7 @@ import Value.*
 import Evaluation.*
 import Zonking.{zonk as zonk0}
 import Errors.*
+import Pretty.{pretty as pretty0}
 
 import scala.annotation.tailrec
 
@@ -40,6 +41,7 @@ final case class Ctx(
   def eval(t: Tm): Val = t.eval(env)
   def quote(v: Val): Tm = v.quote(lvl)
   def zonk(t: Tm): Tm = zonk0(t)(lvl, env)
+  def pretty(t: Tm): String = pretty0(t)(names)
 
   def under(c: Clos): Val = c(VVar(lvl))
   def close(v: Val): Clos = Clos(env, v.quote(lvl + 1))
@@ -55,6 +57,8 @@ final case class Ctx(
       case _                         => None
     go(types)
 
+  def names: List[Name] = path.names
+
 object Ctx:
   def empty = Ctx(lvl0, Nil, Nil, PHere, Nil)
 
@@ -63,11 +67,13 @@ extension (t: Tm)
   def closeTyCtx(implicit ctx: Ctx): Ty = ctx.closeTy(t)
   def closeTmCtx(implicit ctx: Ctx): Tm = ctx.closeTm(t)
   def zonkCtx(implicit ctx: Ctx): Tm = ctx.zonk(t)
+  def prettyCtx(implicit ctx: Ctx): String = ctx.pretty(t.zonkCtx)
 
 extension (v: Val)
   def quoteCtx(implicit ctx: Ctx): Tm = ctx.quote(v)
   def closeCtx(implicit ctx: Ctx): Clos = ctx.close(v)
   def closeVTyCtx(implicit ctx: Ctx): VTy = ctx.closeVTy(v)
+  def prettyCtx(implicit ctx: Ctx): String = v.quoteCtx.zonkCtx.prettyCtx
 
 extension (c: Clos) def underCtx(implicit ctx: Ctx): Val = ctx.under(c)
 
@@ -87,4 +93,9 @@ enum Path:
     case PHere               => b
     case PBind(p, x, _)      => p.closeTm(Lam(x, Expl, b))
     case PDefine(p, x, a, v) => p.closeTm(Let(x, a, v, b))
+
+  def names: List[Name] = this match
+    case PHere               => Nil
+    case PBind(p, x, _)      => x.toName :: p.names
+    case PDefine(p, x, _, _) => x :: p.names
 export Path.*

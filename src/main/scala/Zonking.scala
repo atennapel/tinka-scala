@@ -4,6 +4,7 @@ import Core.*
 import Metas.*
 import Evaluation.*
 import Errors.*
+import Debug.*
 
 // inline all solved metas
 object Zonking:
@@ -36,9 +37,8 @@ object Zonking:
     case Meta(id) =>
       getMeta(id) match
         case Unsolved(_, _)  => t
-        case Solved(_, c, _) => zonk(c)
-    case AppPruning(t, sp) =>
-      zonk(quote(vappPruning(t.eval, sp)))
+        case Solved(_, c, _) => zonk(c)(lvl0, Nil)
+    case AppPruning(t, sp) => zonk(quote(vappPruning(t.eval, sp)))
 
     case Pair(fst, snd) => Pair(zonk(fst), zonk(snd))
     case Proj(tm, proj) => Proj(zonk(tm), proj)
@@ -53,5 +53,3 @@ object Zonking:
     case Lam(x, i, b)    => Lam(x, i, zonkLift(b))
 
     case Sigma(x, ty, b) => Sigma(x, zonk(ty), zonkLift(b))
-
-  def zonk0(t: Tm): Tm = zonk(t)(lvl0, Nil)

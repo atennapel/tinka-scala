@@ -264,13 +264,13 @@ class Elaboration extends IElaboration:
               Clos(ctx.env, newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))
             unify(tty, VSigma(DoBind(Name("x")), pty, rty))
             (Proj(et, Snd), rty(et.evalCtx.proj(Fst)))
-      case S.Lam(x, S.ArgIcit(i), Some(ty), b) =>
-        val vty = checkType(ty).evalCtx
-        val (eb, rty) = insert(infer(b)(ctx.bind(x, vty)))
-        (Lam(x, i, eb), VPi(x, i, vty, rty.closeCtx))
-      case S.Lam(x, S.ArgIcit(i), None, b) =>
-        val pty = newMeta(VType).evalCtx
-        val (eb, rty) = insert(infer(b)(ctx.bind(x, pty)))
+      case S.Lam(x, S.ArgIcit(i), mty, b) =>
+        val pty = (mty match
+          case Some(ty) => checkType(ty)
+          case None     => newMeta(VType)
+        ).evalCtx
+        val ctx2 = ctx.bind(x, pty)
+        val (eb, rty) = insert(infer(b)(ctx2))(ctx2)
         (Lam(x, i, eb), VPi(x, i, pty, rty.closeCtx))
       case S.Pair(fst, snd) =>
         val pty = newMeta(VType).evalCtx
@@ -295,6 +295,8 @@ class Elaboration extends IElaboration:
     val ums = unsolvedMetas()
     if ums.nonEmpty then
       throw UnsolvedMetasError(
-        s"\n$ztm : $zty\n${ums.map((id, ty) => s"?$id : ${ty.quoteCtx.zonkCtx}").mkString("\n")}"
+        s"\n${ztm.prettyCtx} : ${zty.prettyCtx}\n${ums
+            .map((id, ty) => s"?$id : ${ty.prettyCtx}")
+            .mkString("\n")}"
       )
     (ztm, zty)

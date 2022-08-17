@@ -31,7 +31,7 @@ sbt "run examples/church.tinka"
   - [x] First-class polymorphism
   - [x] Unification postponing
   - [x] Zonking
-- [ ] Pretty printing
+- [x] Pretty printing
 - [ ] Source positions in errors
 - [ ] Universes
 - [ ] Definitions
