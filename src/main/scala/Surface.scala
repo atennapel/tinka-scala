@@ -37,7 +37,11 @@ object Surface:
 
     case Hole
 
+    case SPos(pos: Pos, tm: Tm)
+
     override def toString: String = this match
+      case SPos(_, tm) => tm.toString
+
       case Var(x) => s"$x"
       case Type   => "Type"
       case Hole   => "_"

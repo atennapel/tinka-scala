@@ -1,6 +1,8 @@
 import scala.annotation.targetName
 
 object Common:
+  type Pos = (Int, Int) // (line, col)
+
   opaque type Ix = Int
   inline def ix0: Ix = 0
 

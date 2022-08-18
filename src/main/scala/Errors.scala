@@ -1,22 +1,34 @@
+import Common.Pos
+
 object Errors:
   object Impossible extends Exception("impossible")
 
   final case class UnifyError(msg: String)
       extends Exception(s"unify error: $msg")
 
-  final case class ElabUnifyError(msg: String)
+  sealed trait ElabError extends Exception:
+    def pos: Pos
+  final case class ElabUnifyError(msg: String, pos: Pos)
       extends Exception(s"unify error: $msg")
-  final case class CannotInferError(msg: String)
+      with ElabError
+  final case class CannotInferError(msg: String, pos: Pos)
       extends Exception(s"cannot infer: $msg")
-  final case class ExpectedSigmaError(msg: String)
+      with ElabError
+  final case class ExpectedSigmaError(msg: String, pos: Pos)
       extends Exception(s"expected a sigma type: $msg")
-  final case class UndefinedVarError(msg: String)
+      with ElabError
+  final case class UndefinedVarError(msg: String, pos: Pos)
       extends Exception(s"undefined variable: $msg")
-  final case class HoleFoundError(msg: String)
+      with ElabError
+  final case class HoleFoundError(msg: String, pos: Pos)
       extends Exception(s"hole found: $msg")
-  final case class NamedImplicitError(msg: String)
+      with ElabError
+  final case class NamedImplicitError(msg: String, pos: Pos)
       extends Exception(s"named implicit: $msg")
-  final case class IcitMismatchError(msg: String)
+      with ElabError
+  final case class IcitMismatchError(msg: String, pos: Pos)
       extends Exception(s"icit mismatch: $msg")
-  final case class UnsolvedMetasError(msg: String)
+      with ElabError
+  final case class UnsolvedMetasError(msg: String, pos: Pos)
       extends Exception(s"unsolved metas: $msg")
+      with ElabError

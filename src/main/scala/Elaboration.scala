@@ -69,7 +69,9 @@ class Elaboration extends IElaboration:
     try unif.get.unify(a, b)(ctx.lvl)
     catch
       case err: UnifyError =>
-        throw ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}: ${err.msg}")
+        throwCtx(
+          ElabUnifyError(s"${a.quoteCtx} ~ ${b.quoteCtx}: ${err.msg}", _)
+        )
 
   // elaboration
   private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
@@ -104,7 +106,8 @@ class Elaboration extends IElaboration:
           val m = newMeta(a)
           val mv = m.evalCtx
           go(App(tm, m, Impl), b(mv))
-      case _ => throw NamedImplicitError(s"no implicit found with name $x")
+      case _ =>
+        throwCtx(NamedImplicitError(s"no implicit found with name $x", _))
     go(inp._1, inp._2)
 
   private def checkType(ty: S.Ty)(implicit ctx: Ctx): Ty = check(ty, VType)
@@ -135,15 +138,16 @@ class Elaboration extends IElaboration:
         vty.force match
           case VNe(HMeta(_), _) => true
           case _                => false
-      case None => throw UndefinedVarError(x.toString)
+      case None => throwCtx(UndefinedVarError(x.toString, _))
 
   private def check(tm: S.Tm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
     (tm, ty.force) match
-      case (S.Type, VType)     => Type
-      case (S.UnitType, VType) => UnitType
-      case (S.Unit, VUnitType) => Unit
-      case (S.Hole, _)         => newMeta(ty)
+      case (S.SPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
+      case (S.Type, VType)      => Type
+      case (S.UnitType, VType)  => UnitType
+      case (S.Unit, VUnitType)  => Unit
+      case (S.Hole, _)          => newMeta(ty)
       case (S.Lam(x, i, oty, b), VPi(y, i2, pty, rty)) if icitMatch(i, y, i2) =>
         oty.foreach(ty => unify(checkType(ty).evalCtx, pty))
         val eb = check(b, rty.underCtx)(ctx.bind(x, pty))
@@ -195,19 +199,22 @@ class Elaboration extends IElaboration:
           case DontBind  => (false, ns)
         go(sndty(projIndex(tm, y, ix, clash)), ix + 1, newns)
       case _ =>
-        throw ExpectedSigmaError(s"in named project $x, got ${ty.quoteCtx}")
+        throwCtx(
+          ExpectedSigmaError(s"in named project $x, got ${ty.quoteCtx}", _)
+        )
     go(ty, 0, Set.empty)
 
   private def infer(tm: S.Tm)(implicit ctx: Ctx): (Tm, VTy) =
     debug(s"infer $tm")
     tm match
-      case S.Type     => (Type, VType)
-      case S.UnitType => (UnitType, VType)
-      case S.Unit     => (Unit, VUnitType)
+      case S.SPos(pos, tm) => infer(tm)(ctx.enter(pos))
+      case S.Type          => (Type, VType)
+      case S.UnitType      => (UnitType, VType)
+      case S.Unit          => (Unit, VUnitType)
       case S.Var(x) =>
         lookupCtx(x) match
           case Some((ix, vty)) => (Var(ix), vty)
-          case None            => throw UndefinedVarError(x.toString)
+          case None            => throwCtx(UndefinedVarError(x.toString, _))
       case S.Let(x, oty, v, b) =>
         val (ev, ety, vty) = checkOptionalType(v, oty)
         val (eb, rty) = infer(b)(ctx.define(x, vty, ety, ev.evalCtx, ev))
@@ -233,7 +240,7 @@ class Elaboration extends IElaboration:
             (Expl, ef, fty)
         val (pty, rty) = fty.force match
           case VPi(x, icit2, pty, rty) =>
-            if icit != icit2 then throw IcitMismatchError(tm.toString)
+            if icit != icit2 then throwCtx(IcitMismatchError(tm.toString, _))
             (pty, rty)
           case tty =>
             val pty = newMeta(VType).evalCtx
@@ -283,7 +290,7 @@ class Elaboration extends IElaboration:
         val a = newMeta(VType).evalCtx
         val t = newMeta(a)
         (t, a)
-      case S.Lam(_, _, _, _) => throw CannotInferError(tm.toString)
+      case S.Lam(_, _, _, _) => throwCtx(CannotInferError(tm.toString, _))
 
   def elaborate(tm: S.Tm): (Tm, Ty) =
     reset()
@@ -294,9 +301,12 @@ class Elaboration extends IElaboration:
     val zty = vty.quoteCtx.zonkCtx
     val ums = unsolvedMetas()
     if ums.nonEmpty then
-      throw UnsolvedMetasError(
-        s"\n${ztm.prettyCtx} : ${zty.prettyCtx}\n${ums
-            .map((id, ty) => s"?$id : ${ty.prettyCtx}")
-            .mkString("\n")}"
+      throwCtx(
+        UnsolvedMetasError(
+          s"\n${ztm.prettyCtx} : ${zty.prettyCtx}\n${ums
+              .map((id, ty) => s"?$id : ${ty.prettyCtx}")
+              .mkString("\n")}",
+          _
+        )
       )
     (ztm, zty)

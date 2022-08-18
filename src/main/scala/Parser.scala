@@ -47,9 +47,13 @@ object Parser:
   object TmParser:
     import parsley.expr.{precedence, Ops, InfixL, InfixR, Prefix, Postfix}
     import parsley.combinator.{many, some, option, sepEndBy}
+    import parsley.Parsley.pos
 
     import LangLexer.{ident as ident0, userOp as userOp0, natural}
     import LangLexer.Implicits.given
+
+    private def positioned(p: => Parsley[Tm]): Parsley[Tm] =
+      (pos <~> p).map(SPos.apply)
 
     private lazy val ident: Parsley[Name] = ident0.map(Name.apply)
     private lazy val userOp: Parsley[Name] = userOp0.map(Name.apply)
@@ -58,13 +62,14 @@ object Parser:
     private lazy val bind: Parsley[Bind] =
       "_" #> DontBind <|> identOrOp.map(DoBind.apply)
 
-    private lazy val atom: Parsley[Tm] =
+    private lazy val atom: Parsley[Tm] = positioned(
       ("(" *> (userOp
         .map(Var.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
         (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
           .map(mkUnitPair) <|>
         "_" #> Hole <|> "Type" #> Type <|> nat <|>
         ident.map(Var.apply)
+    )
 
     private def mkPair(ts: List[Tm]): Tm = ts match
       case Nil => UnitType
@@ -87,11 +92,13 @@ object Parser:
       c
     )
 
-    lazy val tm: Parsley[Tm] = attempt(piOrSigma) <|> ifTm <|> let <|> lam <|>
-      precedence[Tm](app)(
-        Ops(InfixR)("**" #> ((l, r) => Sigma(DontBind, l, r))),
-        Ops(InfixR)("->" #> ((l, r) => Pi(DontBind, Expl, l, r)))
-      )
+    lazy val tm: Parsley[Tm] = positioned(
+      attempt(piOrSigma) <|> ifTm <|> let <|> lam <|>
+        precedence[Tm](app)(
+          Ops(InfixR)("**" #> ((l, r) => Sigma(DontBind, l, r))),
+          Ops(InfixR)("->" #> ((l, r) => Pi(DontBind, Expl, l, r)))
+        )
+    )
 
     private lazy val piOrSigma: Parsley[Tm] =
       ((some(piSigmaParam) <|> app.map(t =>
@@ -180,12 +187,13 @@ object Parser:
         )*
       )
 
-    private lazy val appAtom: Parsley[Tm] =
+    private lazy val appAtom: Parsley[Tm] = positioned(
       (projAtom <~> many(arg) <~> option(let <|> lam)).map {
         case ((fn, args), opt) =>
           (args.flatten ++ opt.map((_, ArgIcit(Expl))))
             .foldLeft(fn) { case (fn, (arg, i)) => App(fn, arg, i) }
       }
+    )
 
     private type Arg = (Tm, ArgInfo)
 
@@ -196,7 +204,9 @@ object Parser:
         <|> projAtom.map(t => List((t, ArgIcit(Expl))))
 
     private lazy val projAtom: Parsley[Tm] =
-      (atom <~> many(proj)).map((t, ps) => ps.foldLeft(t)(Proj.apply))
+      positioned(
+        (atom <~> many(proj)).map((t, ps) => ps.foldLeft(t)(Proj.apply))
+      )
 
     private lazy val proj: Parsley[ProjType] =
       ("." *> ("1" #> Fst <|> "2" #> Snd <|> identOrOp.map(Named.apply)))

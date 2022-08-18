@@ -32,7 +32,7 @@ sbt "run examples/church.tinka"
   - [x] Unification postponing
   - [x] Zonking
 - [x] Pretty printing
-- [ ] Source positions in errors
+- [x] Source positions in errors
 - [ ] Universes
 - [ ] Definitions
 - [ ] Imports

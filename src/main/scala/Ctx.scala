@@ -15,8 +15,11 @@ final case class Ctx(
     env: Env,
     types: List[(Name, Lvl, VTy)],
     path: Path,
-    pruning: Pruning
+    pruning: Pruning,
+    pos: Pos
 ):
+  def enter(p: Pos): Ctx = copy(pos = p)
+
   def bind(x: Bind, ty: VTy, inserted: Inserted = false): Ctx =
     val newtypes = x match
       case DoBind(x) if !inserted => (x, lvl, ty) :: types
@@ -26,7 +29,8 @@ final case class Ctx(
       VVar(lvl) :: env,
       newtypes,
       PBind(path, x, ty.quote(lvl)),
-      Some(Expl) :: pruning
+      Some(Expl) :: pruning,
+      pos
     )
 
   def define(x: Name, ty: VTy, qty: Ty, value: Val, qvalue: Tm): Ctx =
@@ -35,7 +39,8 @@ final case class Ctx(
       value :: env,
       (x, lvl, ty) :: types,
       PDefine(path, x, qty, qvalue),
-      None :: pruning
+      None :: pruning,
+      pos
     )
 
   def eval(t: Tm): Val = t.eval(env)
@@ -59,8 +64,11 @@ final case class Ctx(
 
   def names: List[Name] = path.names
 
+  def throwElab(err: Pos => ElabError): Nothing = throw err(pos)
+
 object Ctx:
-  def empty = Ctx(lvl0, Nil, Nil, PHere, Nil)
+  def empty: Ctx = empty((0, 0))
+  def empty(pos: Pos): Ctx = Ctx(lvl0, Nil, Nil, PHere, Nil, pos)
 
 extension (t: Tm)
   def evalCtx(implicit ctx: Ctx): Val = ctx.eval(t)
@@ -78,6 +86,9 @@ extension (v: Val)
 extension (c: Clos) def underCtx(implicit ctx: Ctx): Val = ctx.under(c)
 
 def lookupCtx(x: Name)(implicit ctx: Ctx): Option[(Ix, VTy)] = ctx.lookup(x)
+
+def throwCtx(err: Pos => ElabError)(implicit ctx: Ctx): Nothing =
+  ctx.throwElab(err)
 
 enum Path:
   case PHere
