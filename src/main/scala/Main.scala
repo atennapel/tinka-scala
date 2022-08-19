@@ -16,9 +16,11 @@ import parsley.io.given
   implicit val ctx: Ctx = Ctx.empty
   try
     val time = System.nanoTime
-    val (etm, ety) = elaborate(tm)
+    val (etm, ety, elv) = elaborate(tm)
     val time1 = System.nanoTime - time
     println(s"time: ${time1 / 1000000}ms (${time1}ns)")
+    println("universe:")
+    println(elv.prettyCtx)
     println("type:")
     println(ety.prettyCtx)
     println("elaborated term:")
@@ -29,6 +31,7 @@ import parsley.io.given
     case err: ElabError =>
       println(err.getMessage)
       val (line, col) = err.pos
-      val lineSrc = Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
-      println(lineSrc)
-      println(s"${" " * (col - 1)}^")
+      if line > 0 && col > 0 then
+        val lineSrc = Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
+        println(lineSrc)
+        println(s"${" " * (col - 1)}^")

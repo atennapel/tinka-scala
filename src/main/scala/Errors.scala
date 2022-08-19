@@ -32,3 +32,6 @@ object Errors:
   final case class UnsolvedMetasError(msg: String, pos: Pos)
       extends Exception(s"unsolved metas: $msg")
       with ElabError
+  final case class ExpectedTypeError(msg: String, pos: Pos)
+      extends Exception(s"expected type: $msg")
+      with ElabError

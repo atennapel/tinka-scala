@@ -28,6 +28,14 @@ object Common:
     @targetName("exposeMetaId")
     inline def expose: Int = id
 
+  opaque type LMetaId = Int
+
+  inline def lmetaId(id: Int): LMetaId = id
+
+  extension (id: LMetaId)
+    @targetName("exposeLMetaId")
+    inline def expose: Int = id
+
   opaque type PostponeId = Int
 
   inline def postponeId(id: Int): PostponeId = id

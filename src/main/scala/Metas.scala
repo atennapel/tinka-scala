@@ -7,10 +7,11 @@ import Surface as S
 import scala.collection.mutable.ArrayBuffer
 
 object Metas:
+  // postponements
   private val checks: ArrayBuffer[PostponeEntry] = ArrayBuffer.empty
 
   enum CheckEntry:
-    case Unchecked(ctx: Ctx, tm: S.Tm, ty: VTy, meta: MetaId)
+    case Unchecked(ctx: Ctx, tm: S.Tm, ty: VTy, lv: VLevel, meta: MetaId)
     case Checked(tm: Tm)
   export CheckEntry.*
 
@@ -24,11 +25,11 @@ object Metas:
     case PostponeUnify(entry: UnifyEntry)
   export PostponeEntry.*
 
-  def freshCheck(tm: S.Tm, ty: VTy, meta: MetaId)(implicit
+  def freshCheck(tm: S.Tm, ty: VTy, lv: VLevel, meta: MetaId)(implicit
       ctx: Ctx
   ): PostponeId =
     val id = postponeId(checks.size)
-    checks.addOne(PostponeCheck(Unchecked(ctx, tm, ty, meta)))
+    checks.addOne(PostponeCheck(Unchecked(ctx, tm, ty, lv, meta)))
     id
 
   def freshPostponedUnif(
@@ -54,6 +55,7 @@ object Metas:
 
   def nextCheckId(): Int = checks.size
 
+  // metas
   private val metas: ArrayBuffer[MetaEntry] = ArrayBuffer.empty
 
   type Blocking = Set[PostponeId]
@@ -88,6 +90,35 @@ object Metas:
     case (Unsolved(_, ty), ix) => (metaId(ix), ty)
   }.toList
 
+  // universe level metas
+  private val lmetas: ArrayBuffer[LMetaEntry] = ArrayBuffer.empty
+
+  enum LMetaEntry:
+    case LUnsolved(lvl: Lvl, scope: Set[Lvl])
+    case LSolved(value: VFinLevel)
+  export LMetaEntry.*
+
+  def freshLMeta(lvl: Lvl, scope: Set[Lvl]): LMetaId =
+    val id = lmetaId(lmetas.size)
+    lmetas.addOne(LUnsolved(lvl, scope))
+    id
+
+  def getLMeta(id: LMetaId): LMetaEntry = lmetas(id.expose)
+  def getLMetaUnsolved(id: LMetaId): LUnsolved = getLMeta(id) match
+    case u @ LUnsolved(_, _) => u
+    case LSolved(_)          => throw Impossible
+  def getLMetaSolved(id: LMetaId): LSolved = getLMeta(id) match
+    case LUnsolved(_, _) => throw Impossible
+    case s @ LSolved(_)  => s
+
+  def solveLMeta(id: LMetaId, v: VFinLevel): Unit =
+    lmetas(id.expose) = LSolved(v)
+
+  def unsolvedLMetas(): List[LMetaId] = lmetas.zipWithIndex.collect {
+    case (LUnsolved(_, _), ix) => lmetaId(ix)
+  }.toList
+
   def reset(): Unit =
     checks.clear()
     metas.clear()
+    lmetas.clear()

@@ -1,11 +1,101 @@
 import Common.*
 import Core.*
+import Errors.*
+
 import scala.annotation.tailrec
+import scala.collection.immutable.IntMap
 
 object Value:
-  type Env = List[Val]
+  // universe level values
+  final case class VFinLevel(
+      k: Int,
+      vars: IntMap[Int] = IntMap.empty,
+      metas: IntMap[Int] = IntMap.empty
+  ):
+    def max(o: VFinLevel): VFinLevel =
+      VFinLevel(
+        k max o.k,
+        vars.unionWith(o.vars, (_, a, b) => a max b),
+        metas.unionWith(o.metas, (_, a, b) => a max b)
+      )
+    def +(o: Int): VFinLevel =
+      VFinLevel(
+        k + o,
+        vars.map((k, v) => k -> (v + o)),
+        metas.map((k, v) => k -> (v + o))
+      )
+    def -(o: Int): Option[VFinLevel] =
+      if k < o || vars.exists((_, k) => k < o) || metas.exists((_, k) => k < o)
+      then None
+      else
+        Some(
+          VFinLevel(
+            k - o,
+            vars.map((key, k) => key -> (k - o)),
+            metas.map((key, k) => key -> (k - o))
+          )
+        )
+  object VFinLevel:
+    val unit: VFinLevel = VFinLevel(0, IntMap.empty, IntMap.empty)
+    def vr(l: Lvl): VFinLevel =
+      VFinLevel(0, IntMap.singleton(l.expose, 0), IntMap.empty)
+    def meta(id: LMetaId): VFinLevel =
+      VFinLevel(0, IntMap.empty, IntMap.singleton(id.expose, 0))
 
-  final case class Clos(env: Env, tm: Tm)
+  object VFinLevelVar:
+    def apply(m: Lvl, k: Int) =
+      VFinLevel(0, IntMap.singleton(m.expose, k), IntMap.empty)
+    def unapply(value: VFinLevel): Option[(Lvl, Int)] = value match
+      case VFinLevel(0, vars, metas) if metas.isEmpty && vars.size == 1 =>
+        val m = vars.keys.head
+        Some((mkLvl(m), vars(m)))
+      case _ => None
+
+  object VFinLevelMeta:
+    def apply(m: LMetaId, k: Int) =
+      VFinLevel(0, IntMap.empty, IntMap.singleton(m.expose, k))
+    def unapply(value: VFinLevel): Option[(LMetaId, Int)] = value match
+      case VFinLevel(0, vars, metas) if vars.isEmpty && metas.size == 1 =>
+        val m = metas.keys.head
+        Some((lmetaId(m), metas(m)))
+      case _ => None
+
+  object VFinLevelNat:
+    def apply(k: Int) =
+      VFinLevel(k, IntMap.empty, IntMap.empty)
+    def unapply(value: VFinLevel): Option[Int] = value match
+      case VFinLevel(k, vars, metas) if vars.isEmpty && metas.isEmpty => Some(k)
+      case _                                                          => None
+
+  enum VLevel:
+    case VOmega
+    case VOmega1
+    case VFL(lvl: VFinLevel)
+
+    def max(o: VLevel): VLevel = (this, o) match
+      case (VFL(a), VFL(b)) => VFL(a max b)
+      case (VOmega1, _)     => VOmega1
+      case (_, VOmega1)     => VOmega1
+      case _                => VOmega
+
+    def inc: VLevel = this match
+      case VOmega1 => throw Impossible
+      case VOmega  => VOmega1
+      case VFL(l)  => VFL(l + 1)
+  export VLevel.*
+  object VLevel:
+    val unit: VLevel = VFL(VFinLevel.unit)
+    def vr(l: Lvl): VLevel = VFL(VFinLevel.vr(l))
+
+  // values
+  type Env = List[Either[VFinLevel, Val]]
+
+  enum Clos[A]:
+    case CClos(env: Env, tm: Tm)
+    case CFun(fn: A => Val)
+  export Clos.*
+
+  final case class ClosLvl(env: Env, tm: Level)
 
   enum Head:
     case HVar(lvl: Lvl)
@@ -15,6 +105,7 @@ object Value:
   enum Spine:
     case SId
     case SApp(spine: Spine, arg: Val, icit: Icit)
+    case SAppLvl(spine: Spine, arg: VFinLevel)
     case SProj(spine: Spine, proj: ProjType)
 
     def size: Int =
@@ -22,6 +113,7 @@ object Value:
       def go(sp: Spine, i: Int): Int = sp match
         case SId            => 0
         case SApp(sp, _, _) => go(sp, i + 1)
+        case SAppLvl(sp, _) => go(sp, i + 1)
         case SProj(sp, _)   => go(sp, i + 1)
       go(this, 0)
   export Spine.*
@@ -30,10 +122,19 @@ object Value:
 
   enum Val:
     case VNe(head: Head, spine: Spine)
-    case VType
-    case VLam(bind: Bind, icit: Icit, body: Clos)
-    case VPi(bind: Bind, icit: Icit, ty: VTy, body: Clos)
-    case VSigma(bind: Bind, ty: VTy, body: Clos)
+    case VType(lvl: VLevel)
+    case VLam(bind: Bind, icit: Icit, body: Clos[Val])
+    case VPi(
+        bind: Bind,
+        icit: Icit,
+        ty: VTy,
+        u1: VLevel,
+        body: Clos[Val],
+        u2: VLevel
+    )
+    case VLamLvl(bind: Bind, body: Clos[VFinLevel])
+    case VPiLvl(name: Bind, body: Clos[VFinLevel], u: ClosLvl)
+    case VSigma(bind: Bind, ty: VTy, u1: VLevel, body: Clos[Val], u2: VLevel)
     case VPair(fst: Val, snd: Val)
     case VUnitType
     case VUnit

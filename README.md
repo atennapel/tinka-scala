@@ -33,6 +33,12 @@ sbt "run examples/church.tinka"
   - [x] Zonking
 - [x] Pretty printing
 - [x] Source positions in errors
-- [ ] Universes
+- [x] Universes
+  - [x] Level pis
+  - [x] Level lambdas
+  - [x] Level application
+  - [x] Level metas
+  - [x] Level unification
+- [ ] Hide inserted apps/binders in pretty printing
 - [ ] Definitions
 - [ ] Imports
