@@ -3,6 +3,7 @@ import Core.*
 import Value.*
 import Metas.*
 import Errors.*
+import Globals.*
 import Debug.*
 
 object Evaluation:
@@ -56,10 +57,13 @@ object Evaluation:
 
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
-      case Type(l)                => VType(l.eval)
-      case UnitType               => VUnitType
-      case Unit                   => VUnit
-      case Var(ix)                => ix.index(env).toOption.get
+      case Type(l)  => VType(l.eval)
+      case UnitType => VUnitType
+      case Unit     => VUnit
+      case Var(ix)  => ix.index(env).toOption.get
+      case Global(x, lvl) =>
+        val value = getGlobalByLvl(lvl).get.value
+        VGlobal(x, lvl, SId, () => value)
       case Let(_, _, value, body) => body.eval(Right(value.eval) :: env)
       case App(fn, arg, icit)     => fn.eval(env)(arg.eval, icit)
       case AppLvl(fn, arg)        => fn.eval(env)(arg.eval)
@@ -76,7 +80,7 @@ object Evaluation:
       case AppPruning(tm, pr)    => vappPruning(tm.eval, pr)
       case PostponedCheck(c)     => vcheck(c)
 
-    def nf: Tm = c.eval(Nil).quote(lvl0)
+    def nf: Tm = c.eval(Nil).quoteWithUnfold(lvl0, UnfoldAll)
 
   extension (l: VFinLevel)
     def quote(implicit k: Lvl): FinLevel =
@@ -113,22 +117,31 @@ object Evaluation:
       case HMeta(id) => Meta(id)
 
   extension (sp: Spine)
-    def quote(hd: Tm)(implicit k: Lvl): Tm = sp match
-      case SId                 => hd
-      case SApp(sp, arg, icit) => App(sp.quote(hd), arg.quote, icit)
-      case SAppLvl(sp, arg)    => AppLvl(sp.quote(hd), arg.quote)
-      case SProj(sp, proj)     => Proj(sp.quote(hd), proj)
+    def quoteWithUnfold(hd: Tm)(implicit k: Lvl, unfold: Unfold): Tm = sp match
+      case SId => hd
+      case SApp(sp, arg, icit) =>
+        App(sp.quoteWithUnfold(hd), arg.quoteWithUnfold, icit)
+      case SAppLvl(sp, arg) =>
+        AppLvl(sp.quoteWithUnfold(hd), arg.quote)
+      case SProj(sp, proj) => Proj(sp.quoteWithUnfold(hd), proj)
+
+    def quote(hd: Tm)(implicit k: Lvl): Tm =
+      sp.quoteWithUnfold(hd)(k, UnfoldMetas)
 
   extension (v: Val)
     def apply(arg: Val, icit: Icit): Val = v match
       case VLam(_, _, body) => body(arg)
       case VNe(hd, sp)      => VNe(hd, SApp(sp, arg, icit))
-      case _                => throw Impossible
+      case VGlobal(x, lvl, sp, v) =>
+        VGlobal(x, lvl, SApp(sp, arg, icit), () => v()(arg, icit))
+      case _ => throw Impossible
 
     def apply(arg: VFinLevel): Val = v match
       case VLamLvl(_, body) => body(arg)
       case VNe(hd, sp)      => VNe(hd, SAppLvl(sp, arg))
-      case _                => throw Impossible
+      case VGlobal(x, lvl, sp, v) =>
+        VGlobal(x, lvl, SAppLvl(sp, arg), () => v()(arg))
+      case _ => throw Impossible
 
     def apply(sp: Spine): Val = sp match
       case SId            => v
@@ -141,6 +154,14 @@ object Evaluation:
         getMeta(m) match
           case Solved(v, _, _) => (v(sp)).force
           case Unsolved(_, _)  => v
+      case VGlobal(_, _, _, v) => v().force
+      case _                   => v
+
+    def forceMetas: Val = v match
+      case VNe(HMeta(m), sp) =>
+        getMeta(m) match
+          case Solved(v, _, _) => (v(sp)).forceMetas
+          case Unsolved(_, _)  => v
       case _ => v
 
     def proj(proj: ProjType): Val = (v, proj) match
@@ -149,20 +170,45 @@ object Evaluation:
       case (VPair(fst, _), Named(_, 0)) => fst
       case (VPair(_, snd), Named(x, i)) => snd.proj(Named(x, i - 1))
       case (VNe(hd, sp), _)             => VNe(hd, SProj(sp, proj))
-      case _                            => throw Impossible
+      case (VGlobal(x, lvl, sp, v), _) =>
+        VGlobal(x, lvl, SProj(sp, proj), () => v().proj(proj))
+      case _ => throw Impossible
 
-    def quote(implicit k: Lvl): Tm = v.force match
-      case VType(l)               => Type(l.quote)
-      case VUnitType              => UnitType
-      case VUnit                  => Unit
-      case VNe(head, spine)       => spine.quote(head.quote)
-      case VPair(fst, snd)        => Pair(fst.quote, snd.quote)
-      case VLam(bind, icit, body) => Lam(bind, icit, body(VVar(k)).quote(k + 1))
-      case VPi(bind, icit, ty, u1, body, u2) =>
-        Pi(bind, icit, ty.quote, u1.quote, body(VVar(k)).quote(k + 1), u2.quote)
-      case VPiLvl(x, body, u) =>
-        val v = VFinLevel.vr(k)
-        PiLvl(x, body(v).quote(k + 1), u(v).quote(k + 1))
-      case VLamLvl(x, body) => LamLvl(x, body(VFinLevel.vr(k)).quote(k + 1))
-      case VSigma(bind, ty, u1, body, u2) =>
-        Sigma(bind, ty.quote, u1.quote, body(VVar(k)).quote(k + 1), u2.quote)
+    def quoteWithUnfold(implicit k: Lvl, unfold: Unfold): Tm =
+      val w = unfold match
+        case UnfoldAll   => v.force
+        case UnfoldMetas => v.forceMetas
+      w match
+        case VType(l)         => Type(l.quote)
+        case VUnitType        => UnitType
+        case VUnit            => Unit
+        case VNe(head, spine) => spine.quoteWithUnfold(head.quote)
+        case VGlobal(head, lvl, spine, _) =>
+          spine.quoteWithUnfold(Global(head, lvl))
+        case VPair(fst, snd) => Pair(fst.quoteWithUnfold, snd.quoteWithUnfold)
+        case VLam(bind, icit, body) =>
+          Lam(bind, icit, body(VVar(k)).quoteWithUnfold(k + 1, unfold))
+        case VPi(bind, icit, ty, u1, body, u2) =>
+          Pi(
+            bind,
+            icit,
+            ty.quoteWithUnfold,
+            u1.quote,
+            body(VVar(k)).quoteWithUnfold(k + 1, unfold),
+            u2.quote
+          )
+        case VPiLvl(x, body, u) =>
+          val v = VFinLevel.vr(k)
+          PiLvl(x, body(v).quoteWithUnfold(k + 1, unfold), u(v).quote(k + 1))
+        case VLamLvl(x, body) =>
+          LamLvl(x, body(VFinLevel.vr(k)).quoteWithUnfold(k + 1, unfold))
+        case VSigma(bind, ty, u1, body, u2) =>
+          Sigma(
+            bind,
+            ty.quoteWithUnfold,
+            u1.quote,
+            body(VVar(k)).quoteWithUnfold(k + 1, unfold),
+            u2.quote
+          )
+
+    def quote(implicit k: Lvl): Tm = quoteWithUnfold(k, UnfoldMetas)

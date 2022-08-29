@@ -35,3 +35,7 @@ object Errors:
   final case class ExpectedTypeError(msg: String, pos: Pos)
       extends Exception(s"expected type: $msg")
       with ElabError
+
+  final case class GlobalAlreadyDefinedError(msg: String, pos: Pos)
+      extends Exception(s"global already defined: $msg")
+      with ElabError

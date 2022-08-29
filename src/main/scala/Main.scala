@@ -1,5 +1,5 @@
 import Parser.parser
-import Elaborator.elaborate
+import Elaborator.elaborateTop
 import Evaluation.nf
 import Ctx.*
 import Debug.*
@@ -16,7 +16,7 @@ import parsley.io.given
   implicit val ctx: Ctx = Ctx.empty
   try
     val time = System.nanoTime
-    val (etm, ety, elv) = elaborate(tm)
+    val (etm, ety, elv) = elaborateTop(tm)
     val time1 = System.nanoTime - time
     println(s"time: ${time1 / 1000000}ms (${time1}ns)")
     println("universe:")

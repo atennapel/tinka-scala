@@ -47,10 +47,11 @@ object Zonking:
       case t => Right(zonk(t))
 
   def zonk(t: Tm)(implicit l: Lvl, e: Env): Tm = t match
-    case Var(ix)  => t
-    case Type(l)  => Type(zonk(l))
-    case Unit     => t
-    case UnitType => t
+    case Var(_)       => t
+    case Global(_, _) => t
+    case Type(l)      => Type(zonk(l))
+    case Unit         => t
+    case UnitType     => t
 
     case PostponedCheck(id) =>
       getCheck(id) match

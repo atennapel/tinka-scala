@@ -160,7 +160,7 @@ class Unification(elab: IElaboration) extends IUnification:
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SAppLvl(sp, a) => AppLvl(goSp(t, sp), rename(a))
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
-    def go(v: Val)(implicit pren: PRen): Tm = v.force match
+    def go(v: Val)(implicit pren: PRen): Tm = v.forceMetas match
       case VNe(HVar(x), sp) =>
         pren.ren.get(x.expose) match
           case None     => throw UnifyError("escaping variable")
@@ -169,10 +169,11 @@ class Unification(elab: IElaboration) extends IUnification:
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
           case _                 => pruneFlex(x, sp)
-      case VType(l)        => Type(rename(l))
-      case VUnitType       => UnitType
-      case VUnit           => Unit
-      case VPair(fst, snd) => Pair(go(fst), go(snd))
+      case VGlobal(x, lvl, sp, _) => goSp(Global(x, lvl), sp)
+      case VType(l)               => Type(rename(l))
+      case VUnitType              => UnitType
+      case VUnit                  => Unit
+      case VPair(fst, snd)        => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
         Lam(bind, icit, go(body(VVar(pren.cod)))(pren.lift))
       case VPi(bind, icit, ty, u1, body, u2) =>
@@ -273,12 +274,13 @@ class Unification(elab: IElaboration) extends IUnification:
         unify(VFinLevelVar(l, y - x), VFinLevelMeta(m, 0))
       // TODO: more cases
       case (a @ VFinLevel(n1, xs1, ys1), b @ VFinLevel(n2, xs2, ys2)) =>
-        val m = (List(n1) ++ xs1.values ++ ys1.values ++ List(
-          n2
-        ) ++ xs2.values ++ ys2.values).min
-        (a - m, b - m) match
-          case (Some(as), Some(bs)) => unify(as, bs)
-          case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")
+        val m = (List(n1) ++ xs1.values ++ ys1.values ++
+          List(n2) ++ xs2.values ++ ys2.values).min
+        if m > 0 then
+          (a - m, b - m) match
+            case (Some(as), Some(bs)) => unify(as, bs)
+            case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")
+        else throw UnifyError(s"${a.quote} ~ ${b.quote}")
 
   override def unify(a: VLevel, b: VLevel)(implicit k: Lvl): Unit =
     debug(s"unify level: ${a.quote} ~ ${b.quote}")
@@ -354,7 +356,7 @@ class Unification(elab: IElaboration) extends IUnification:
 
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit =
     debug(s"unify: ${a.quote} ~ ${b.quote}")
-    (a.force, b.force) match
+    (a.forceMetas, b.forceMetas) match
       case (VType(l1), VType(l2)) => unify(l1, l2)
       case (VUnitType, VUnitType) => ()
       case (VPi(_, i1, t1, u11, b1, u21), VPi(_, i2, t2, u12, b2, u22))
@@ -394,5 +396,13 @@ class Unification(elab: IElaboration) extends IUnification:
 
       case (VUnit, _) => ()
       case (_, VUnit) => ()
+
+      case (VGlobal(_, lvl1, sp1, v1), VGlobal(_, lvl2, sp2, v2))
+          if lvl1 == lvl2 =>
+        try unify(sp1, sp2)
+        catch case _: UnifyError => unify(v1(), v2())
+      case (VGlobal(_, _, _, v), VGlobal(_, _, _, w)) => unify(v(), w())
+      case (VGlobal(_, _, _, v), w)                   => unify(v(), w)
+      case (w, VGlobal(_, _, _, v))                   => unify(w, v())
 
       case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")

@@ -72,3 +72,8 @@ object Common:
   opaque type RevPruning = Pruning
   inline def revPruning(p: Pruning): RevPruning = p.reverse
   extension (p: RevPruning) inline def expose: List[Option[Icit]] = p
+
+  enum Unfold:
+    case UnfoldAll
+    case UnfoldMetas
+  export Unfold.*

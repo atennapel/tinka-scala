@@ -8,6 +8,7 @@ import Metas.*
 import Errors.*
 import Debug.*
 import Zonking.*
+import Globals.*
 
 import scala.annotation.tailrec
 
@@ -194,7 +195,7 @@ class Elaboration extends IElaboration:
   private def hasMetaType(x: Name)(implicit ctx: Ctx): Boolean =
     lookupCtx(x) match
       case Some((_, Some((vty, lv)))) =>
-        vty.force match
+        vty.forceMetas match
           case VNe(HMeta(_), _) => true
           case _                => false
       case _ => throwCtx(UndefinedVarError(x.toString, _))
@@ -307,7 +308,11 @@ class Elaboration extends IElaboration:
       case S.Var(x) =>
         lookupCtx(x) match
           case Some((ix, Some((vty, lv)))) => (Var(ix), vty, lv)
-          case _ => throwCtx(UndefinedVarError(x.toString, _))
+          case _ =>
+            getGlobal(x) match
+              case Some((GlobalEntry(_, vty, lv, value), lvl)) =>
+                (Global(x, lvl), vty, lv)
+              case _ => throwCtx(UndefinedVarError(x.toString, _))
       case S.Let(x, oty, v, b) =>
         val (ev, ety, vty, vl) = checkOptionalType(v, oty)
         val (eb, rty, vl1) =
@@ -481,3 +486,13 @@ class Elaboration extends IElaboration:
         )
       )
     (ztm, zty, zlv)
+
+  def elaborateTop(tm: S.Tm, ctx0: Ctx = Ctx.empty): (Tm, Ty, Level) =
+    implicit val ctx: Ctx = ctx0
+    tm match
+      case S.SPos(pos, tm) => elaborateTop(tm, ctx.enter(pos))
+      case S.Let(x, oty, v, b) =>
+        val (etm, ety, elv) = elaborate(S.Let(x, oty, v, S.Var(x)))
+        addGlobal(GlobalEntry(x, ety.evalCtx, elv.evalCtx, etm.evalCtx))
+        elaborateTop(b, ctx)
+      case _ => elaborate(tm)

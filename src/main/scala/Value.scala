@@ -25,7 +25,8 @@ object Value:
         metas.map((k, v) => k -> (v + o))
       )
     def -(o: Int): Option[VFinLevel] =
-      if k < o || vars.exists((_, k) => k < o) || metas.exists((_, k) => k < o)
+      if k < o || vars.exists((_, k) => k < o) ||
+        metas.exists((_, k) => k < o)
       then None
       else
         Some(
@@ -122,6 +123,7 @@ object Value:
 
   enum Val:
     case VNe(head: Head, spine: Spine)
+    case VGlobal(name: Name, lvl: Lvl, spine: Spine, value: () => Val)
     case VType(lvl: VLevel)
     case VLam(bind: Bind, icit: Icit, body: Clos[Val])
     case VPi(

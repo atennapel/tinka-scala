@@ -7,3 +7,4 @@ object Elaborator:
   elab.setUnification(unif)
 
   def elaborate(tm: S.Tm): (Tm, Ty, Level) = elab.elaborate(tm)
+  def elaborateTop(tm: S.Tm): (Tm, Ty, Level) = elab.elaborateTop(tm)
