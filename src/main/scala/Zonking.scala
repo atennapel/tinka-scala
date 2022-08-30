@@ -51,8 +51,6 @@ object Zonking:
     case Prim(_)      => t
     case Global(_, _) => t
     case Type(l)      => Type(zonk(l))
-    case Unit         => t
-    case UnitType     => t
 
     case PostponedCheck(id) =>
       getCheck(id) match

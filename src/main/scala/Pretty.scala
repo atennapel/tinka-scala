@@ -63,8 +63,6 @@ object Pretty:
     case Var(_)              => pretty(tm)
     case Prim(_)             => pretty(tm)
     case Global(_, _)        => pretty(tm)
-    case UnitType            => pretty(tm)
-    case Unit                => pretty(tm)
     case Type(LFinLevel(LZ)) => pretty(tm)
     case Type(_) if app      => pretty(tm)
     case Pair(_, _)          => pretty(tm)
@@ -101,8 +99,6 @@ object Pretty:
     case Var(ix)             => ix.index(ns).toString
     case Global(x, _)        => s"$x"
     case Prim(x)             => s"$x"
-    case UnitType            => "()"
-    case Unit                => "[]"
     case Type(LFinLevel(LZ)) => "Type"
     case Type(l)             => s"Type ${pretty(l)}"
 
@@ -121,7 +117,7 @@ object Pretty:
     case Proj(tm, proj) => s"${prettyParen(tm)}$proj"
     case Pair(_, _) =>
       val es = flattenPair(tm)
-      if es.last == Unit then s"[${es.init.map(pretty).mkString(", ")}]"
+      if es.last == Prim(PUnit) then s"[${es.init.map(pretty).mkString(", ")}]"
       else s"(${es.map(pretty).mkString(", ")})"
 
     case Meta(id)           => s"?$id"

@@ -48,6 +48,8 @@ object Common:
     override def toString: String =
       if x.head.isLetter then x else s"($x)"
 
+    def expose: String = x
+
   enum Bind:
     case DoBind(name: Name)
     case DontBind
@@ -80,15 +82,21 @@ object Common:
 
   // primitives
   enum PrimName:
+    case PUnitType
+    case PUnit
     case PLift
     case PLiftTerm
 
     override def toString: String = this match
+      case PUnitType => "()"
+      case PUnit     => "[]"
       case PLift     => "Lift"
       case PLiftTerm => "lift"
   export PrimName.*
   object PrimName:
-    def apply(x: Name): Option[PrimName] = x match
-      case Name("Lift") => Some(PLift)
-      case Name("lift") => Some(PLiftTerm)
-      case _            => None
+    def apply(x: Name): Option[PrimName] = x.expose match
+      case "()"   => Some(PUnitType)
+      case "[]"   => Some(PUnit)
+      case "Lift" => Some(PLift)
+      case "lift" => Some(PLiftTerm)
+      case _      => None

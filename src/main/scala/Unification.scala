@@ -172,8 +172,6 @@ class Unification(elab: IElaboration) extends IUnification:
       case VNe(HPrim(x), sp)      => goSp(Prim(x), sp)
       case VGlobal(x, lvl, sp, _) => goSp(Global(x, lvl), sp)
       case VType(l)               => Type(rename(l))
-      case VUnitType              => UnitType
-      case VUnit                  => Unit
       case VPair(fst, snd)        => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
         Lam(bind, icit, go(body(VVar(pren.cod)))(pren.lift))
@@ -359,7 +357,6 @@ class Unification(elab: IElaboration) extends IUnification:
     debug(s"unify: ${a.quote} ~ ${b.quote}")
     (a.forceMetas, b.forceMetas) match
       case (VType(l1), VType(l2)) => unify(l1, l2)
-      case (VUnitType, VUnitType) => ()
       case (VPi(_, i1, t1, u11, b1, u21), VPi(_, i2, t2, u12, b2, u22))
           if i1 == i2 =>
         unify(u11, u12); unify(u12, u22); unify(t1, t2); unify(b1, b2)
@@ -395,9 +392,6 @@ class Unification(elab: IElaboration) extends IUnification:
       case (VNe(HMeta(m), sp), v) => solve(m, sp, v)
       case (v, VNe(HMeta(m), sp)) => solve(m, sp, v)
 
-      case (VUnit, _) => ()
-      case (_, VUnit) => ()
-
       case (VGlobal(_, lvl1, sp1, v1), VGlobal(_, lvl2, sp2, v2))
           if lvl1 == lvl2 =>
         try unify(sp1, sp2)
@@ -405,5 +399,8 @@ class Unification(elab: IElaboration) extends IUnification:
       case (VGlobal(_, _, _, v), VGlobal(_, _, _, w)) => unify(v(), w())
       case (VGlobal(_, _, _, v), w)                   => unify(v(), w)
       case (w, VGlobal(_, _, _, v))                   => unify(w, v())
+
+      case (VUnit(), _) => ()
+      case (_, VUnit()) => ()
 
       case _ => throw UnifyError(s"${a.quote} ~ ${b.quote}")

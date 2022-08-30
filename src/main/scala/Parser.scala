@@ -89,8 +89,11 @@ object Parser:
         ident.map(Var.apply)
     )
 
+    private val unittype = Var(Name("()"))
+    private val unit = Var(Name("[]"))
+
     private def mkPair(ts: List[Tm]): Tm = ts match
-      case Nil => UnitType
+      case Nil => unittype
       case ts  => ts.reduceRight(Pair.apply)
 
     private val nil = Var(Name("Nil"))
@@ -100,7 +103,7 @@ object Parser:
         ts.foldRight(nil)((x, y) =>
           App(App(cons, x, ArgIcit(Expl)), y, ArgIcit(Expl))
         )
-      else ts.foldRight(Unit)(Pair.apply)
+      else ts.foldRight(unit)(Pair.apply)
 
     private val nZ = Var(Name("Z"))
     private val nS = Var(Name("S"))
@@ -145,7 +148,7 @@ object Parser:
         attempt("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) =>
           Right((xs, Expl, Some(ty)))
         ) <|> ("(" <~> ")").map(_ =>
-          Right((List(DontBind), Expl, Some(UnitType)))
+          Right((List(DontBind), Expl, Some(unittype)))
         )
 
     private val ifVar: Tm = Var(Name("if_"))

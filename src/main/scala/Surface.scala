@@ -53,9 +53,6 @@ object Surface:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
 
-    case UnitType
-    case Unit
-
     case Hole
 
     case SPos(pos: Pos, tm: Tm)
@@ -98,6 +95,4 @@ object Surface:
 
       case Proj(tm, proj) => s"$tm$proj"
       case Pair(fst, snd) => s"($fst, $snd)"
-      case UnitType       => "()"
-      case Unit           => "[]"
   export Tm.*

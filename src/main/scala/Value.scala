@@ -139,8 +139,6 @@ object Value:
     case VPiLvl(name: Bind, body: Clos[VFinLevel], u: ClosLvl)
     case VSigma(bind: Bind, ty: VTy, u1: VLevel, body: Clos[Val], u2: VLevel)
     case VPair(fst: Val, snd: Val)
-    case VUnitType
-    case VUnit
   export Val.*
 
   object VVar:
@@ -160,6 +158,18 @@ object Value:
     def unapply(value: Val): Option[(PrimName, Spine)] = value match
       case VNe(HPrim(x), spine) => Some((x, spine))
       case _                    => None
+
+  object VUnitType:
+    def apply = VNe(HPrim(PUnitType), SId)
+    def unapply(value: Val): Boolean = value match
+      case VNe(HPrim(PUnitType), SId) => true
+      case _                          => false
+
+  object VUnit:
+    def apply = VNe(HPrim(PUnit), SId)
+    def unapply(value: Val): Boolean = value match
+      case VNe(HPrim(PUnit), SId) => true
+      case _                      => false
 
   object VLift:
     def apply(k: VFinLevel, l: VFinLevel, a: Val) =

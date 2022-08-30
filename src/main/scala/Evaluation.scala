@@ -58,10 +58,8 @@ object Evaluation:
 
   extension (c: Tm)
     def eval(implicit env: Env): Val = c match
-      case Type(l)  => VType(l.eval)
-      case UnitType => VUnitType
-      case Unit     => VUnit
-      case Var(ix)  => ix.index(env).toOption.get
+      case Type(l) => VType(l.eval)
+      case Var(ix) => ix.index(env).toOption.get
       case Global(x, lvl) =>
         val value = getGlobalByLvl(lvl).get.value
         VGlobal(x, lvl, SId, () => value)
@@ -183,8 +181,6 @@ object Evaluation:
         case UnfoldMetas => v.forceMetas
       w match
         case VType(l)         => Type(l.quote)
-        case VUnitType        => UnitType
-        case VUnit            => Unit
         case VNe(head, spine) => spine.quoteWithUnfold(head.quote)
         case VGlobal(head, lvl, spine, _) =>
           spine.quoteWithUnfold(Global(head, lvl))

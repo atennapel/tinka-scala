@@ -83,7 +83,7 @@ class Elaboration extends IElaboration:
 
   // elaboration
   private def newMeta(ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm = ty match
-    case VUnitType => Unit
+    case VUnitType() => Prim(PUnit)
     case _ =>
       val closed = ty.quoteCtx.closeTyCtx(lv.quoteCtx).eval(Nil)
       val m = freshMeta(Set.empty, closed)
@@ -202,14 +202,15 @@ class Elaboration extends IElaboration:
       case _ => throwCtx(UndefinedVarError(x.toString, _))
 
   private def shouldPostpone(t: S.Tm): Boolean = t match
-    case S.Unit     => false
-    case S.UnitType => false
-    case _          => true
+    case S.Var(Name("[]")) => false
+    case S.Var(Name("()")) => false
+    case _                 => true
 
   private def isNeutral(t: S.Tm): Boolean = t match
-    case S.Unit       => true
-    case S.Pair(_, _) => true
-    case _            => false
+    case S.Var(Name("[]")) => true
+    case S.Var(Name("()")) => true
+    case S.Pair(_, _)      => true
+    case _                 => false
 
   private def check(tm: S.Tm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
@@ -320,8 +321,6 @@ class Elaboration extends IElaboration:
         val el = inferFinLevel(l)
         val vl = el.evalCtx
         (Type(LFinLevel(el)), VType(VFL(vl + 1)), VFL(vl + 2))
-      case S.UnitType => (UnitType, VType(VLevel.unit), VFL(VFinLevel.unit + 1))
-      case S.Unit     => (Unit, VUnitType, VLevel.unit)
       case S.Var(x) =>
         PrimName(x) match
           case Some(name) =>
