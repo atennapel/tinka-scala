@@ -40,10 +40,8 @@ sbt "run examples/church.tinka"
   - [x] Level metas
   - [x] Level unification
 - [x] Globals
-- [ ] Lift and lower
-- [ ] Hide inserted apps/binders in pretty printing
+- [ ] Lift, lift and lower
 - [ ] Imports
+- [ ] Hide inserted apps/binders in pretty printing
+- [ ] Erasure annotations
 - [ ] Reduce source level position wrappings
-
-## Bugs
-- [ ] `f <x> <y>` too many level applications will crash

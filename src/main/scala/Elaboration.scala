@@ -77,7 +77,7 @@ class Elaboration extends IElaboration:
     catch
       case err: UnifyError =>
         throwCtx(
-          ElabUnifyError(s"${a.prettyCtx} ~ ${b.prettyCtx}: ${err.msg}", _)
+          ElabUnifyError(s"${a.prettyCtx} ~ ${b.quoteCtx}: ${err.msg}", _)
         )
 
   // elaboration
@@ -86,7 +86,7 @@ class Elaboration extends IElaboration:
     case _ =>
       val closed = ty.quoteCtx.closeTyCtx(lv.quoteCtx).eval(Nil)
       val m = freshMeta(Set.empty, closed)
-      debug(s"newMeta ?$m : ${ty.prettyCtx} : ${lv.prettyCtx}")
+      debug(s"newMeta ?$m : ${ty.prettyCtx} : ${lv.prettyCtx} @ ${ctx.pruning}")
       AppPruning(Meta(m), ctx.pruning)
 
   private def newLMeta(implicit ctx: Ctx): FinLevel =
@@ -464,9 +464,9 @@ class Elaboration extends IElaboration:
       case S.LamLvl(_, _, _) =>
         throwCtx(CannotInferError("level lambda with named parameter", _))
 
-  def elaborate(tm: S.Tm): (Tm, Ty, Level) =
+  def elaborate(tm: S.Tm, ctx0: Ctx = Ctx.empty): (Tm, Ty, Level) =
     reset()
-    implicit val ctx = Ctx.empty
+    implicit val ctx = ctx0
     val (etm, vty, lv) = infer(tm)
     checkEverything()
     val ztm = etm.zonkCtx
@@ -492,7 +492,7 @@ class Elaboration extends IElaboration:
     tm match
       case S.SPos(pos, tm) => elaborateTop(tm, ctx.enter(pos))
       case S.Let(x, oty, v, b) =>
-        val (etm, ety, elv) = elaborate(S.Let(x, oty, v, S.Var(x)))
-        addGlobal(GlobalEntry(x, ety.evalCtx, elv.evalCtx, etm.evalCtx))
+        val (etm, ety, elv) = elaborate(S.Let(x, oty, v, S.Var(x)), ctx)
+        addGlobal(GlobalEntry(x, ety.eval(Nil), elv.eval(Nil), etm.eval(Nil)))
         elaborateTop(b, ctx)
-      case _ => elaborate(tm)
+      case _ => elaborate(tm, ctx)

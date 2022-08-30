@@ -36,10 +36,11 @@ object Evaluation:
 
   def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
     (env, pr) match
-      case (Nil, Nil)                       => v
-      case (Right(t) :: env, Some(i) :: pr) => vappPruning(v, pr)(env)(t, i)
-      case (_ :: env, None :: pr)           => vappPruning(v, pr)(env)
-      case _                                => throw Impossible
+      case (Nil, Nil)                         => v
+      case (Right(t) :: env, Some(i) :: pr)   => vappPruning(v, pr)(env)(t, i)
+      case (Left(t) :: env, Some(Impl) :: pr) => vappPruning(v, pr)(env)(t)
+      case (_ :: env, None :: pr)             => vappPruning(v, pr)(env)
+      case _                                  => throw Impossible
 
   extension (l: FinLevel)
     def eval(implicit env: Env): VFinLevel = l match

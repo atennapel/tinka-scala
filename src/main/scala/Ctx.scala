@@ -107,7 +107,7 @@ final case class Ctx(
   def throwElab(err: Pos => ElabError): Nothing = throw err(pos)
 
 object Ctx:
-  def empty: Ctx = empty((0, 0))
+  def empty: Ctx = empty((1, 1))
   def empty(pos: Pos): Ctx = Ctx(lvl0, Nil, TEmpty, PHere, Nil, pos)
 
 extension (t: Tm)
