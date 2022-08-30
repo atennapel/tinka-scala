@@ -42,6 +42,46 @@ object Evaluation:
       case (_ :: env, None :: pr)             => vappPruning(v, pr)(env)
       case _                                  => throw Impossible
 
+  private def vliftterm(k: VFinLevel, l: VFinLevel, a: VTy, x: Val): Val =
+    x match
+      case VNe(hd, SPrim(sp, PLower, args)) => VNe(hd, sp)
+      case VGlobal(hd, lvl, SPrim(sp, PLower, args), v) =>
+        VGlobal(hd, lvl, sp, () => vliftterm(k, l, a, v()))
+      case _ => VLiftTerm(k, l, a, x)
+
+  private def vprim(x: PrimName) = x match
+    case PLiftTerm =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l => vlami("A", a => vlam("x", x => vliftterm(k, l, a, x)))
+          )
+      )
+    case PLower =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l =>
+              vlami(
+                "A",
+                a =>
+                  vlam(
+                    "x",
+                    x =>
+                      x.primelim(
+                        PLower,
+                        List(Left(k), Left(l), Right((a, Impl)))
+                      )
+                  )
+              )
+          )
+      )
+    case _ => VPrim(x)
+
   extension (l: FinLevel)
     def eval(implicit env: Env): VFinLevel = l match
       case LVar(ix)   => ix.index(env).swap.toOption.get
@@ -63,7 +103,7 @@ object Evaluation:
       case Global(x, lvl) =>
         val value = getGlobalByLvl(lvl).get.value
         VGlobal(x, lvl, SId, () => value)
-      case Prim(x)                => VPrim(x)
+      case Prim(x)                => vprim(x)
       case Let(_, _, value, body) => body.eval(Right(value.eval) :: env)
       case App(fn, arg, icit)     => fn.eval(env)(arg.eval, icit)
       case AppLvl(fn, arg)        => fn.eval(env)(arg.eval)
@@ -125,6 +165,17 @@ object Evaluation:
       case SAppLvl(sp, arg) =>
         AppLvl(sp.quoteWithUnfold(hd), arg.quote)
       case SProj(sp, proj) => Proj(sp.quoteWithUnfold(hd), proj)
+      case SPrim(sp, x, args) =>
+        App(
+          args.foldLeft(Prim(x))((fn, arg) =>
+            arg.fold(
+              lv => AppLvl(fn, lv.quote),
+              (a, i) => App(fn, a.quoteWithUnfold, i)
+            )
+          ),
+          sp.quoteWithUnfold(hd),
+          Expl
+        )
 
     def quote(hd: Tm)(implicit k: Lvl): Tm =
       sp.quoteWithUnfold(hd)(k, UnfoldMetas)
@@ -145,10 +196,11 @@ object Evaluation:
       case _ => throw Impossible
 
     def apply(sp: Spine): Val = sp match
-      case SId            => v
-      case SApp(sp, a, i) => v(sp)(a, i)
-      case SAppLvl(sp, a) => v(sp)(a)
-      case SProj(sp, p)   => v(sp).proj(p)
+      case SId                => v
+      case SApp(sp, a, i)     => v(sp)(a, i)
+      case SAppLvl(sp, a)     => v(sp)(a)
+      case SProj(sp, p)       => v(sp).proj(p)
+      case SPrim(sp, x, args) => v(sp).primelim(x, args)
 
     def force: Val = v match
       case VNe(HMeta(m), sp) =>
@@ -174,6 +226,16 @@ object Evaluation:
       case (VGlobal(x, lvl, sp, v), _) =>
         VGlobal(x, lvl, SProj(sp, proj), () => v().proj(proj))
       case _ => throw Impossible
+
+    def primelim(x: PrimName, args: List[Either[VFinLevel, (Val, Icit)]]): Val =
+      (v, x, args) match
+        // lower <k> <l> {A} (lift <k> <l> {A} t) ~> t
+        case (VLiftTerm(_, _, _, t), PLower, _) => t
+
+        case (VNe(hd, sp), _, _) => VNe(hd, SPrim(sp, x, args))
+        case (VGlobal(y, lvl, sp, v), _, _) =>
+          VGlobal(y, lvl, SPrim(sp, x, args), () => v().primelim(x, args))
+        case _ => throw Impossible
 
     def quoteWithUnfold(implicit k: Lvl, unfold: Unfold): Tm =
       val w = unfold match

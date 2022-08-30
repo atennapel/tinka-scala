@@ -86,17 +86,20 @@ object Common:
     case PUnit
     case PLift
     case PLiftTerm
+    case PLower
 
     override def toString: String = this match
       case PUnitType => "()"
       case PUnit     => "[]"
       case PLift     => "Lift"
       case PLiftTerm => "lift"
+      case PLower    => "lower"
   export PrimName.*
   object PrimName:
     def apply(x: Name): Option[PrimName] = x.expose match
-      case "()"   => Some(PUnitType)
-      case "[]"   => Some(PUnit)
-      case "Lift" => Some(PLift)
-      case "lift" => Some(PLiftTerm)
-      case _      => None
+      case "()"    => Some(PUnitType)
+      case "[]"    => Some(PUnit)
+      case "Lift"  => Some(PLift)
+      case "lift"  => Some(PLiftTerm)
+      case "lower" => Some(PLower)
+      case _       => None

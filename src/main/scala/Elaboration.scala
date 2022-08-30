@@ -77,9 +77,14 @@ class Elaboration extends IElaboration:
       unif.get.unify(a, b)(ctx.lvl)
     catch
       case err: UnifyError =>
-        throwCtx(
-          ElabUnifyError(s"${a.prettyCtx} ~ ${b.prettyCtx}: ${err.msg}", _)
-        )
+        try
+          unif.get.unify(a, b)(ctx.lvl)
+          unif.get.unify(u1, u2)(ctx.lvl)
+        catch
+          case err: UnifyError =>
+            throwCtx(
+              ElabUnifyError(s"${a.prettyCtx} ~ ${b.prettyCtx}: ${err.msg}", _)
+            )
 
   // elaboration
   private def newMeta(ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm = ty match

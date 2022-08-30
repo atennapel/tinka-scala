@@ -109,14 +109,20 @@ object Value:
     case SApp(spine: Spine, arg: Val, icit: Icit)
     case SAppLvl(spine: Spine, arg: VFinLevel)
     case SProj(spine: Spine, proj: ProjType)
+    case SPrim(
+        spine: Spine,
+        name: PrimName,
+        args: List[Either[VFinLevel, (Val, Icit)]]
+    )
 
     def size: Int =
       @tailrec
       def go(sp: Spine, i: Int): Int = sp match
-        case SId            => 0
-        case SApp(sp, _, _) => go(sp, i + 1)
-        case SAppLvl(sp, _) => go(sp, i + 1)
-        case SProj(sp, _)   => go(sp, i + 1)
+        case SId             => 0
+        case SApp(sp, _, _)  => go(sp, i + 1)
+        case SAppLvl(sp, _)  => go(sp, i + 1)
+        case SProj(sp, _)    => go(sp, i + 1)
+        case SPrim(sp, _, _) => go(sp, i + 1)
       go(this, 0)
   export Spine.*
 
@@ -140,6 +146,13 @@ object Value:
     case VSigma(bind: Bind, ty: VTy, u1: VLevel, body: Clos[Val], u2: VLevel)
     case VPair(fst: Val, snd: Val)
   export Val.*
+
+  def vlam(x: String, body: Val => Val): Val =
+    VLam(DoBind(Name(x)), Expl, CFun(body))
+  def vlami(x: String, body: Val => Val): Val =
+    VLam(DoBind(Name(x)), Impl, CFun(body))
+  def vlamlvl(x: String, body: VFinLevel => Val): Val =
+    VLamLvl(DoBind(Name(x)), CFun(body))
 
   object VVar:
     def apply(lvl: Lvl) = VNe(HVar(lvl), SId)

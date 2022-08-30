@@ -160,6 +160,17 @@ class Unification(elab: IElaboration) extends IUnification:
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SAppLvl(sp, a) => AppLvl(goSp(t, sp), rename(a))
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
+      case SPrim(sp, x, args) =>
+        App(
+          args.foldLeft(Prim(x))((fn, arg) =>
+            arg.fold(
+              lv => AppLvl(fn, rename(lv)),
+              (a, i) => App(fn, go(a), i)
+            )
+          ),
+          goSp(t, sp),
+          Expl
+        )
     def go(v: Val)(implicit pren: PRen): Tm = v.forceMetas match
       case VNe(HVar(x), sp) =>
         pren.ren.get(x.expose) match
@@ -302,6 +313,13 @@ class Unification(elab: IElaboration) extends IUnification:
     case (SProj(a, p1), SProj(b, p2)) if p1 == p2 => unify(a, b)
     case (SProj(a, Fst), SProj(b, Named(_, n)))   => unifyProj(a, b, n)
     case (SProj(a, Named(_, n)), SProj(b, Fst))   => unifyProj(b, a, n)
+    case (SPrim(a, x, args1), SPrim(b, y, args2)) if x == y =>
+      unify(a, b)
+      args1.zip(args2).foreach {
+        case (Left(l), Left(k))             => unify(l, k)
+        case (Right((v, _)), Right((w, _))) => unify(v, w)
+        case _                              => throw Impossible
+      }
     case _ => throw UnifyError(s"spine mismatch")
 
   private def unify(a: Clos[Val], b: Clos[Val])(implicit k: Lvl): Unit =

@@ -40,7 +40,7 @@ sbt "run examples/church.tinka"
   - [x] Level metas
   - [x] Level unification
 - [x] Globals
-- [ ] Lift, lift and lower
+- [x] Lift, lift and lower
 - [ ] Imports
 - [ ] Hide inserted apps/binders in pretty printing
 - [ ] Erasure annotations
