@@ -67,6 +67,7 @@ object Core:
 
   enum Tm:
     case Var(ix: Ix)
+    case Prim(name: PrimName)
     case Global(name: Name, lvl: Lvl)
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
     case Type(lvl: Level)
@@ -100,6 +101,7 @@ object Core:
     override def toString: String = this match
       case Var(ix)             => s"'$ix"
       case Global(x, _)        => s"$x"
+      case Prim(x)             => s"$x"
       case Let(x, t, v, b)     => s"(let $x : $t = $v; $b)"
       case Type(LFinLevel(LZ)) => s"Type"
       case Type(lvl)           => s"Type $lvl"

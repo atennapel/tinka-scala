@@ -77,3 +77,18 @@ object Common:
     case UnfoldAll
     case UnfoldMetas
   export Unfold.*
+
+  // primitives
+  enum PrimName:
+    case PLift
+    case PLiftTerm
+
+    override def toString: String = this match
+      case PLift     => "Lift"
+      case PLiftTerm => "lift"
+  export PrimName.*
+  object PrimName:
+    def apply(x: Name): Option[PrimName] = x match
+      case Name("Lift") => Some(PLift)
+      case Name("lift") => Some(PLiftTerm)
+      case _            => None

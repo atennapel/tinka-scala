@@ -169,6 +169,7 @@ class Unification(elab: IElaboration) extends IUnification:
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
           case _                 => pruneFlex(x, sp)
+      case VNe(HPrim(x), sp)      => goSp(Prim(x), sp)
       case VGlobal(x, lvl, sp, _) => goSp(Global(x, lvl), sp)
       case VType(l)               => Type(rename(l))
       case VUnitType              => UnitType

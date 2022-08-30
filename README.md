@@ -41,6 +41,7 @@ sbt "run examples/church.tinka"
   - [x] Level unification
 - [x] Globals
 - [ ] Lift, lift and lower
+  - [ ] Unit and UnitType can be primitives as well
 - [ ] Imports
 - [ ] Hide inserted apps/binders in pretty printing
 - [ ] Erasure annotations

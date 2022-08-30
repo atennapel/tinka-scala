@@ -4,6 +4,7 @@ import Evaluation.nf
 import Ctx.*
 import Debug.*
 import Errors.*
+import PrimElaboration.elaboratePrims
 
 import java.io.File
 import scala.io.Source
@@ -11,6 +12,7 @@ import parsley.io.given
 
 @main def run(filename: String): Unit =
   setDebug(false)
+  elaboratePrims()
   val tm = parser.parseFromFile(new File(filename)).flatMap(_.toTry).get
   debug(tm.toString)
   implicit val ctx: Ctx = Ctx.empty

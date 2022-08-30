@@ -100,6 +100,7 @@ object Value:
 
   enum Head:
     case HVar(lvl: Lvl)
+    case HPrim(name: PrimName)
     case HMeta(id: MetaId)
   export Head.*
 
@@ -153,3 +154,32 @@ object Value:
     def unapply(value: Val): Option[MetaId] = value match
       case VNe(HMeta(head), SId) => Some(head)
       case _                     => None
+
+  object VPrim:
+    def apply(x: PrimName, sp: Spine = SId) = VNe(HPrim(x), sp)
+    def unapply(value: Val): Option[(PrimName, Spine)] = value match
+      case VNe(HPrim(x), spine) => Some((x, spine))
+      case _                    => None
+
+  object VLift:
+    def apply(k: VFinLevel, l: VFinLevel, a: Val) =
+      VNe(HPrim(PLift), SApp(SAppLvl(SAppLvl(SId, k), l), a, Expl))
+    def unapply(value: Val): Option[(VFinLevel, VFinLevel, Val)] = value match
+      case VNe(HPrim(PLift), SApp(SAppLvl(SAppLvl(SId, k), l), a, Expl)) =>
+        Some((k, l, a))
+      case _ => None
+
+  object VLiftTerm:
+    def apply(k: VFinLevel, l: VFinLevel, a: Val, t: Val) =
+      VNe(
+        HPrim(PLiftTerm),
+        SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl), t, Expl)
+      )
+    def unapply(value: Val): Option[(VFinLevel, VFinLevel, Val, Val)] =
+      value match
+        case VNe(
+              HPrim(PLiftTerm),
+              SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl), t, Expl)
+            ) =>
+          Some((k, l, a, t))
+        case _ => None

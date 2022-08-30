@@ -65,6 +65,7 @@ object Evaluation:
       case Global(x, lvl) =>
         val value = getGlobalByLvl(lvl).get.value
         VGlobal(x, lvl, SId, () => value)
+      case Prim(x)                => VPrim(x)
       case Let(_, _, value, body) => body.eval(Right(value.eval) :: env)
       case App(fn, arg, icit)     => fn.eval(env)(arg.eval, icit)
       case AppLvl(fn, arg)        => fn.eval(env)(arg.eval)
@@ -115,6 +116,7 @@ object Evaluation:
   extension (hd: Head)
     def quote(implicit k: Lvl): Tm = hd match
       case HVar(lvl) => Var(lvl.toIx)
+      case HPrim(x)  => Prim(x)
       case HMeta(id) => Meta(id)
 
   extension (sp: Spine)

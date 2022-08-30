@@ -9,6 +9,7 @@ import Errors.*
 import Debug.*
 import Zonking.*
 import Globals.*
+import Prims.*
 
 import scala.annotation.tailrec
 
@@ -77,7 +78,7 @@ class Elaboration extends IElaboration:
     catch
       case err: UnifyError =>
         throwCtx(
-          ElabUnifyError(s"${a.prettyCtx} ~ ${b.quoteCtx}: ${err.msg}", _)
+          ElabUnifyError(s"${a.prettyCtx} ~ ${b.prettyCtx}: ${err.msg}", _)
         )
 
   // elaboration
@@ -205,6 +206,11 @@ class Elaboration extends IElaboration:
     case S.UnitType => false
     case _          => true
 
+  private def isNeutral(t: S.Tm): Boolean = t match
+    case S.Unit       => true
+    case S.Pair(_, _) => true
+    case _            => false
+
   private def check(tm: S.Tm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ty.quoteCtx}")
     (tm, ty.force) match
@@ -251,6 +257,17 @@ class Elaboration extends IElaboration:
         val (ev, ety, vty, lv1) = checkOptionalType(v, oty)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, lv1, ev.evalCtx, ev))
         Let(x, ety, ev, eb)
+      case (tm, VLift(k, l, a)) if isNeutral(tm) =>
+        val etm = check(tm, a, VFL(l))
+        App(
+          App(
+            AppLvl(AppLvl(Prim(PLiftTerm), k.quoteCtx), l.quoteCtx),
+            a.quoteCtx,
+            Impl
+          ),
+          etm,
+          Expl
+        )
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
         unify(lv2, lv, ty2, ty)
@@ -306,13 +323,18 @@ class Elaboration extends IElaboration:
       case S.UnitType => (UnitType, VType(VLevel.unit), VFL(VFinLevel.unit + 1))
       case S.Unit     => (Unit, VUnitType, VLevel.unit)
       case S.Var(x) =>
-        lookupCtx(x) match
-          case Some((ix, Some((vty, lv)))) => (Var(ix), vty, lv)
-          case _ =>
-            getGlobal(x) match
-              case Some((GlobalEntry(_, vty, lv, value), lvl)) =>
-                (Global(x, lvl), vty, lv)
-              case _ => throwCtx(UndefinedVarError(x.toString, _))
+        PrimName(x) match
+          case Some(name) =>
+            val (ty, lv) = getPrimType(name)
+            (Prim(name), ty, lv)
+          case None =>
+            lookupCtx(x) match
+              case Some((ix, Some((vty, lv)))) => (Var(ix), vty, lv)
+              case _ =>
+                getGlobal(x) match
+                  case Some((GlobalEntry(_, vty, lv, value), lvl)) =>
+                    (Global(x, lvl), vty, lv)
+                  case _ => throwCtx(UndefinedVarError(x.toString, _))
       case S.Let(x, oty, v, b) =>
         val (ev, ety, vty, vl) = checkOptionalType(v, oty)
         val (eb, rty, vl1) =
@@ -492,6 +514,7 @@ class Elaboration extends IElaboration:
     tm match
       case S.SPos(pos, tm) => elaborateTop(tm, ctx.enter(pos))
       case S.Let(x, oty, v, b) =>
+        debug(s"elaborateTop $x")
         val (etm, ety, elv) = elaborate(S.Let(x, oty, v, S.Var(x)), ctx)
         addGlobal(GlobalEntry(x, ety.eval(Nil), elv.eval(Nil), etm.eval(Nil)))
         elaborateTop(b, ctx)
