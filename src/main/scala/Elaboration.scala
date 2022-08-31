@@ -92,7 +92,7 @@ class Elaboration extends IElaboration:
     case _ =>
       val closed = ty.quoteCtx.closeTyCtx(lv.quoteCtx).eval(Nil)
       val m = freshMeta(Set.empty, closed)
-      debug(s"newMeta ?$m : ${ty.prettyCtx} : ${lv.prettyCtx} @ ${ctx.pruning}")
+      debug(s"newMeta ?$m : ${ty.prettyCtx} : ${lv.prettyCtx}")
       AppPruning(Meta(m), ctx.pruning)
 
   private def newLMeta(implicit ctx: Ctx): FinLevel =
@@ -204,7 +204,7 @@ class Elaboration extends IElaboration:
         vty.forceMetas match
           case VNe(HMeta(_), _) => true
           case _                => false
-      case _ => throwCtx(UndefinedVarError(x.toString, _))
+      case _ => false
 
   private def shouldPostpone(t: S.Tm): Boolean = t match
     case S.Var(Name("[]")) => false

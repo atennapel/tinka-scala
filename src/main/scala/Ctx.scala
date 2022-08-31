@@ -161,18 +161,28 @@ enum Path:
   case PDefine(path: Path, x: Name, ty: Ty, lv: Level, tm: Tm)
 
   def closeTy(b: Ty, l: Level): Ty =
-    def go(p: Path): (Ty, Level) = p match
-      case PHere => (b, l)
-      case PBind(p, x, a, lv) =>
-        val (b, l) = go(p)
-        (Pi(x, Expl, a, lv, b, l), lv max l)
-      case PBindLevel(p, x) =>
-        val (b, l) = go(p)
-        (PiLvl(x, b, l), l)
-      case PDefine(p, x, a, _, v) =>
-        val (b, l) = go(p)
-        (Let(x, a, v, b), l)
-    go(this)._1
+    def goLevels(p: Path): List[(Bind, Option[Level])] = p match
+      case PHere                  => Nil
+      case PBind(p, x, _, lv)     => (x, Some(lv)) :: goLevels(p)
+      case PBindLevel(p, x)       => (x, None) :: goLevels(p)
+      case PDefine(p, _, _, _, _) => goLevels(p)
+    @tailrec
+    def go(p: Path, b: Ty, l: List[Level]): Ty =
+      (p, l) match
+        case (PHere, Nil) => b
+        case (PBind(p, x, a, lv), l :: lvls) =>
+          go(p, Pi(x, Expl, a, lv, b, l), lvls)
+        case (PBindLevel(p, x), l :: lvls)  => go(p, PiLvl(x, b, l), lvls)
+        case (PDefine(p, x, a, _, v), lvls) => go(p, Let(x, a, v, b), lvls)
+        case _                              => throw Impossible
+    val plvls = goLevels(this)
+    val (_, lvls) = plvls.foldLeft((List(l), List.empty[Level])) {
+      case ((prevs, res), (x, o)) =>
+        val prev = if o.isDefined then prevs.head.shift(-1) else prevs.head
+        val next = prev max o.getOrElse(LOmega)
+        (next :: prevs, prev :: res)
+    }
+    go(this, b, lvls.reverse)
 
   def closeTm(b: Tm): Tm = this match
     case PHere                  => b

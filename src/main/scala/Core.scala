@@ -31,6 +31,12 @@ object Core:
       case (x, LZ)        => x
       case (LS(a), LS(b)) => LS(a max b)
       case (a, b)         => LMax(a, b)
+
+    def shift(d: Int): FinLevel = this match
+      case LVar(i)    => LVar(i + d)
+      case LS(l)      => LS(l.shift(d))
+      case LMax(a, b) => LMax(a.shift(d), b.shift(d))
+      case l          => l
   export FinLevel.*
 
   enum Level:
@@ -49,6 +55,10 @@ object Core:
       case (LOmega, _)                  => LOmega
       case (_, LOmega)                  => LOmega
       case (LFinLevel(a), LFinLevel(b)) => LFinLevel(a max b)
+
+    def shift(d: Int): Level = this match
+      case LFinLevel(a) => LFinLevel(a.shift(d))
+      case l            => l
   export Level.*
 
   // terms
@@ -109,11 +119,11 @@ object Core:
       case AppPruning(fn, _)   => s"?*$fn"
       case PostponedCheck(id)  => s"!$id"
 
-      case Pi(x, Impl, t, _, b, _)         => s"({$x : $t} -> $b)"
-      case Pi(DoBind(x), Expl, t, _, b, _) => s"(($x : $t) -> $b)"
-      case Pi(DontBind, Expl, t, _, b, _)  => s"($t -> $b)"
+      case Pi(x, Impl, t, _, b, _)           => s"({$x : $t} -> $b)"
+      case Pi(DoBind(x), Expl, t, u1, b, u2) => s"(($x : $t) -> $b)"
+      case Pi(DontBind, Expl, t, _, b, _)    => s"($t -> $b)"
 
-      case PiLvl(x, b, _) => s"(<$x> -> $b)"
+      case PiLvl(x, b, u) => s"(<$x> -> $b)"
       case LamLvl(x, b)   => s"(\\<$x>. $b)"
 
       case Sigma(DoBind(x), t, _, b, _) => s"(($x : $t) ** $b)"

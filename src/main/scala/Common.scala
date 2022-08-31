@@ -91,6 +91,16 @@ object Common:
 
     case PLabel
 
+    case PEnum
+    case PENil
+    case PECons
+    case PElimEnum
+
+    case PTag
+    case PTZ
+    case PTS
+    case PElimTag
+
     override def toString: String = this match
       case PUnitType => "()"
       case PUnit     => "[]"
@@ -98,13 +108,29 @@ object Common:
       case PLiftTerm => "lift"
       case PLower    => "lower"
       case PLabel    => "Label"
+      case PEnum     => "Enum"
+      case PENil     => "ENil"
+      case PECons    => "ECons"
+      case PElimEnum => "elimEnum"
+      case PTag      => "Tag"
+      case PTZ       => "TZ"
+      case PTS       => "TS"
+      case PElimTag  => "elimTag"
   export PrimName.*
   object PrimName:
     def apply(x: Name): Option[PrimName] = x.expose match
-      case "()"    => Some(PUnitType)
-      case "[]"    => Some(PUnit)
-      case "Lift"  => Some(PLift)
-      case "lift"  => Some(PLiftTerm)
-      case "lower" => Some(PLower)
-      case "Label" => Some(PLabel)
-      case _       => None
+      case "()"       => Some(PUnitType)
+      case "[]"       => Some(PUnit)
+      case "Lift"     => Some(PLift)
+      case "lift"     => Some(PLiftTerm)
+      case "lower"    => Some(PLower)
+      case "Label"    => Some(PLabel)
+      case "Enum"     => Some(PEnum)
+      case "ENil"     => Some(PENil)
+      case "ECons"    => Some(PECons)
+      case "elimEnum" => Some(PElimEnum)
+      case "Tag"      => Some(PTag)
+      case "TZ"       => Some(PTZ)
+      case "TS"       => Some(PTS)
+      case "elimTag"  => Some(PElimTag)
+      case _          => None

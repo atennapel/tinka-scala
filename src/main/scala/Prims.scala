@@ -21,3 +21,15 @@ object Prims:
     case PLower    => "<k l> {A : Type l} -> Lift <k> <l> A -> A"
 
     case PLabel => "Type 0"
+
+    case PEnum  => "Type 0"
+    case PENil  => "Enum"
+    case PECons => "Label -> Enum -> Enum"
+    case PElimEnum =>
+      "<k> (P : Enum -> Type k) (nil : P ENil) (cons : (l : Label) (tl : Enum) -> P tl -> P (ECons l tl)) (e : Enum) -> P e"
+
+    case PTag => "Enum -> Type 0"
+    case PTZ  => "{l : Label} {e : Enum} -> Tag (ECons l e)"
+    case PTS  => "{l : Label} {e : Enum} -> Tag e -> Tag (ECons l e)"
+    case PElimTag =>
+      "<k> (P : {e : Enum} -> Tag e -> Type k) (z : {l : Label} {e : Enum} -> P {ECons l e} TZ) (s : {l : Label} {e : Enum} (t : Tag e) -> P t -> P (TS {l} t)) {e : Enum} (t : Tag e) -> P t"

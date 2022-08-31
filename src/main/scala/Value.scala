@@ -191,6 +191,18 @@ object Value:
       case VNe(HPrim(PLabel), SId) => true
       case _                       => false
 
+  object VEnum:
+    def apply() = VNe(HPrim(PEnum), SId)
+    def unapply(value: Val): Boolean = value match
+      case VNe(HPrim(PEnum), SId) => true
+      case _                      => false
+
+  object VENil:
+    def apply() = VNe(HPrim(PENil), SId)
+    def unapply(value: Val): Boolean = value match
+      case VNe(HPrim(PENil), SId) => true
+      case _                      => false
+
   object VLift:
     def apply(k: VFinLevel, l: VFinLevel, a: Val) =
       VNe(HPrim(PLift), SApp(SAppLvl(SAppLvl(SId, k), l), a, Expl))
@@ -213,3 +225,27 @@ object Value:
             ) =>
           Some((k, l, a, t))
         case _ => None
+
+  object VECons:
+    def apply(hd: Val, tl: Val) =
+      VNe(HPrim(PECons), SApp(SApp(SId, hd, Expl), tl, Expl))
+    def unapply(value: Val): Option[(Val, Val)] = value match
+      case VNe(HPrim(PECons), SApp(SApp(SId, hd, Expl), tl, Expl)) =>
+        Some((hd, tl))
+      case _ => None
+
+  object VTZ:
+    def apply(l: Val, e: Val) =
+      VNe(HPrim(PTZ), SApp(SApp(SId, l, Impl), e, Impl))
+    def unapply(value: Val): Option[(Val, Val)] = value match
+      case VNe(HPrim(PTZ), SApp(SApp(SId, l, Impl), e, Impl)) =>
+        Some((l, e))
+      case _ => None
+
+  object VTS:
+    def apply(l: Val, e: Val, t: Val) =
+      VNe(HPrim(PTS), SApp(SApp(SApp(SId, l, Impl), e, Impl), t, Expl))
+    def unapply(value: Val): Option[(Val, Val, Val)] = value match
+      case VNe(HPrim(PTS), SApp(SApp(SApp(SId, l, Impl), e, Impl), t, Expl)) =>
+        Some((l, e, t))
+      case _ => None

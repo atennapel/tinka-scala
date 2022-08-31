@@ -80,6 +80,71 @@ object Evaluation:
               )
           )
       )
+    case PElimEnum =>
+      vlamlvl(
+        "k",
+        k =>
+          vlam(
+            "P",
+            p =>
+              vlam(
+                "nil",
+                nil =>
+                  vlam(
+                    "cons",
+                    cons =>
+                      vlam(
+                        "e",
+                        e =>
+                          e.primelim(
+                            PElimEnum,
+                            List(
+                              Left(k),
+                              Right((p, Expl)),
+                              Right((nil, Expl)),
+                              Right((cons, Expl))
+                            )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimTag =>
+      vlamlvl(
+        "k",
+        k =>
+          vlam(
+            "P",
+            p =>
+              vlam(
+                "z",
+                z =>
+                  vlam(
+                    "s",
+                    s =>
+                      vlami(
+                        "e",
+                        e =>
+                          vlam(
+                            "t",
+                            t =>
+                              t.primelim(
+                                PElimTag,
+                                List(
+                                  Left(k),
+                                  Right((p, Expl)),
+                                  Right((z, Expl)),
+                                  Right((s, Expl)),
+                                  Right((e, Impl))
+                                )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
     case _ => VPrim(x)
 
   extension (l: FinLevel)
@@ -97,29 +162,30 @@ object Evaluation:
       case LFinLevel(l) => VFL(l.eval)
 
   extension (c: Tm)
-    def eval(implicit env: Env): Val = c match
-      case Type(l)     => VType(l.eval)
-      case LabelLit(x) => VLabelLit(x)
-      case Var(ix)     => ix.index(env).toOption.get
-      case Global(x, lvl) =>
-        val value = getGlobalByLvl(lvl).get.value
-        VGlobal(x, lvl, SId, () => value)
-      case Prim(x)                => vprim(x)
-      case Let(_, _, value, body) => body.eval(Right(value.eval) :: env)
-      case App(fn, arg, icit)     => fn.eval(env)(arg.eval, icit)
-      case AppLvl(fn, arg)        => fn.eval(env)(arg.eval)
-      case Pi(bind, icit, ty, u1, body, u2) =>
-        VPi(bind, icit, ty.eval, u1.eval, CClos(env, body), u2.eval)
-      case PiLvl(x, body, u) => VPiLvl(x, CClos(env, body), ClosLvl(env, u))
-      case LamLvl(x, body)   => VLamLvl(x, CClos(env, body))
-      case Sigma(bind, ty, u1, body, u2) =>
-        VSigma(bind, ty.eval, u1.eval, CClos(env, body), u2.eval)
-      case Lam(bind, icit, body) => VLam(bind, icit, CClos(env, body))
-      case Pair(fst, snd)        => VPair(fst.eval, snd.eval)
-      case Proj(tm, proj)        => tm.eval.proj(proj)
-      case Meta(id)              => vmeta(id)
-      case AppPruning(tm, pr)    => vappPruning(tm.eval, pr)
-      case PostponedCheck(c)     => vcheck(c)
+    def eval(implicit env: Env): Val =
+      c match
+        case Type(l)     => VType(l.eval)
+        case LabelLit(x) => VLabelLit(x)
+        case Var(ix)     => ix.index(env).toOption.get
+        case Global(x, lvl) =>
+          val value = getGlobalByLvl(lvl).get.value
+          VGlobal(x, lvl, SId, () => value)
+        case Prim(x)                => vprim(x)
+        case Let(_, _, value, body) => body.eval(Right(value.eval) :: env)
+        case App(fn, arg, icit)     => fn.eval(env)(arg.eval, icit)
+        case AppLvl(fn, arg)        => fn.eval(env)(arg.eval)
+        case Pi(bind, icit, ty, u1, body, u2) =>
+          VPi(bind, icit, ty.eval, u1.eval, CClos(env, body), u2.eval)
+        case PiLvl(x, body, u) => VPiLvl(x, CClos(env, body), ClosLvl(env, u))
+        case LamLvl(x, body)   => VLamLvl(x, CClos(env, body))
+        case Sigma(bind, ty, u1, body, u2) =>
+          VSigma(bind, ty.eval, u1.eval, CClos(env, body), u2.eval)
+        case Lam(bind, icit, body) => VLam(bind, icit, CClos(env, body))
+        case Pair(fst, snd)        => VPair(fst.eval, snd.eval)
+        case Proj(tm, proj)        => tm.eval.proj(proj)
+        case Meta(id)              => vmeta(id)
+        case AppPruning(tm, pr)    => vappPruning(tm.eval, pr)
+        case PostponedCheck(c)     => vcheck(c)
 
     def nf: Tm = c.eval(Nil).quoteWithUnfold(lvl0, UnfoldAll)
 
@@ -229,12 +295,28 @@ object Evaluation:
       case _ => throw Impossible
 
     def primelim(x: PrimName, args: List[Either[VFinLevel, (Val, Icit)]]): Val =
-      (v, x, args) match
+      (x, v, args) match
         // lower <k> <l> {A} (lift <k> <l> {A} t) ~> t
-        case (VLiftTerm(_, _, _, t), PLower, _) => t
+        case (PLower, VLiftTerm(_, _, _, t), _) => t
 
-        case (VNe(hd, sp), _, _) => VNe(hd, SPrim(sp, x, args))
-        case (VGlobal(y, lvl, sp, v), _, _) =>
+        // elimEnum <k> P nil cons ENil ~> nil
+        case (PElimEnum, VENil(), List(_, _, Right((nil, _)), _)) => nil
+        // elimEnum <k> P nil cons (ECons hd tl) ~> cons hd tl (elimEnum <k> P nil cons tl)
+        case (PElimEnum, VECons(hd, tl), List(_, _, _, Right((cons, _)))) =>
+          cons(hd, Expl)(tl, Expl)(tl.primelim(PElimEnum, args), Expl)
+
+        // elimTag <k> P z s {e} (TZ {l} {e'}) ~> z {l} {e'}
+        case (PElimTag, VTZ(l, e), List(_, _, Right((z, _)), _, _)) =>
+          z(l, Impl)(e, Impl)
+        // elimTag <k> P z s {e} (TS {l} {e'} {t}) ~> s {l} {e'} t (elimTag <k> P z s {e'} t)
+        case (PElimTag, VTS(l, e, t), List(_, _, _, Right((s, _)), _)) =>
+          s(l, Impl)(e, Impl)(t, Expl)(
+            t.primelim(PElimTag, args.init ++ List(Right((e, Impl)))),
+            Expl
+          )
+
+        case (_, VNe(hd, sp), _) => VNe(hd, SPrim(sp, x, args))
+        case (_, VGlobal(y, lvl, sp, v), _) =>
           VGlobal(y, lvl, SPrim(sp, x, args), () => v().primelim(x, args))
         case _ => throw Impossible
 

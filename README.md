@@ -41,6 +41,13 @@ sbt "run examples/church.tinka"
   - [x] Level unification
 - [x] Globals
 - [x] Lift, lift and lower
+- [ ] Enum
+  - [x] Add Enum
+  - [x] Add Tag
+  - [ ] Eta law for Enum?
+  - [ ] Sugar for Enum and Tag
+  - [ ] Elaboration rule for Label and Tag
+  - [ ] Unit as Tag
 - [ ] Imports
 - [ ] Hide inserted apps/binders in pretty printing
 - [ ] Erasure annotations

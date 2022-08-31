@@ -68,23 +68,24 @@ class Unification(elab: IElaboration) extends IUnification:
     }
 
   private def pruneTy(pr: RevPruning, ty: VTy): Ty =
-    def go(pr: Pruning, ty: VTy)(implicit pren: PRen): Ty = (pr, ty.force) match
-      case (Nil, ty) => rename(ty)
-      case (Some(_) :: pr, VPi(x, i, a, u1, b, u2)) =>
-        Pi(
-          x,
-          i,
-          rename(a),
-          rename(u1),
-          go(pr, b(VVar(pren.cod)))(pren.lift),
-          rename(u2)
-        )
-      case (None :: pr, VPi(x, i, a, _, b, _)) =>
-        go(pr, b(VVar(pren.cod)))(pren.skip)
-      case (Some(_) :: pr, VPiLvl(x, b, u)) =>
-        val v = VFinLevel.vr(pren.cod)
-        PiLvl(x, go(pr, b(v))(pren.lift), rename(u(v))(pren.lift))
-      case _ => throw Impossible
+    def go(pr: Pruning, ty: VTy)(implicit pren: PRen): Ty =
+      (pr, ty.force) match
+        case (Nil, ty) => rename(ty)
+        case (Some(_) :: pr, VPi(x, i, a, u1, b, u2)) =>
+          Pi(
+            x,
+            i,
+            rename(a),
+            rename(u1),
+            go(pr, b(VVar(pren.cod)))(pren.lift),
+            rename(u2)
+          )
+        case (None :: pr, VPi(x, i, a, _, b, _)) =>
+          go(pr, b(VVar(pren.cod)))(pren.skip)
+        case (Some(_) :: pr, VPiLvl(x, b, u)) =>
+          val v = VFinLevel.vr(pren.cod)
+          PiLvl(x, go(pr, b(v))(pren.lift), rename(u(v))(pren.lift))
+        case _ => throw Impossible
     implicit val pren: PRen = PRen(None, lvl0, lvl0, IntMap.empty)
     go(pr.expose, ty)
 
@@ -283,7 +284,16 @@ class Unification(elab: IElaboration) extends IUnification:
         unify(VFinLevelMeta(m, 0), VFinLevelVar(l, y - x))
       case (VFinLevelVar(l, y), VFinLevelMeta(m, x)) if y >= x =>
         unify(VFinLevelVar(l, y - x), VFinLevelMeta(m, 0))
-      // TODO: more cases
+      case (VFinLevelNat(0), VFinLevel(0, m1, m2))
+          if m1.forall((_, n) => n == 0) && m2.forall((_, n) => n == 0) =>
+        m2.foreach((id, _) =>
+          unify(VFinLevelNat(0), VFinLevelMeta(lmetaId(id), 0))
+        )
+      case (VFinLevel(0, m1, m2), VFinLevelNat(0))
+          if m1.forall((_, n) => n == 0) && m2.forall((_, n) => n == 0) =>
+        m2.foreach((id, _) =>
+          unify(VFinLevelMeta(lmetaId(id), 0), VFinLevelNat(0))
+        )
       case (a @ VFinLevel(n1, xs1, ys1), b @ VFinLevel(n2, xs2, ys2)) =>
         val m = (List(n1) ++ xs1.values ++ ys1.values ++
           List(n2) ++ xs2.values ++ ys2.values).min

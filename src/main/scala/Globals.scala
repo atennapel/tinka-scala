@@ -8,7 +8,8 @@ object Globals:
 
   final case class GlobalEntry(name: Name, ty: VTy, lv: VLevel, value: Val)
 
-  def addGlobal(g: GlobalEntry): Unit = globals += g
+  def addGlobal(g: GlobalEntry): Unit =
+    globals += g
 
   def getGlobal(x: Name): Option[(GlobalEntry, Lvl)] =
     globals.zipWithIndex
