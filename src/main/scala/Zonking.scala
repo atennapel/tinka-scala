@@ -50,6 +50,7 @@ object Zonking:
     case Var(_)       => t
     case Prim(_)      => t
     case Global(_, _) => t
+    case LabelLit(_)  => t
     case Type(l)      => Type(zonk(l))
 
     case PostponedCheck(id) =>

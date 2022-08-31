@@ -84,6 +84,8 @@ object Core:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
 
+    case LabelLit(name: Name)
+
     case Meta(id: MetaId)
     case AppPruning(fn: Tm, spine: Pruning)
     case PostponedCheck(id: PostponeId)
@@ -99,6 +101,7 @@ object Core:
       case Var(ix)             => s"'$ix"
       case Global(x, _)        => s"$x"
       case Prim(x)             => s"$x"
+      case LabelLit(x)         => s"'$x"
       case Let(x, t, v, b)     => s"(let $x : $t = $v; $b)"
       case Type(LFinLevel(LZ)) => s"Type"
       case Type(lvl)           => s"Type $lvl"

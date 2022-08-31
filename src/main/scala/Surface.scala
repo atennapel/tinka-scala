@@ -53,6 +53,8 @@ object Surface:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
 
+    case LabelLit(name: Name)
+
     case Hole
 
     case SPos(pos: Pos, tm: Tm)
@@ -60,10 +62,11 @@ object Surface:
     override def toString: String = this match
       case SPos(_, tm) => tm.toString
 
-      case Var(x)   => s"$x"
-      case Type(LZ) => "Type"
-      case Type(l)  => s"Type $l"
-      case Hole     => "_"
+      case Var(x)      => s"$x"
+      case Type(LZ)    => "Type"
+      case Type(l)     => s"Type $l"
+      case Hole        => "_"
+      case LabelLit(l) => s"'$l"
 
       case Let(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case Let(x, None, v, b)    => s"(let $x = $v; $b)"

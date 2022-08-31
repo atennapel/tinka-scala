@@ -15,6 +15,9 @@ object Prims:
   def primTypeScript(x: PrimName): String = x match
     case PUnitType => "Type 0"
     case PUnit     => "()"
+
     case PLift     => "<k l> -> Type l -> Type (max l k)"
     case PLiftTerm => "<k l> {A : Type l} -> A -> Lift <k> <l> A"
     case PLower    => "<k l> {A : Type l} -> Lift <k> <l> A -> A"
+
+    case PLabel => "Type 0"

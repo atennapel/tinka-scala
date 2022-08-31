@@ -85,7 +85,9 @@ object Parser:
           .map(mkUnitPair) <|>
         "_" #> Hole <|> attempt("Type" *> levelAtom).map(
           Type(_)
-        ) <|> "Type" #> Type(LZ) <|> nat <|>
+        ) <|> "Type" #> Type(LZ) <|> nat
+        <|> attempt("'" *> ident).map(LabelLit.apply) <|>
+        "'" *> userOp.map(LabelLit.apply) <|>
         ident.map(Var.apply)
     )
 

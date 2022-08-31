@@ -183,6 +183,7 @@ class Unification(elab: IElaboration) extends IUnification:
       case VNe(HPrim(x), sp)      => goSp(Prim(x), sp)
       case VGlobal(x, lvl, sp, _) => goSp(Global(x, lvl), sp)
       case VType(l)               => Type(rename(l))
+      case VLabelLit(x)           => LabelLit(x)
       case VPair(fst, snd)        => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
         Lam(bind, icit, go(body(VVar(pren.cod)))(pren.lift))
@@ -374,7 +375,8 @@ class Unification(elab: IElaboration) extends IUnification:
   def unify(a: Val, b: Val)(implicit k: Lvl): Unit =
     debug(s"unify: ${a.quote} ~ ${b.quote}")
     (a.forceMetas, b.forceMetas) match
-      case (VType(l1), VType(l2)) => unify(l1, l2)
+      case (VType(l1), VType(l2))                 => unify(l1, l2)
+      case (VLabelLit(x), VLabelLit(y)) if x == y => ()
       case (VPi(_, i1, t1, u11, b1, u21), VPi(_, i2, t2, u12, b2, u22))
           if i1 == i2 =>
         unify(u11, u12); unify(u12, u22); unify(t1, t2); unify(b1, b2)

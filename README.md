@@ -44,4 +44,4 @@ sbt "run examples/church.tinka"
 - [ ] Imports
 - [ ] Hide inserted apps/binders in pretty printing
 - [ ] Erasure annotations
-- [ ] Reduce source level position wrappings
+- [ ] Reduce source position wrappings

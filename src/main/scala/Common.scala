@@ -84,9 +84,12 @@ object Common:
   enum PrimName:
     case PUnitType
     case PUnit
+
     case PLift
     case PLiftTerm
     case PLower
+
+    case PLabel
 
     override def toString: String = this match
       case PUnitType => "()"
@@ -94,6 +97,7 @@ object Common:
       case PLift     => "Lift"
       case PLiftTerm => "lift"
       case PLower    => "lower"
+      case PLabel    => "Label"
   export PrimName.*
   object PrimName:
     def apply(x: Name): Option[PrimName] = x.expose match
@@ -102,4 +106,5 @@ object Common:
       case "Lift"  => Some(PLift)
       case "lift"  => Some(PLiftTerm)
       case "lower" => Some(PLower)
+      case "Label" => Some(PLabel)
       case _       => None

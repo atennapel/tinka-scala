@@ -209,12 +209,14 @@ class Elaboration extends IElaboration:
   private def shouldPostpone(t: S.Tm): Boolean = t match
     case S.Var(Name("[]")) => false
     case S.Var(Name("()")) => false
+    case S.LabelLit(_)     => false
     case _                 => true
 
   private def isNeutral(t: S.Tm): Boolean = t match
     case S.Var(Name("[]")) => true
     case S.Var(Name("()")) => true
     case S.Pair(_, _)      => true
+    case S.LabelLit(_)     => true
     case _                 => false
 
   private def check(tm: S.Tm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
@@ -322,6 +324,7 @@ class Elaboration extends IElaboration:
     debug(s"infer $tm")
     tm match
       case S.SPos(pos, tm) => infer(tm)(ctx.enter(pos))
+      case S.LabelLit(x)   => (LabelLit(x), VLabel(), VLevel.unit)
       case S.Type(l) =>
         val el = inferFinLevel(l)
         val vl = el.evalCtx

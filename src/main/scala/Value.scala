@@ -145,6 +145,7 @@ object Value:
     case VPiLvl(name: Bind, body: Clos[VFinLevel], u: ClosLvl)
     case VSigma(bind: Bind, ty: VTy, u1: VLevel, body: Clos[Val], u2: VLevel)
     case VPair(fst: Val, snd: Val)
+    case VLabelLit(name: Name)
   export Val.*
 
   def vlam(x: String, body: Val => Val): Val =
@@ -173,16 +174,22 @@ object Value:
       case _                    => None
 
   object VUnitType:
-    def apply = VNe(HPrim(PUnitType), SId)
+    def apply() = VNe(HPrim(PUnitType), SId)
     def unapply(value: Val): Boolean = value match
       case VNe(HPrim(PUnitType), SId) => true
       case _                          => false
 
   object VUnit:
-    def apply = VNe(HPrim(PUnit), SId)
+    def apply() = VNe(HPrim(PUnit), SId)
     def unapply(value: Val): Boolean = value match
       case VNe(HPrim(PUnit), SId) => true
       case _                      => false
+
+  object VLabel:
+    def apply() = VNe(HPrim(PLabel), SId)
+    def unapply(value: Val): Boolean = value match
+      case VNe(HPrim(PLabel), SId) => true
+      case _                       => false
 
   object VLift:
     def apply(k: VFinLevel, l: VFinLevel, a: Val) =
