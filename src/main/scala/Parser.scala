@@ -78,12 +78,15 @@ object Parser:
     private lazy val bind: Parsley[Bind] =
       "_" #> DontBind <|> identOrOp.map(DoBind.apply)
 
+    private lazy val holeP: Parsley[Tm] =
+      ("_" *> option(ident)).map(x => x.fold(hole)(x => Hole(Some(x))))
+
     private lazy val atom: Parsley[Tm] = positioned(
       ("(" *> (userOp
         .map(Var.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
         (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
           .map(mkUnitPair) <|>
-        "_" #> Hole <|> attempt("Type" *> levelAtom).map(
+        holeP <|> attempt("Type" *> levelAtom).map(
           Type(_)
         ) <|> "Type" #> Type(LZ) <|> nat
         <|> attempt("'" *> ident).map(LabelLit.apply) <|>
@@ -93,6 +96,7 @@ object Parser:
 
     private val unittype = Var(Name("()"))
     private val unit = Var(Name("[]"))
+    private val hole = Hole(None)
 
     private def mkPair(ts: List[Tm]): Tm = ts match
       case Nil => unittype
@@ -131,8 +135,8 @@ object Parser:
           ps.foldRight(rt) {
             case (Right((xs, i, ty)), rt) =>
               xs.foldRight(rt)((x, rt) =>
-                if isSigma then Sigma(x, ty.getOrElse(Hole), rt)
-                else Pi(x, i, ty.getOrElse(Hole), rt)
+                if isSigma then Sigma(x, ty.getOrElse(hole), rt)
+                else Pi(x, i, ty.getOrElse(hole), rt)
               )
             case (Left(xs), rt) =>
               xs.foldRight(rt)(PiLvl(_, _))
@@ -261,7 +265,7 @@ object Parser:
       ps.foldRight(rt)((x, b) =>
         x match
           case Right((xs, i, ty)) =>
-            xs.foldRight(b)(Pi(_, i, ty.getOrElse(Hole), _))
+            xs.foldRight(b)(Pi(_, i, ty.getOrElse(hole), _))
           case Left(xs) =>
             xs.foldRight(b)(PiLvl(_, _))
       )
@@ -278,7 +282,7 @@ object Parser:
               Lam(
                 _,
                 ArgIcit(i),
-                if useTypes then Some(ty.getOrElse(Hole)) else None,
+                if useTypes then Some(ty.getOrElse(hole)) else None,
                 _
               )
             )

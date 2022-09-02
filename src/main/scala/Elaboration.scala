@@ -220,10 +220,17 @@ class Elaboration extends IElaboration:
     case _                 => false
 
   private def check(tm: S.Tm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
-    debug(s"check $tm : ${ty.quoteCtx}")
+    debug(s"check $tm : ${ty.prettyCtx}")
     (tm, ty.force) match
       case (S.SPos(pos, tm), _) => check(tm, ty, lv)(ctx.enter(pos))
-      case (S.Hole, _)          => newMeta(ty, lv)
+      case (S.Hole(None), _)    => newMeta(ty, lv)
+      case (S.Hole(Some(x)), _) =>
+        throwCtx(
+          HoleFoundError(
+            s"\n_$x : ${ty.prettyCtx}\nlocals:\n${ctx.prettyLocal}",
+            _
+          )
+        )
       case (S.Lam(x, i, oty, b), VPi(y, i2, pty, u1, rty, u2))
           if icitMatch(i, y, i2) =>
         oty.foreach(ty =>
@@ -265,6 +272,8 @@ class Elaboration extends IElaboration:
         val (ev, ety, vty, lv1) = checkOptionalType(v, oty)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, lv1, ev.evalCtx, ev))
         Let(x, ety, ev, eb)
+      case (S.Var(Name("[]")), VId(l, k, a, b, x, y)) =>
+        check(S.Var(Name("Refl")), ty, lv)
       case (tm, VLift(k, l, a)) if isNeutral(tm) =>
         val etm = check(tm, a, VFL(l))
         App(
@@ -482,12 +491,16 @@ class Elaboration extends IElaboration:
           VSigma(DontBind, fstty, u1, CFun(_ => sndty), u2),
           u1 max u2
         )
-      case S.Hole =>
+      case S.Hole(None) =>
         val l = newLMeta
         val u = VFL(l.evalCtx)
         val a = newMeta(VType(u), u.inc).evalCtx
         val t = newMeta(a, u)
         (t, a, u)
+      case S.Hole(Some(x)) =>
+        throwCtx(
+          CannotInferError("named hole", _)
+        ) // TODO: postpone named holes
       case S.Lam(_, _, _, _) =>
         throwCtx(CannotInferError("lambda with named parameter", _))
       case S.LamLvl(_, _, _) =>

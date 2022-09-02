@@ -32,4 +32,19 @@ object Prims:
     case PTZ  => "{l : Label} {e : Enum} -> Tag (ECons l e)"
     case PTS  => "{l : Label} {e : Enum} -> Tag e -> Tag (ECons l e)"
     case PElimTag =>
-      "<k> (P : {e : Enum} -> Tag e -> Type k) (z : {l : Label} {e : Enum} -> P {ECons l e} TZ) (s : {l : Label} {e : Enum} (t : Tag e) -> P t -> P (TS {l} t)) {e : Enum} (t : Tag e) -> P t"
+      """<k> (P : {e : Enum} -> Tag e -> Type k)
+         (z : {l : Label} {e : Enum} -> P {ECons l e} TZ)
+         (s : {l : Label} {e : Enum} (t : Tag e) -> P t -> P (TS {l} t))
+         {e : Enum} (t : Tag e) -> P t"""
+
+    case PId   => "<l k> {A : Type l} {B : Type k} -> A -> B -> Type 0"
+    case PRefl => "<l> {A : Type l} {x : A} -> Id <l> <l> {A} {A} x x"
+    case PElimId =>
+      """<k l>
+         {A : Type l}
+         {x : A}
+         (P : {y : A} -> Id <l> <l> {A} {A} x y -> Type k)
+         (refl : P {x} Refl)
+         {y : A}
+         (p : Id <l> <l> {A} {A} x y)
+         -> P {y} p"""

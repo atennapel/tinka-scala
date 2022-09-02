@@ -55,7 +55,7 @@ object Surface:
 
     case LabelLit(name: Name)
 
-    case Hole
+    case Hole(name: Option[Name])
 
     case SPos(pos: Pos, tm: Tm)
 
@@ -65,7 +65,7 @@ object Surface:
       case Var(x)      => s"$x"
       case Type(LZ)    => "Type"
       case Type(l)     => s"Type $l"
-      case Hole        => "_"
+      case Hole(x)     => s"_${x.map(_.toString).getOrElse("")}"
       case LabelLit(l) => s"'$l"
 
       case Let(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"

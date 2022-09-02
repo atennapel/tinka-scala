@@ -249,3 +249,59 @@ object Value:
       case VNe(HPrim(PTS), SApp(SApp(SApp(SId, l, Impl), e, Impl), t, Expl)) =>
         Some((l, e, t))
       case _ => None
+
+  object VId:
+    def apply(l: VFinLevel, k: VFinLevel, a: Val, b: Val, x: Val, y: Val) =
+      VNe(
+        HPrim(PId),
+        SApp(
+          SApp(
+            SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl), b, Impl),
+            x,
+            Expl
+          ),
+          y,
+          Expl
+        )
+      )
+    def unapply(
+        value: Val
+    ): Option[(VFinLevel, VFinLevel, Val, Val, Val, Val)] = value match
+      case VNe(
+            HPrim(PId),
+            SApp(
+              SApp(
+                SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl), b, Impl),
+                x,
+                Expl
+              ),
+              y,
+              Expl
+            )
+          ) =>
+        Some((l, k, a, b, x, y))
+      case _ => None
+
+  object VRefl:
+    def apply(l: VFinLevel, a: Val, x: Val) =
+      VNe(
+        HPrim(PRefl),
+        SApp(
+          SApp(SAppLvl(SId, l), a, Impl),
+          x,
+          Expl
+        )
+      )
+    def unapply(
+        value: Val
+    ): Option[(VFinLevel, Val, Val)] = value match
+      case VNe(
+            HPrim(PRefl),
+            SApp(
+              SApp(SAppLvl(SId, l), a, Impl),
+              x,
+              Expl
+            )
+          ) =>
+        Some((l, a, x))
+      case _ => None

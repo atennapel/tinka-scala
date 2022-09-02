@@ -106,6 +106,14 @@ final case class Ctx(
 
   def throwElab(err: Pos => ElabError): Nothing = throw err(pos)
 
+  def prettyLocal: String =
+    def go(p: Path): List[String] = p match
+      case PHere                   => Nil
+      case PBind(p, x, ty, _)      => s"$x : ${pretty0(ty)(p.names)}" :: go(p)
+      case PBindLevel(p, x)        => s"level $x" :: go(p)
+      case PDefine(p, x, ty, _, _) => s"$x : ${pretty0(ty)(p.names)}" :: go(p)
+    go(path).mkString("\n")
+
 object Ctx:
   def empty: Ctx = empty((1, 1))
   def empty(pos: Pos): Ctx = Ctx(lvl0, Nil, TEmpty, PHere, Nil, pos)

@@ -145,6 +145,51 @@ object Evaluation:
               )
           )
       )
+    case PElimId =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l =>
+              vlami(
+                "A",
+                a =>
+                  vlami(
+                    "x",
+                    x =>
+                      vlam(
+                        "P",
+                        p =>
+                          vlam(
+                            "refl",
+                            refl =>
+                              vlami(
+                                "y",
+                                y =>
+                                  vlam(
+                                    "p",
+                                    pp =>
+                                      pp.primelim(
+                                        PElimId,
+                                        List(
+                                          Left(k),
+                                          Left(l),
+                                          Right((a, Impl)),
+                                          Right((x, Impl)),
+                                          Right((p, Expl)),
+                                          Right((refl, Expl)),
+                                          Right((y, Impl))
+                                        )
+                                      )
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
     case _ => VPrim(x)
 
   extension (l: FinLevel)
@@ -314,6 +359,14 @@ object Evaluation:
             t.primelim(PElimTag, args.init ++ List(Right((e, Impl)))),
             Expl
           )
+
+        // elimId <k> <l> {A} {x} P refl {y} (Refl <l> {A} {y}) ~> refl
+        case (
+              PElimId,
+              VRefl(_, _, _),
+              List(_, _, _, _, _, Right((refl, _)), _)
+            ) =>
+          refl
 
         case (_, VNe(hd, sp), _) => VNe(hd, SPrim(sp, x, args))
         case (_, VGlobal(y, lvl, sp, v), _) =>

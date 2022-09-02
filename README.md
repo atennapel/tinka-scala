@@ -41,6 +41,10 @@ sbt "run examples/church.tinka"
   - [x] Level unification
 - [x] Globals
 - [x] Lift, lift and lower
+- [x] Identity type
+  - [x] Constructors
+  - [x] Eliminator
+  - [x] Unit as Refl in elaboration
 - [ ] Enum
   - [x] Add Enum
   - [x] Add Tag
@@ -48,6 +52,7 @@ sbt "run examples/church.tinka"
   - [ ] Sugar for Enum and Tag
   - [ ] Elaboration rule for Label and Tag
   - [ ] Unit as Tag
+- [ ] Postponed named holes
 - [ ] Imports
 - [ ] Hide inserted apps/binders in pretty printing
 - [ ] Erasure annotations
