@@ -1,37 +1,60 @@
+-- primitive unit type with (weak) eta
+let indUnit (P : () -> Type) (p : P []) (x : ()) : P x = p;
+
+-- sigma type with eta
+let indSigma
+  {A} {B : A -> Type}
+  (P : ((x : A) ** B x) -> Type)
+  (h : (fst : A) (snd : B fst) -> P (fst, snd))
+  (s : (x : A) ** B x) : P s
+  = h s.1 s.2;
+
 -- booleans
 let Bool = (A : Type) -> A -> A -> A;
-let True : Bool = \A t f. t;
-let False : Bool = \A t f. f;
+let True : Bool = \_ t f. t;
+let False : Bool = \_ t f. f;
 
-let cond (A : Type) (b : Bool) (t : A) (f : A) : A = b A t f;
+let cond {A} (b : Bool) (t : A) (f : A) : A = b _ t f;
 
 -- defining if_ allows for if-then-else syntax
--- TODO: implement unit types and implicit functions
-let if_ (b : Bool) (t : Type -> Bool) (f : Type -> Bool) : Bool = (cond (Type -> Bool) b t f) Type;
+let if_ {A} (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
+  cond {{_ : ()} -> A} b t f;
+-- and another for if-then-else with an explicit return type
+let if-ind_ (A : Type) (b : Bool) (t : {_ : ()} -> A) (f : {_ : ()} -> A) : A =
+  cond {{_ : ()} -> A} b t f;
 
 let (!) (b : Bool) : Bool = if b then False else True;
 let (&&) (a b : Bool) : Bool = if a then b else False;
-let (||) (a b : Bool) : Bool = if a then True else b;
+
+-- if with explicit return type
+let (||) (a b : Bool) : Bool = if a : Bool then True else b;
 
 -- natural numbers
 let Nat = (A : Type) -> A -> (A -> A) -> A;
 
 -- defining Z and S provides support for natural number literals
-let Z : Nat = \A z s. z;
-let S (n : Nat) : Nat = \A z s. s (n A z s);
+let Z : Nat = \_ z s. z;
+let S (n : Nat) : Nat = \_ z s. s (n _ z s);
 
-let foldNat (A : Type) (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+let foldNat {A} (n : Nat) (z : A) (s : A -> A) : A = n _ z s;
 
-let isZero (n : Nat) : Bool = foldNat Bool n True (\_. False);
+let isZero (n : Nat) : Bool = foldNat n True (\_. False);
 
-let (+) (a b : Nat) : Nat = foldNat Nat a b S;
-let (*) (a b : Nat) : Nat = foldNat Nat a Z ((+) b);
+let (+) (a b : Nat) : Nat = foldNat a b S;
+let (*) (a b : Nat) : Nat = foldNat a Z ((+) b);
 
 -- identity type
-let Id (A : Type) (x y : A) = (F : A -> Type) -> F x -> F y;
-let Refl (A : Type) (x : A) : Id A x x = \F y. y;
+let Id {A} x y = (F : A -> Type) -> F x -> F y;
+let (~) = Id;
+let Refl {A} {x : A} : x ~ x = \F y. y;
 
-let add11eq2 : Id Nat (1 + 1) 2 = Refl Nat 2;
-let mul22eq4 : Id Nat (2 * 2) 4 = Refl Nat 4;
+let add11eq2 : 1 + 1 ~ 2 = Refl;
+let mul22eq4 : 2 * 2 ~ 4 = Refl;
 
-mul22eq4
+-- named projection
+let Sig = (A : Type) ** (fn : A -> A) ** ();
+
+let sigA (x : Sig) : x.A ~ x.1 = Refl;
+let sigfn (x : Sig) : x.fn ~ x.2.1 = Refl;
+
+[]
