@@ -389,7 +389,10 @@ class Unification(elab: IElaboration) extends IUnification:
       case (VLabelLit(x), VLabelLit(y)) if x == y => ()
       case (VPi(_, i1, t1, u11, b1, u21), VPi(_, i2, t2, u12, b2, u22))
           if i1 == i2 =>
-        unify(u11, u12); unify(u12, u22); unify(t1, t2); unify(b1, b2)
+        unify(u11, u12);
+        // unify(u12, u22); TODO: this fails some times
+        unify(t1, t2);
+        unify(b1, b2)
       case (VPiLvl(_, b1, u1), VPiLvl(_, b2, u2)) =>
         unify(u1, u2)
         unifyClosVFinLevel(b1, b2)

@@ -1,0 +1,32 @@
+let Void = Tag ENil;
+
+let Unit = Tag (ECons 'unit ENil);
+let unit : Unit = TZ;
+
+let Bool = Tag (ECons 'True (ECons 'False ENil));
+let True : Bool = TS TZ;
+let False : Bool = TZ;
+
+let Void0 <l> : Type (S l) = (A : Type l) -> A; 
+
+let (~) <l> {A : Type l} (x y : A) : Type = Id x y;
+let idJ <k l> {A : Type l} (P : {a b : A} -> a ~ b -> Type k) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
+  = elimId (\{c} q. P {a} {c} q) refl p;
+let rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a) : P b
+  = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
+
+let liftEnum <k> (e : Enum) : Type (S k) = elimEnum (\_. Type (S k)) (Void0 <k>) (\_ _ _. Lift Unit) e;
+let neqEnum <k> {l : Label} {e : Enum} : ECons l e ~ ENil -> Void0 <k> = \p. rewrite <S k> <0> {Enum} (\e. liftEnum <k> e) {ECons l e} {ENil} p (lift <S k> <0> {Unit} unit);
+
+let absurd <k> {A : Type k} (v : Void) : A =
+  elimTag (\{e} t. Id {Enum} {Enum} e ENil -> A) (\p. neqEnum p A) (\_ _ p. neqEnum p A) v Refl;
+
+let (!~) <l> {A : Type l} (x y : A) : Type = x ~ y -> Void;
+
+let indUnit <k> (P : Unit -> Type k) (p : P unit) (u: Unit) : P u =
+  elimTag (\{e} t. (p : Id {Enum} {Enum} e (ECons 'unit ENil)) -> P (rewrite (\e. Tag e) p t)) (\{l} {e} p. _z) _s u Refl;
+
+--let indBool <k> (P : Bool -> Type k) (t : P True) (f : P False) (b : Bool) : P b =
+--  elimTag _P _z _s b;
+
+[]

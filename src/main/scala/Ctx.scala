@@ -108,10 +108,11 @@ final case class Ctx(
 
   def prettyLocal: String =
     def go(p: Path): List[String] = p match
-      case PHere                   => Nil
-      case PBind(p, x, ty, _)      => s"$x : ${pretty0(ty)(p.names)}" :: go(p)
-      case PBindLevel(p, x)        => s"level $x" :: go(p)
-      case PDefine(p, x, ty, _, _) => s"$x : ${pretty0(ty)(p.names)}" :: go(p)
+      case PHere              => Nil
+      case PBind(p, x, ty, _) => s"$x : ${pretty0(zonk(ty))(p.names)}" :: go(p)
+      case PBindLevel(p, x)   => s"level $x" :: go(p)
+      case PDefine(p, x, ty, _, _) =>
+        s"$x : ${pretty0(zonk(ty))(p.names)}" :: go(p)
     go(path).mkString("\n")
 
 object Ctx:
