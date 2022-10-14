@@ -10,4 +10,8 @@ sbt "run examples/church.tinka"
 ```
 
 ## TODO
-- [x] Simple Type-in-Type language
+- [x] Basic language
+- [ ] Parser
+- [ ] Pretty printing
+- [ ] Holes
+- [ ] Operators
