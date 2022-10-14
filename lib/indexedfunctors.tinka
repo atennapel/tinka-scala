@@ -1,0 +1,52 @@
+-- From the paper "Generic Programming with Indexed Functors"
+import "lib/sum";
+import "lib/combinators";
+import "lib/id";
+
+-- indexed functors
+def Ix I = I -> Type;
+def Functor I O = Ix I -> Ix O;
+def (:>) = Functor;
+def (:|:) {I J} (r : Ix I) (s : Ix J) : Ix (I :+: J) =
+  \t. caseSum t r s;
+
+-- elements
+def Z {I O} : I :> O = \r o. Void;
+def U {I O} : I :> O = \r o. ();
+def (:+) {I O} (F G : I :> O) : I :> O = \r o. F r o :+: G r o;
+def (:*) {I O} (F G : I :> O) : I :> O = \r o. F r o ** G r o;
+def (:@) {I M O} (F : M :> O) (G : I :> M) : I :> O = \r o. (F << G) r o;
+def Fix {I O} (F : I :+: O :> O) : I :> O = \r. IFix {O} (\R o. F (r :|: R) o);
+def I {I O} (i : I) : I :> O = \r o. r i;
+
+-- from functor to datatype
+def Data (F : Void :> ()) : Type = F absurd [];
+def Con (F : (Void :+: ()) :> ()) (x : F (absurd :|: \_. Data (Fix F)) []) : Data (Fix F)
+  = IIn {()} {\R o. F (absurd :|: R) o} x;
+
+def PData (F : () :> ()) : Type -> Type = \A. F (\_. A) [];
+def PCon {A} (F : (() :+: ()) :> ()) (x : F ((\_. A) :|: \_. PData (Fix F) A) []) : PData (Fix F) A
+ = IIn {()} {\R o. F ((\_. A) :|: R) o} x;
+
+-- examples
+def BoolF : Void :> () = U :+ U;
+
+def NatFR : (Void :+: ()) :> () = U :+ (I (Right []));
+def NatF : Void :> () = Fix NatFR;
+
+def ListFR : (() :+: ()) :> () = U :+ (I (Left []) :* I (Right []));
+def ListF : () :> () = Fix ListFR;
+
+def Bool' = Data BoolF;
+def True' : Bool' = Left [];
+def False' : Bool' = Right [];
+
+def Nat' = Data NatF;
+def Z' : Nat' = Con NatFR (Left []);
+def S' (n : Nat') : Nat' = Con NatFR (Right n);
+
+def List' A = PData ListF A;
+def Nil' {A} : List' A = PCon ListFR (Left []);
+def Cons' {A} (hd : A) (tl : List' A) : List' A = PCon ListFR (Right (hd, tl));
+
+def main = S' (S' Z');
