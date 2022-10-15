@@ -1,5 +1,5 @@
 import Common.*
-import Syntax.Tm
+import Syntax.{Tm, ProjType}
 
 object Value:
   type VTy = Val
@@ -14,15 +14,19 @@ object Value:
 
   enum Spine:
     case SId
-    case SApp(fn: Spine, arg: Val)
+    case SApp(fn: Spine, arg: Val, icit: Icit)
+    case SProj(hd: Spine, proj: ProjType)
   export Spine.*
 
   enum Val:
     case VType
     case VRigid(hd: Lvl, spine: Spine)
 
-    case VLam(bind: Bind, body: Clos)
-    case VPi(bind: Bind, ty: VTy, body: Clos)
+    case VLam(bind: Bind, icit: Icit, body: Clos)
+    case VPi(bind: Bind, icit: Icit, ty: VTy, body: Clos)
+
+    case VPair(fst: Val, snd: Val)
+    case VSigma(bind: Bind, ty: VTy, body: Clos)
   export Val.*
 
   object VVar:

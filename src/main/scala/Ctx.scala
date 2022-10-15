@@ -14,10 +14,10 @@ final case class Ctx(
 ):
   def enter(pos: Pos): Ctx = copy(pos = pos)
 
-  def bind(x: Bind, ty: VTy): Ctx =
+  def bind(x: Bind, ty: VTy, inserted: Boolean = false): Ctx =
     val newtypes = x match
-      case DoBind(x) => (x, lvl, ty) :: types
-      case DontBind  => types
+      case DoBind(x) if !inserted => (x, lvl, ty) :: types
+      case _                      => types
     Ctx(lvl + 1, VVar(lvl) :: env, newtypes, pos)
 
   def define(x: Name, ty: VTy, value: Val): Ctx =

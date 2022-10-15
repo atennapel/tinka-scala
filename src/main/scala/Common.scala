@@ -23,6 +23,10 @@ object Common:
   enum Bind:
     case DontBind
     case DoBind(name: Name)
+
+    override def toString: String = this match
+      case DontBind  => "_"
+      case DoBind(x) => x.toString
   export Bind.*
 
   enum Icit:

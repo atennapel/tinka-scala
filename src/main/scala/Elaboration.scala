@@ -5,6 +5,7 @@ import Value.*
 import Evaluation.*
 import Unification.{unify as unify0}
 import Errors.*
+import scala.annotation.tailrec
 
 object Elaboration:
   private def unify(a: VTy, b: VTy)(implicit ctx: Ctx): Unit =
@@ -29,12 +30,28 @@ object Elaboration:
       val (etm, vty) = infer(tm)
       (etm, ctx.quote(vty), vty)
 
+  private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
+    case RArgNamed(x) =>
+      b match
+        case DoBind(y) => x == y && i2 == Impl
+        case DontBind  => false
+    case RArgIcit(i) => i == i2
+
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm = (tm, ty) match
     case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
-    case (RLam(x, _, ot, b), VPi(_, t, rt)) =>
+    case (RHole(ox), _) =>
+      throw HoleError(s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.quote(ty)}")
+    case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
       ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
       val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
-      Lam(x, eb)
+      Lam(x, i2, eb)
+    case (_, VPi(x, Impl, pty, rty)) =>
+      val etm = check(tm, ctx.inst(rty))(ctx.bind(x, pty, true))
+      Lam(x, Impl, etm)
+    case (RPair(fst, snd), VSigma(_, fty, sty)) =>
+      val efst = check(fst, fty)
+      val esnd = check(snd, sty.inst(ctx.eval(efst)))
+      Pair(efst, esnd)
     case (RLet(x, t, v, b), _) =>
       val (ev, et, vt) = checkValue(v, t)
       val eb = check(b, ty)(ctx.define(x, vt, ctx.eval(ev)))
@@ -43,6 +60,32 @@ object Elaboration:
       val (etm, vty) = infer(tm)
       unify(vty, ty)
       etm
+
+  private def projIndex(tm: Val, x: Bind, ix: Int, clash: Boolean): Val =
+    x match
+      case DoBind(x) if !clash => vproj(tm, Named(x, ix))
+      case _ =>
+        @tailrec
+        def go(tm: Val, ix: Int): Val = ix match
+          case 0 => vproj(tm, Fst)
+          case n => go(vproj(tm, Snd), n - 1)
+        go(tm, ix)
+  private def projNamed(tm: Val, ty: VTy, x: Name)(implicit
+      ctx: Ctx
+  ): (ProjType, VTy) =
+    @tailrec
+    def go(ty: VTy, ix: Int, ns: Set[Name]): (ProjType, VTy) =
+      ty match
+        case VSigma(DoBind(y), fstty, _) if x == y =>
+          (Named(x, ix), fstty)
+        case VSigma(y, _, sndty) =>
+          val (clash, newns) = y match
+            case DoBind(y) => (ns.contains(y), ns + y)
+            case DontBind  => (false, ns)
+          go(sndty.inst(projIndex(tm, y, ix, clash)), ix + 1, newns)
+        case _ =>
+          throw NotSigmaError(s"in named project $x, got ${ctx.quote(ty)}")
+    go(ty, 0, Set.empty)
 
   private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy) = tm match
     case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
@@ -55,22 +98,37 @@ object Elaboration:
       val (ev, et, vt) = checkValue(v, t)
       val (eb, rt) = infer(b)(ctx.define(x, vt, ctx.eval(ev)))
       (Let(x, et, ev, eb), rt)
-    case RPi(x, _, t, b) =>
+    case RPi(x, i, t, b) =>
       val et = checkType(t)
       val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
-      (Pi(x, et, eb), VType)
-    case RApp(f, a, _) =>
+      (Pi(x, i, et, eb), VType)
+    case RSigma(x, t, b) =>
+      val et = checkType(t)
+      val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
+      (Sigma(x, et, eb), VType)
+    case RApp(f, a, RArgIcit(i)) =>
       val (ef, ft) = infer(f)
       ft match
-        case VPi(_, vt, b) =>
+        case VPi(_, i2, vt, b) if i == i2 =>
           val ea = check(a, vt)
-          (App(ef, ea), b.inst(ctx.eval(ea)))
-        case _ => throw NotPiError(tm.toString)
-    case RLam(x, _, Some(t), b) =>
+          (App(ef, ea, i), b.inst(ctx.eval(ea)))
+        case _ => throw NotPiError(s"$tm: ${ctx.quote(ft)}")
+    case RProj(tm, proj) =>
+      val (etm, ty) = infer(tm)
+      ty match
+        case VSigma(_, fty, sty) =>
+          proj match
+            case RFst => (Proj(etm, Fst), fty)
+            case RSnd => (Proj(etm, Snd), sty.inst(vproj(ctx.eval(etm), Fst)))
+            case RNamed(x) =>
+              val (eproj, rty) = projNamed(ctx.eval(etm), ty, x)
+              (Proj(etm, eproj), rty)
+        case _ => throw NotSigmaError(s"$tm: ${ctx.quote(ty)}")
+    case RLam(x, RArgIcit(i), Some(t), b) =>
       val et = checkType(t)
       val vt = ctx.eval(et)
       val (eb, rt) = infer(b)(ctx.bind(x, vt))
-      (Lam(x, eb), VPi(x, vt, ctx.close(rt)))
+      (Lam(x, i, eb), VPi(x, i, vt, ctx.close(rt)))
     case _ => throw CannotInferError(tm.toString)
 
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
