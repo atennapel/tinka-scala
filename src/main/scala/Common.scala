@@ -1,6 +1,8 @@
 object Common:
   def impossible(): Nothing = throw new Exception("impossible")
 
+  type Pos = (Int, Int) // (line, col)
+
   opaque type Ix = Int
 
   extension (i: Ix) def apply[A](xs: List[A]): A = xs(i)
@@ -13,9 +15,17 @@ object Common:
     def +(o: Int): Lvl = l + o
     def toIx(implicit k: Lvl): Ix = k - l - 1
 
-  type Name = String
+  case class Name(x: String):
+    override def toString: String =
+      if x.head.isLetter then x else s"($x)"
+    def expose: String = x
 
   enum Bind:
     case DontBind
     case DoBind(name: Name)
   export Bind.*
+
+  enum Icit:
+    case Expl
+    case Impl
+  export Icit.*

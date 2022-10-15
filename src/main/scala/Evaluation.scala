@@ -29,3 +29,5 @@ object Evaluation:
 
     case VLam(x, b)   => Lam(x, quote(b.inst(VVar(l)))(l + 1))
     case VPi(x, t, b) => Pi(x, quote(t), quote(b.inst(VVar(l)))(l + 1))
+
+  def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = Nil): Tm = quote(eval(tm))

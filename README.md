@@ -11,7 +11,16 @@ sbt "run examples/church.tinka"
 
 ## TODO
 - [x] Basic language
-- [ ] Parser
+- [x] Parser
 - [ ] Pretty printing
-- [ ] Holes
-- [ ] Operators
+- [ ] Sigmas
+- [ ] Implicit functions
+- [ ] Add Void, Unit, Bool primitives
+- [ ] Add Identity primitive
+- [ ] Meta variables
+- [ ] Unification with pruning
+- [ ] Elaboration with metas
+- [ ] Local and global gluing
+- [ ] Add fixpoint primitive
+- [ ] Add number primitives
+- [ ] Add String primitive

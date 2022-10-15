@@ -9,16 +9,19 @@ type Types = List[(Name, Lvl, VTy)]
 final case class Ctx(
     lvl: Lvl,
     env: Env,
-    types: Types
+    types: Types,
+    pos: Pos
 ):
+  def enter(pos: Pos): Ctx = copy(pos = pos)
+
   def bind(x: Bind, ty: VTy): Ctx =
     val newtypes = x match
       case DoBind(x) => (x, lvl, ty) :: types
       case DontBind  => types
-    Ctx(lvl + 1, VVar(lvl) :: env, newtypes)
+    Ctx(lvl + 1, VVar(lvl) :: env, newtypes, pos)
 
   def define(x: Name, ty: VTy, value: Val): Ctx =
-    Ctx(lvl + 1, value :: env, (x, lvl, ty) :: types)
+    Ctx(lvl + 1, value :: env, (x, lvl, ty) :: types, pos)
 
   def eval(tm: Tm): Val = eval0(tm)(env)
   def quote(v: Val): Tm = quote0(v)(lvl)
@@ -34,4 +37,4 @@ final case class Ctx(
     go(types)
 
 object Ctx:
-  def empty = Ctx(lvl0, Nil, Nil)
+  def empty(pos: Pos = (0, 0)) = Ctx(lvl0, Nil, Nil, pos)

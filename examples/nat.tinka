@@ -1,0 +1,7 @@
+let Nat = (A : Type) -> A -> (A -> A) -> A;
+let Z : Nat = \A z s. z;
+let S (n : Nat) : Nat = \A z s. s (n A z s);
+
+let (+) (a b : Nat) : Nat = a Nat b S;
+
+1 + 2
