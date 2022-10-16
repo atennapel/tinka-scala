@@ -13,7 +13,7 @@ object Elaboration:
     catch
       case e: UnifyError =>
         throw ElabUnifyError(
-          s"failed to unify ${ctx.quote(a)} ~ ${ctx.quote(b)}: ${e.msg}"
+          s"failed to unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${e.msg}"
         )
 
   private def checkType(ty: RTm)(implicit ctx: Ctx): Ty = check(ty, VType)
@@ -40,7 +40,7 @@ object Elaboration:
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm = (tm, ty) match
     case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
     case (RHole(ox), _) =>
-      throw HoleError(s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.quote(ty)}")
+      throw HoleError(s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.pretty(ty)}")
     case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
       ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
       val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
@@ -84,7 +84,7 @@ object Elaboration:
             case DontBind  => (false, ns)
           go(sndty.inst(projIndex(tm, y, ix, clash)), ix + 1, newns)
         case _ =>
-          throw NotSigmaError(s"in named project $x, got ${ctx.quote(ty)}")
+          throw NotSigmaError(s"in named project $x, got ${ctx.pretty(ty)}")
     go(ty, 0, Set.empty)
 
   private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy) = tm match
@@ -112,7 +112,7 @@ object Elaboration:
         case VPi(_, i2, vt, b) if i == i2 =>
           val ea = check(a, vt)
           (App(ef, ea, i), b.inst(ctx.eval(ea)))
-        case _ => throw NotPiError(s"$tm: ${ctx.quote(ft)}")
+        case _ => throw NotPiError(s"$tm: ${ctx.pretty(ft)}")
     case RProj(tm, proj) =>
       val (etm, ty) = infer(tm)
       ty match
@@ -123,7 +123,7 @@ object Elaboration:
             case RNamed(x) =>
               val (eproj, rty) = projNamed(ctx.eval(etm), ty, x)
               (Proj(etm, eproj), rty)
-        case _ => throw NotSigmaError(s"$tm: ${ctx.quote(ty)}")
+        case _ => throw NotSigmaError(s"$tm: ${ctx.pretty(ty)}")
     case RLam(x, RArgIcit(i), Some(t), b) =>
       val et = checkType(t)
       val vt = ctx.eval(et)

@@ -27,6 +27,10 @@ object Common:
     override def toString: String = this match
       case DontBind  => "_"
       case DoBind(x) => x.toString
+
+    def toName: Name = this match
+      case DontBind  => Name("_")
+      case DoBind(x) => x
   export Bind.*
 
   enum Icit:

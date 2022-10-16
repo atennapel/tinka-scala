@@ -21,11 +21,11 @@ import parsley.io.given
     val time1 = System.nanoTime - time
     println(s"time: ${time1 / 1000000}ms (${time1}ns)")
     println("type:")
-    println(ety)
+    println(ctx.pretty(ety))
     println("elaborated term:")
-    println(etm)
+    println(ctx.pretty(etm))
     println("normal form:")
-    println(nf(etm))
+    println(ctx.pretty(nf(etm)))
   catch
     case err: ElabError =>
       println(err.getMessage)
