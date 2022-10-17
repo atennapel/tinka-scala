@@ -5,7 +5,10 @@ object Common:
 
   opaque type Ix = Int
 
-  extension (i: Ix) def apply[A](xs: List[A]): A = xs(i)
+  extension (i: Ix)
+    def expose: Int = i
+    def apply[A](xs: List[A]): A = xs(i)
+    def >(o: Int | Ix): Boolean = i > o
 
   opaque type Lvl = Int
 

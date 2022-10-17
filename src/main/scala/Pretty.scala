@@ -7,29 +7,24 @@ object Pretty:
   private def prettySigma(tm: Tm)(implicit ns: List[Name]): String = tm match
     case Sigma(DontBind, t, b) =>
       s"${prettyParen(t, true)} ** ${prettyPi(b)(DontBind.toName :: ns)}"
-    case Sigma(DoBind(x0), t, b) =>
-      val x = fresh(x0)
+    case Sigma(DoBind(x), t, b) =>
       s"($x : ${pretty(t)}) ** ${prettyPi(b)(x :: ns)}"
     case rest => pretty(rest)
 
   private def prettyPi(tm: Tm)(implicit ns: List[Name]): String = tm match
     case Pi(DontBind, Expl, t, b) =>
       s"${prettyParen(t, true)} -> ${prettyPi(b)(DontBind.toName :: ns)}"
-    case Pi(DoBind(x0), Expl, t, b) =>
-      val x = fresh(x0)
+    case Pi(DoBind(x), Expl, t, b) =>
       s"($x : ${pretty(t)}) -> ${prettyPi(b)(x :: ns)}"
-    case Pi(x0, Impl, t, b) =>
-      val x = fresh(x0)
+    case Pi(x, Impl, t, b) =>
       s"{$x : ${pretty(t)}} -> ${prettyPi(b)(x.toName :: ns)}"
     case rest => pretty(rest)
 
   private def prettyLam(tm: Tm)(implicit ns: List[Name]): String =
     def go(tm: Tm, ns: List[Name], first: Boolean = false): String = tm match
-      case Lam(x0, Expl, b) =>
-        val x = fresh(x0)
+      case Lam(x, Expl, b) =>
         s"${if first then "" else " "}$x${go(b, x.toName :: ns)}"
-      case Lam(x0, Impl, b) =>
-        val x = fresh(x0)
+      case Lam(x, Impl, b) =>
         s"${if first then "" else " "}{$x}${go(b, x.toName :: ns)}"
       case rest => s". ${pretty(rest)(ns)}"
     s"\\${go(tm, ns, true)}"
@@ -55,26 +50,21 @@ object Pretty:
     case Pair(fst, snd) => fst :: flattenPair(snd)
     case tm             => List(tm)
 
-  @tailrec
-  private def fresh(x: Name)(implicit ns: List[Name]): Name =
-    if ns.contains(x) then fresh(Name(s"${x}'"))(ns) else x
-  private def fresh(b: Bind)(implicit ns: List[Name]): Bind = b match
-    case DoBind(x) => DoBind(fresh(x))
-    case DontBind  => DontBind
-
   private def prettyLift(x: Bind, tm: Tm)(implicit ns: List[Name]): String =
     pretty(tm)(x.toName :: ns)
   private def prettyLift(x: Name, tm: Tm)(implicit ns: List[Name]): String =
     pretty(tm)(x :: ns)
 
   def pretty(tm: Tm)(implicit ns: List[Name]): String = tm match
-    case Var(ix)   => ix(ns).toString
+    case Var(ix) =>
+      val x = ix(ns)
+      val countSkipped = ns.take(ix.expose).count(_ == x)
+      if countSkipped > 0 then s"$x^$countSkipped" else s"$x"
     case Type      => "Type"
     case UnitType  => "()"
     case UnitValue => "[]"
 
-    case Let(x0, t, v, b) =>
-      val x = fresh(x0)
+    case Let(x, t, v, b) =>
       s"let $x : ${pretty(t)} = ${pretty(v)}; ${prettyLift(x, b)}"
 
     case App(_, _, _)   => prettyApp(tm)

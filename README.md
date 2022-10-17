@@ -16,7 +16,6 @@ sbt "run examples/nat.tinka"
 - [x] Implicit functions
 - [x] Pretty printing
 - [x] Add unit primitive
-- [ ] Fix name shadowing issue in pretty printing
 - [ ] Global gluing and basic importing
 - [ ] Local gluing
 - [ ] Meta variables
