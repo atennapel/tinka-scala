@@ -14,6 +14,7 @@ import parsley.io.given
   setDebug(false)
   val tm = parser.parseFromFile(new File(filename)).flatMap(_.toTry).get
   debug(tm.toString)
+  debug(s"uris: ${tm.uris}")
   implicit val ctx: Ctx = Ctx.empty()
   try
     val time = System.nanoTime

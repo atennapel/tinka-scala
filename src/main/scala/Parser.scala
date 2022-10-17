@@ -7,11 +7,13 @@ import scala.language.implicitConversions
 object Parser:
   object LangLexer:
     import parsley.token.{LanguageDef, Lexer, Predicate, Parser}
-    import parsley.character.{alphaNum, isWhitespace}
-    import parsley.combinator.eof
+    import parsley.character.{alphaNum, isWhitespace, char, oneOf}
+    import parsley.combinator.{eof, many}
 
-    private val userOps = "`~!@#$%^&*-+=|:/?><,."
-    private val userOpsTail = userOps + "_;"
+    private val userOps = "`~!@$%^&*-+=|:/?><,."
+    private val userOpsTail = s"${userOps}#_;"
+    private val uriCharsHead = "-._~:/?#@!$&'*+,%="
+    private val uriChars = "-._~:/?#@!$&'*+,%="
 
     val lang = LanguageDef.plain.copy(
       commentLine = "--",
@@ -34,6 +36,14 @@ object Parser:
     val ident: Parsley[String] = lexer.identifier
     val userOp: Parsley[String] = lexer.userOp
     val natural: Parsley[Int] = lexer.natural
+    val uri: Parsley[String] =
+      lexer.lexeme(
+        char('#') *> (((alphaNum <|> oneOf(uriCharsHead*)) <~> many(
+          alphaNum <|> oneOf(uriChars*)
+        )).map { case (hd, tl) =>
+          s"$hd${tl.mkString}"
+        } <|> lexer.stringLiteral)
+      )
     def keyword(s: String): Parsley[Unit] = lexer.keyword(s)
     def symbol(s: String): Parsley[Unit] = void(lexer.symbol_(s))
 
@@ -49,7 +59,7 @@ object Parser:
     import parsley.combinator.{many, some, option, sepEndBy}
     import parsley.Parsley.pos
 
-    import LangLexer.{ident as ident0, userOp as userOp0, natural}
+    import LangLexer.{ident as ident0, userOp as userOp0, natural, uri}
     import LangLexer.Implicits.given
 
     private def positioned(p: => Parsley[RTm]): Parsley[RTm] =
@@ -68,6 +78,7 @@ object Parser:
     private lazy val atom: Parsley[RTm] = positioned(
       ("(" *> (userOp
         .map(RVar.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
+        attempt(uri).map(RUri.apply) <|>
         (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
           .map(mkUnitPair) <|>
         holeP <|> "Type" #> RType <|> nat

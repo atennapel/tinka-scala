@@ -21,6 +21,7 @@ object Presyntax:
   enum RTm:
     case RType
     case RVar(name: Name)
+    case RUri(uri: String)
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
@@ -36,4 +37,17 @@ object Presyntax:
 
     case RPos(pos: Pos, tm: RTm)
     case RHole(name: Option[Name])
+
+    def uris: Set[String] = this match
+      case RUri(uri) => Set(uri)
+      case RLet(_, t, v, b) =>
+        t.map(_.uris).getOrElse(Set.empty) ++ v.uris ++ b.uris
+      case RLam(_, _, t, b) => t.map(_.uris).getOrElse(Set.empty) ++ b.uris
+      case RApp(fn, arg, _) => fn.uris ++ arg.uris
+      case RPi(_, _, t, b)  => t.uris ++ b.uris
+      case RPair(fst, snd)  => fst.uris ++ snd.uris
+      case RProj(t, _)      => t.uris
+      case RSigma(_, t, b)  => t.uris ++ b.uris
+      case RPos(_, t)       => t.uris
+      case _                => Set.empty
   export RTm.*
