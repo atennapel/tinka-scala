@@ -20,7 +20,7 @@ object Parser:
       commentStart = "{-",
       commentEnd = "-}",
       nestedComments = true,
-      keywords = Set("Type", "let", "if", "then", "else"),
+      keywords = Set("Type", "let", "open", "if", "then", "else"),
       operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter =
@@ -111,7 +111,7 @@ object Parser:
     )
 
     lazy val tm: Parsley[RTm] = positioned(
-      attempt(piOrSigma) <|> ifTm <|> let <|> lam <|>
+      attempt(piOrSigma) <|> ifTm <|> let <|> open <|> lam <|>
         precedence[RTm](app)(
           Ops(InfixR)("**" #> ((l, r) => RSigma(DontBind, l, r))),
           Ops(InfixR)("->" #> ((l, r) => RPi(DontBind, Expl, l, r)))
@@ -173,6 +173,13 @@ object Parser:
           )
       }
 
+    private lazy val open: Parsley[RTm] =
+      ("open" *> projAtom <~> option(
+        "(" *> sepEndBy(identOrOp, ",") <* ")"
+      ) <~> ";" *> tm).map { case ((tm, ns), b) =>
+        ROpen(tm, ns, b)
+      }
+
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))
 
@@ -208,7 +215,7 @@ object Parser:
       )
 
     private lazy val appAtom: Parsley[RTm] = positioned(
-      (projAtom <~> many(arg) <~> option(let <|> lam)).map {
+      (projAtom <~> many(arg) <~> option(let <|> open <|> lam)).map {
         case ((fn, args), opt) =>
           (args.flatten ++ opt.map(t => (t, RArgIcit(Expl))))
             .foldLeft(fn) { case (fn, (arg, i)) => RApp(fn, arg, i) }
