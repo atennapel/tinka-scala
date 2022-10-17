@@ -29,3 +29,6 @@ object Errors:
   case class HoleError(msg: String)(implicit val ctx: Ctx)
       extends Exception(msg)
       with ElabError
+  case class NameNotInSigmaError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"name not found in sigma: $msg")
+      with ElabError

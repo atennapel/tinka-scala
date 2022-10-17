@@ -29,6 +29,7 @@ object Pretty:
       case rest => s". ${pretty(rest)(ns)}"
     s"\\${go(tm, ns, true)}"
 
+  @tailrec
   private def prettyParen(tm: Tm, app: Boolean = false)(implicit
       ns: List[Name]
   ): String = tm match
@@ -40,6 +41,7 @@ object Pretty:
     case Pair(_, _)          => pretty(tm)
     case Proj(_, _)          => pretty(tm)
     case App(_, _, _) if app => pretty(tm)
+    case Wk(tm)              => prettyParen(tm, app)
     case _                   => s"(${pretty(tm)})"
 
   private def prettyApp(tm: Tm)(implicit ns: List[Name]): String = tm match
@@ -65,6 +67,7 @@ object Pretty:
     case Type      => "Type"
     case UnitType  => "()"
     case UnitValue => "[]"
+    case Wk(tm)    => pretty(tm)(ns.tail)
 
     case Let(x, t, v, b) =>
       s"let $x : ${pretty(t)} = ${pretty(v)}; ${prettyLift(x, b)}"

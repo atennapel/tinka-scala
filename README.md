@@ -19,8 +19,9 @@ sbt "run examples/nat.tinka"
 - [ ] Global gluing and basic importing
   - [x] Basic loading
   - [x] Forcing/unfold modes
-  - [ ] open syntax
-  - [ ] Load from URI generally
+  - [x] Open syntax
+  - [ ] Renaming
+  - [ ] Reuse introduced variables
 - [ ] Local gluing
 - [ ] Meta variables
 - [ ] Unification with pruning
@@ -31,6 +32,5 @@ sbt "run examples/nat.tinka"
 - [ ] Add number primitives
 - [ ] Add String primitive
 - [ ] Rigid variables
-- [ ] Open extensions
-  - [ ] Hiding
-  - [ ] Renaming
+- [ ] Open extensions: hiding
+- [ ] Load from URI generally (http/file schemes)

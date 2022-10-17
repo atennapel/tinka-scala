@@ -4,12 +4,13 @@ object Syntax:
   enum ProjType:
     case Fst
     case Snd
-    case Named(name: Name, ix: Int)
+    case Named(name: Option[Name], ix: Int)
 
     override def toString: String = this match
-      case Fst         => ".1"
-      case Snd         => ".2"
-      case Named(x, _) => s".$x"
+      case Fst               => ".1"
+      case Snd               => ".2"
+      case Named(Some(x), _) => s".$x"
+      case Named(None, i)    => s".$i"
   export ProjType.*
 
   type Ty = Tm
@@ -30,6 +31,8 @@ object Syntax:
     case UnitType
     case UnitValue
 
+    case Wk(tm: Tm)
+
     override def toString: String = this match
       case Type               => "Type"
       case Var(ix)            => s"'$ix"
@@ -46,4 +49,5 @@ object Syntax:
       case Sigma(x, t, b)     => s"(($x : $t) ** $b)"
       case UnitType           => "()"
       case UnitValue          => "[]"
+      case Wk(tm)             => s"(Wk $tm)"
   export Tm.*

@@ -31,6 +31,82 @@ object Elaboration:
       val (etm, vty) = infer(tm)
       (etm, ctx.quote(vty), vty)
 
+  @tailrec
+  private def findNameInSigma(
+      x: Name,
+      tm: Val,
+      ty: Val,
+      i: Int = 0,
+      xs: Set[Name] = Set.empty
+  )(implicit ctx: Ctx): (Val, Int) = force(
+    ty
+  ) match
+    case VSigma(DoBind(y), ty, c) if x == y => (ty, i)
+    case VSigma(y, ty, c) =>
+      val name = y match
+        case DoBind(y) if !xs.contains(y) => Some(y)
+        case _                            => None
+      findNameInSigma(
+        x,
+        tm,
+        c.inst(vproj(tm, Named(name, i))),
+        i + 1,
+        name.map(xs + _).getOrElse(xs)
+      )
+    case _ => throw NameNotInSigmaError(x.toString)
+
+  private def inferOpen(rtm: RTm, ns: Option[List[Name]])(implicit
+      ctx: Ctx
+  ): (Ctx, Tm => Tm) =
+    val (tm, ty) = infer(rtm)
+    val vtm = ctx.eval(tm)
+    ns match
+      case None =>
+        def go(ctx: Ctx, tm: Tm, ty: Val, i: Int): (Ctx, Tm => Tm) =
+          force(ty) match
+            case VSigma(DoBind(x), pty, b) =>
+              val (nctx, builder) = go(
+                ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+                Wk(tm),
+                b.inst(vproj(vtm, Named(Some(x), i))),
+                i + 1
+              )
+              (
+                nctx,
+                b =>
+                  Let(
+                    x,
+                    ctx.quote(pty),
+                    Proj(tm, Named(Some(x), i)),
+                    builder(b)
+                  )
+              )
+            case VSigma(x, ty, b) =>
+              go(
+                ctx.bind(x, ty),
+                Wk(tm),
+                b.inst(vproj(vtm, Named(None, i))),
+                i + 1
+              )
+            case _ => (ctx, t => t)
+        go(ctx, tm, ty, 0)
+      case Some(ns) =>
+        def go(ctx: Ctx, tm: Tm, ns: List[Name]): (Ctx, Tm => Tm) = ns match
+          case Nil => (ctx, t => t)
+          case x :: rest =>
+            val (pty, i) = findNameInSigma(x, vtm, ty)
+            val (nctx, builder) = go(
+              ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+              Wk(tm),
+              rest
+            )
+            (
+              nctx,
+              b =>
+                Let(x, ctx.quote(pty), Proj(tm, Named(Some(x), i)), builder(b))
+            )
+        go(ctx, tm, ns)
+
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
       b match
@@ -60,6 +136,9 @@ object Elaboration:
         val (ev, et, vt) = checkValue(v, t)
         val eb = check(b, ty)(ctx.define(x, vt, ctx.eval(ev)))
         Let(x, et, ev, eb)
+      case (ROpen(tm, ns, b), _) =>
+        val (nctx, builder) = inferOpen(tm, ns)
+        builder(check(b, ty)(nctx))
       case _ =>
         val (etm, vty) = infer(tm)
         unify(vty, ty)
@@ -67,7 +146,7 @@ object Elaboration:
 
   private def projIndex(tm: Val, x: Bind, ix: Int, clash: Boolean): Val =
     x match
-      case DoBind(x) if !clash => vproj(tm, Named(x, ix))
+      case DoBind(x) if !clash => vproj(tm, Named(Some(x), ix))
       case _ =>
         @tailrec
         def go(tm: Val, ix: Int): Val = ix match
@@ -81,7 +160,7 @@ object Elaboration:
     def go(ty: VTy, ix: Int, ns: Set[Name]): (ProjType, VTy) =
       force(ty) match
         case VSigma(DoBind(y), fstty, _) if x == y =>
-          (Named(x, ix), fstty)
+          (Named(Some(x), ix), fstty)
         case VSigma(y, _, sndty) =>
           val (clash, newns) = y match
             case DoBind(y) => (ns.contains(y), ns + y)
@@ -108,6 +187,10 @@ object Elaboration:
       val (ev, et, vt) = checkValue(v, t)
       val (eb, rt) = infer(b)(ctx.define(x, vt, ctx.eval(ev)))
       (Let(x, et, ev, eb), rt)
+    case ROpen(tm, ns, b) =>
+      val (nctx, builder) = inferOpen(tm, ns)
+      val (eb, rty) = infer(b)(nctx)
+      (builder(eb), rty)
     case RPi(x, i, t, b) =>
       val et = checkType(t)
       val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))

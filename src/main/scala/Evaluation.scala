@@ -46,6 +46,8 @@ object Evaluation:
     case UnitType  => VUnitType
     case UnitValue => VUnitValue
 
+    case Wk(tm) => eval(tm)(env.tail)
+
   enum Unfold:
     case UnfoldAll
     case UnfoldNone
