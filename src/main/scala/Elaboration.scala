@@ -90,6 +90,8 @@ object Elaboration:
   private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy) = tm match
     case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
     case RType         => (Type, VType)
+    case RUnitType     => (UnitType, VType)
+    case RUnitValue    => (UnitValue, VUnitType)
     case RVar(x) =>
       ctx.lookup(x) match
         case Some((ix, ty)) => (Var(ix), ty)

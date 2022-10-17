@@ -27,6 +27,9 @@ object Value:
 
     case VPair(fst: Val, snd: Val)
     case VSigma(bind: Bind, ty: VTy, body: Clos)
+
+    case VUnitType
+    case VUnitValue
   export Val.*
 
   object VVar:

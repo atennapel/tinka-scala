@@ -24,7 +24,9 @@ object Unification:
     unify(a.inst(v), b.inst(v))(l + 1)
 
   def unify(a: Val, b: Val)(implicit l: Lvl): Unit = (a, b) match
-    case (VType, VType) => ()
+    case (VType, VType)           => ()
+    case (VUnitType, VUnitType)   => ()
+    case (VUnitValue, VUnitValue) => ()
 
     case (VPi(_, i1, t1, b1), VPi(_, i2, t2, b2)) if i1 == i2 =>
       unify(t1, t2); unify(b1, b2)
@@ -41,5 +43,8 @@ object Unification:
     case (v, VPair(a, b)) => unify(vproj(v, Fst), a); unify(vproj(v, Snd), b)
 
     case (VRigid(h1, s1), VRigid(h2, s2)) if h1 == h2 => unify(s1, s2)
+
+    case (VUnitValue, _) => ()
+    case (_, VUnitValue) => ()
 
     case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

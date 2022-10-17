@@ -1,0 +1,16 @@
+let Nat = (A : Type) -> A -> (A -> A) -> A;
+let Z : Nat = \A z s. z;
+let S (n : Nat) : Nat = \A z s. s (n A z s);
+let foldNat {A : Type} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+
+let (+) (a b : Nat) : Nat = foldNat {Nat} a b S;
+
+let exports :
+  (Nat : Type) **
+  (Z : Nat) **
+  (S : Nat -> Nat) **
+  (foldNat : {A : Type} -> Nat -> A -> (A -> A) -> A) **
+  ((+) : Nat -> Nat -> Nat) **
+  ()
+  = [Nat, Z, S, \{A}. foldNat {A}, (+)];
+exports

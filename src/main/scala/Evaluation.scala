@@ -33,6 +33,9 @@ object Evaluation:
     case Proj(tm, proj) => vproj(eval(tm), proj)
     case Sigma(x, t, b) => VSigma(x, eval(t), Clos(b))
 
+    case UnitType  => VUnitType
+    case UnitValue => VUnitValue
+
   private def quote(hd: Tm, sp: Spine)(implicit l: Lvl): Tm = sp match
     case SId              => hd
     case SApp(fn, arg, i) => App(quote(hd, fn), quote(arg), i)
@@ -47,5 +50,8 @@ object Evaluation:
 
     case VPair(fst, snd) => Pair(quote(fst), quote(snd))
     case VSigma(x, t, b) => Sigma(x, quote(t), quote(b.inst(VVar(l)))(l + 1))
+
+    case VUnitType  => UnitType
+    case VUnitValue => UnitValue
 
   def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = Nil): Tm = quote(eval(tm))

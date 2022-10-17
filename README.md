@@ -15,12 +15,14 @@ sbt "run examples/nat.tinka"
 - [x] Sigmas
 - [x] Implicit functions
 - [x] Pretty printing
-- [ ] Global gluing
+- [x] Add unit primitive
+- [ ] Fix name shadowing issue in pretty printing
+- [ ] Global gluing and basic importing
 - [ ] Local gluing
 - [ ] Meta variables
 - [ ] Unification with pruning
 - [ ] Elaboration with metas
-- [ ] Add Void, Unit, Bool primitives
+- [ ] Add Void, Bool primitives
 - [ ] Add Identity primitive
 - [ ] Add fixpoint primitive
 - [ ] Add number primitives

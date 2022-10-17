@@ -31,6 +31,9 @@ object Presyntax:
     case RProj(tm: RTm, proj: RProjType)
     case RSigma(bind: Bind, ty: RTy, body: RTy)
 
+    case RUnitType
+    case RUnitValue
+
     case RPos(pos: Pos, tm: RTm)
     case RHole(name: Option[Name])
   export RTm.*

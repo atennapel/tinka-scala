@@ -26,6 +26,9 @@ object Syntax:
     case Proj(tm: Tm, proj: ProjType)
     case Sigma(bind: Bind, ty: Ty, body: Ty)
 
+    case UnitType
+    case UnitValue
+
     override def toString: String = this match
       case Type               => "Type"
       case Var(ix)            => s"'$ix"
@@ -39,4 +42,6 @@ object Syntax:
       case Pair(fst, snd)     => s"($fst, $snd)"
       case Proj(tm, proj)     => s"$tm$proj"
       case Sigma(x, t, b)     => s"(($x : $t) ** $b)"
+      case UnitType           => "()"
+      case UnitValue          => "[]"
   export Tm.*

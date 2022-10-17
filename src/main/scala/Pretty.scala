@@ -39,6 +39,8 @@ object Pretty:
   ): String = tm match
     case Var(_)              => pretty(tm)
     case Type                => pretty(tm)
+    case UnitType            => pretty(tm)
+    case UnitValue           => pretty(tm)
     case Pair(_, _)          => pretty(tm)
     case Proj(_, _)          => pretty(tm)
     case App(_, _, _) if app => pretty(tm)
@@ -66,8 +68,10 @@ object Pretty:
     pretty(tm)(x :: ns)
 
   def pretty(tm: Tm)(implicit ns: List[Name]): String = tm match
-    case Var(ix) => ix(ns).toString
-    case Type    => "Type"
+    case Var(ix)   => ix(ns).toString
+    case Type      => "Type"
+    case UnitType  => "()"
+    case UnitValue => "[]"
 
     case Let(x0, t, v, b) =>
       val x = fresh(x0)
@@ -81,4 +85,5 @@ object Pretty:
     case Proj(tm, proj) => s"${prettyParen(tm)}$proj"
     case Pair(_, _) =>
       val es = flattenPair(tm)
-      s"(${es.map(pretty).mkString(", ")})"
+      if es.last == UnitValue then s"[${es.init.map(pretty).mkString(", ")}]"
+      else s"(${es.map(pretty).mkString(", ")})"
