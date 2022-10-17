@@ -50,4 +50,29 @@ object Presyntax:
       case RSigma(_, t, b)  => t.uris ++ b.uris
       case RPos(_, t)       => t.uris
       case _                => Set.empty
+
+    override def toString: String = this match
+      case RType                               => "Type"
+      case RVar(x)                             => s"$x"
+      case RUri(uri)                           => s"#$uri"
+      case RLet(x, Some(t), v, b)              => s"(let $x : $t = $v; $b)"
+      case RLet(x, None, v, b)                 => s"(let $x = $v; $b)"
+      case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
+      case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
+      case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"
+      case RLam(x, RArgIcit(Impl), None, b)    => s"(\\{$x}. $b)"
+      case RLam(x, RArgNamed(y), Some(t), b)   => s"(\\{$x : $t = $y}. $b)"
+      case RLam(x, RArgNamed(y), None, b)      => s"(\\{$x = $y}. $b)"
+      case RApp(fn, arg, RArgIcit(Expl))       => s"($fn $arg)"
+      case RApp(fn, arg, RArgIcit(Impl))       => s"($fn {$arg})"
+      case RApp(fn, arg, RArgNamed(y))         => s"($fn {$y = $arg})"
+      case RPi(x, Expl, t, b)                  => s"(($x : $t) -> $b)"
+      case RPi(x, Impl, t, b)                  => s"({$x : $t} -> $b)"
+      case RPair(fst, snd)                     => s"($fst, $snd)"
+      case RProj(tm, proj)                     => s"$tm$proj"
+      case RSigma(x, t, b)                     => s"(($x : $t) ** $b)"
+      case RUnitType                           => "()"
+      case RUnitValue                          => "[]"
+      case RPos(_, tm)                         => tm.toString
+      case RHole(x)                            => s"_${x.getOrElse("")}"
   export RTm.*

@@ -1,6 +1,7 @@
 import Common.*
 import Syntax.*
 import Value.*
+import Globals.getGlobal
 
 object Evaluation:
   extension (c: Clos) def inst(v: Val): Val = eval(c.tm)(v :: c.env)
@@ -8,7 +9,9 @@ object Evaluation:
   def vapp(fn: Val, arg: Val, icit: Icit): Val = fn match
     case VLam(_, _, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SApp(sp, arg, icit))
-    case _              => impossible()
+    case VUri(uri, sp, v) =>
+      VUri(uri, SApp(sp, arg, icit), () => vapp(v(), arg, icit))
+    case _ => impossible()
 
   def vproj(tm: Val, proj: ProjType): Val = tm match
     case VPair(fst, snd) =>
@@ -17,12 +20,19 @@ object Evaluation:
         case Snd         => snd
         case Named(_, 0) => fst
         case Named(x, i) => vproj(snd, Named(x, i - 1))
-    case VRigid(hd, sp) => VRigid(hd, SProj(sp, proj))
-    case _              => impossible()
+    case VRigid(hd, sp)   => VRigid(hd, SProj(sp, proj))
+    case VUri(uri, sp, v) => VUri(uri, SProj(sp, proj), () => vproj(v(), proj))
+    case _                => impossible()
 
   def eval(tm: Tm)(implicit env: Env): Val = tm match
-    case Type            => VType
-    case Var(ix)         => env(ix)
+    case Type    => VType
+    case Var(ix) => env(ix)
+    case Uri(uri) =>
+      getGlobal(uri) match
+        case None => impossible()
+        case Some(e) =>
+          val value = e.value
+          VUri(uri, SId, () => value)
     case Let(_, _, v, b) => eval(b)(eval(v) :: env)
 
     case Lam(x, i, b)   => VLam(x, i, Clos(b))
@@ -44,6 +54,7 @@ object Evaluation:
   def quote(v: Val)(implicit l: Lvl): Tm = v match
     case VType          => Type
     case VRigid(hd, sp) => quote(Var(hd.toIx), sp)
+    case VUri(_, _, v)  => quote(v()) // TODO: unfold modes/forcing
 
     case VLam(x, i, b)   => Lam(x, i, quote(b.inst(VVar(l)))(l + 1))
     case VPi(x, i, t, b) => Pi(x, i, quote(t), quote(b.inst(VVar(l)))(l + 1))

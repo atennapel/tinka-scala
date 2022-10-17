@@ -17,6 +17,9 @@ object Errors:
   case class UndefVarError(msg: String)(implicit val ctx: Ctx)
       extends Exception(s"undefined variable: $msg")
       with ElabError
+  case class UndefUriError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"unloaded uri: $msg")
+      with ElabError
   case class NotPiError(msg: String)(implicit val ctx: Ctx)
       extends Exception(s"not a pi or icit mismatch: $msg")
       with ElabError

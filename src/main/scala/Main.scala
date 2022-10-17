@@ -5,6 +5,8 @@ import Elaboration.*
 import Debug.*
 import Parser.parser
 import Errors.*
+import ModuleLoading.load
+import Globals.getGlobal
 
 import java.io.File
 import scala.io.Source
@@ -12,14 +14,14 @@ import parsley.io.given
 
 @main def run(filename: String): Unit =
   setDebug(false)
-  val tm = parser.parseFromFile(new File(filename)).flatMap(_.toTry).get
-  debug(tm.toString)
-  debug(s"uris: ${tm.uris}")
   implicit val ctx: Ctx = Ctx.empty()
   try
     val time = System.nanoTime
-    val (etm, ety) = elaborate(tm)
+    val uri = load(filename)
     val time1 = System.nanoTime - time
+    val entry = getGlobal(uri).get
+    val etm = entry.tm
+    val ety = entry.ty
     println(s"time: ${time1 / 1000000}ms (${time1}ns)")
     println("type:")
     println(ctx.pretty(ety))

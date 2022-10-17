@@ -4,6 +4,7 @@ import Syntax.*
 import Value.*
 import Evaluation.*
 import Unification.{unify as unify0}
+import Globals.getGlobal
 import Errors.*
 import scala.annotation.tailrec
 
@@ -96,6 +97,10 @@ object Elaboration:
       ctx.lookup(x) match
         case Some((ix, ty)) => (Var(ix), ty)
         case None           => throw UndefVarError(x.toString)
+    case RUri(uri) =>
+      getGlobal(uri) match
+        case Some(e) => (Uri(uri), e.vty)
+        case None    => throw UndefUriError(uri.toString)
     case RLet(x, t, v, b) =>
       val (ev, et, vt) = checkValue(v, t)
       val (eb, rt) = infer(b)(ctx.define(x, vt, ctx.eval(ev)))

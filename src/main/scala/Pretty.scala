@@ -33,6 +33,7 @@ object Pretty:
       ns: List[Name]
   ): String = tm match
     case Var(_)              => pretty(tm)
+    case Uri(_)              => pretty(tm)
     case Type                => pretty(tm)
     case UnitType            => pretty(tm)
     case UnitValue           => pretty(tm)
@@ -60,6 +61,7 @@ object Pretty:
       val x = ix(ns)
       val countSkipped = ns.take(ix.expose).count(_ == x)
       if countSkipped > 0 then s"$x^$countSkipped" else s"$x"
+    case Uri(uri)  => s"#$uri"
     case Type      => "Type"
     case UnitType  => "()"
     case UnitValue => "[]"

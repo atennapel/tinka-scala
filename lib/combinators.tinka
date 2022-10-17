@@ -1,0 +1,15 @@
+let id {A : Type} (x : A) : A = x;
+let const {A B : Type} (x : A) (y : B) : A = x;
+let flip {A B C : Type} (f : A -> B -> C) (x : B) (y : A) : C = f y x;
+let compose {A B C : Type} (f : B -> C) (g : A -> B) (x: A) : C = f (g x);
+let (<<) = compose;
+
+let exports :
+  (id : {A : Type} -> A -> A) **
+  (const : {A B : Type} -> A -> B -> A) **
+  (flip : {A B C : Type} -> (A -> B -> C) -> B -> A -> C) **
+  (compose : {A B C : Type} -> (B -> C) -> (A -> B) -> A -> C) **
+  ((<<) : {A B C : Type} -> (B -> C) -> (A -> B) -> A -> C) **
+  ()
+  = [\{A}. id {A}, \{A} {B}. const {A} {B}, \{A} {B} {C}. flip {A} {B} {C}, \{A} {B} {C}. compose {A} {B} {C}, \{A} {B} {C}. (<<) {A} {B} {C}];
+exports

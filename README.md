@@ -17,6 +17,10 @@ sbt "run examples/nat.tinka"
 - [x] Pretty printing
 - [x] Add unit primitive
 - [ ] Global gluing and basic importing
+  - [x] Basic loading
+  - [ ] Forcing/unfold modes
+  - [ ] open/import syntax
+  - [ ] Load from URI generally
 - [ ] Local gluing
 - [ ] Meta variables
 - [ ] Unification with pruning
@@ -26,3 +30,4 @@ sbt "run examples/nat.tinka"
 - [ ] Add fixpoint primitive
 - [ ] Add number primitives
 - [ ] Add String primitive
+- [ ] Rigid variables

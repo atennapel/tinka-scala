@@ -16,6 +16,7 @@ object Syntax:
   enum Tm:
     case Type
     case Var(ix: Ix)
+    case Uri(uri: String)
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
 
     case Lam(bind: Bind, icit: Icit, body: Tm)
@@ -32,6 +33,7 @@ object Syntax:
     override def toString: String = this match
       case Type               => "Type"
       case Var(ix)            => s"'$ix"
+      case Uri(uri)           => s"#$uri"
       case Let(x, t, v, b)    => s"(let $x : $t = $v; $b)"
       case Lam(x, Expl, b)    => s"(\\$x. $b)"
       case Lam(x, Impl, b)    => s"(\\{$x}. $b)"

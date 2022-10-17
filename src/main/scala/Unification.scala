@@ -47,4 +47,11 @@ object Unification:
     case (VUnitValue, _) => ()
     case (_, VUnitValue) => ()
 
+    case (VUri(uri1, sp1, v1), VUri(uri2, sp2, v2)) if uri1 == uri2 =>
+      try unify(sp1, sp2)
+      catch case _: UnifyError => unify(v1(), v2())
+    case (VUri(_, _, v), VUri(_, _, w)) => unify(v(), w())
+    case (VUri(_, _, v), w)             => unify(v(), w)
+    case (w, VUri(_, _, v))             => unify(w, v())
+
     case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

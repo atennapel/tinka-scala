@@ -21,6 +21,7 @@ object Value:
   enum Val:
     case VType
     case VRigid(hd: Lvl, spine: Spine)
+    case VUri(uri: String, spine: Spine, value: () => Val)
 
     case VLam(bind: Bind, icit: Icit, body: Clos)
     case VPi(bind: Bind, icit: Icit, ty: VTy, body: Clos)
