@@ -23,35 +23,37 @@ object Unification:
     val v = VVar(l)
     unify(a.inst(v), b.inst(v))(l + 1)
 
-  def unify(a: Val, b: Val)(implicit l: Lvl): Unit = (a, b) match
-    case (VType, VType)           => ()
-    case (VUnitType, VUnitType)   => ()
-    case (VUnitValue, VUnitValue) => ()
+  def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
+    (force(a, UnfoldNone), force(b, UnfoldNone)) match
+      case (VType, VType)           => ()
+      case (VUnitType, VUnitType)   => ()
+      case (VUnitValue, VUnitValue) => ()
 
-    case (VPi(_, i1, t1, b1), VPi(_, i2, t2, b2)) if i1 == i2 =>
-      unify(t1, t2); unify(b1, b2)
-    case (VSigma(_, t1, b1), VSigma(_, t2, b2)) => unify(t1, t2); unify(b1, b2)
+      case (VPi(_, i1, t1, b1), VPi(_, i2, t2, b2)) if i1 == i2 =>
+        unify(t1, t2); unify(b1, b2)
+      case (VSigma(_, t1, b1), VSigma(_, t2, b2)) =>
+        unify(t1, t2); unify(b1, b2)
 
-    case (VLam(_, _, b1), VLam(_, _, b2)) => unify(b1, b2)
-    case (VLam(_, i, b), v) =>
-      val w = VVar(l); unify(b.inst(w), vapp(v, w, i))(l + 1)
-    case (v, VLam(_, i, b)) =>
-      val w = VVar(l); unify(vapp(v, w, i), b.inst(w))(l + 1)
+      case (VLam(_, _, b1), VLam(_, _, b2)) => unify(b1, b2)
+      case (VLam(_, i, b), v) =>
+        val w = VVar(l); unify(b.inst(w), vapp(v, w, i))(l + 1)
+      case (v, VLam(_, i, b)) =>
+        val w = VVar(l); unify(vapp(v, w, i), b.inst(w))(l + 1)
 
-    case (VPair(a1, b1), VPair(a2, b2)) => unify(a1, a2); unify(b1, b2)
-    case (VPair(a, b), v) => unify(a, vproj(v, Fst)); unify(b, vproj(v, Snd))
-    case (v, VPair(a, b)) => unify(vproj(v, Fst), a); unify(vproj(v, Snd), b)
+      case (VPair(a1, b1), VPair(a2, b2)) => unify(a1, a2); unify(b1, b2)
+      case (VPair(a, b), v) => unify(a, vproj(v, Fst)); unify(b, vproj(v, Snd))
+      case (v, VPair(a, b)) => unify(vproj(v, Fst), a); unify(vproj(v, Snd), b)
 
-    case (VRigid(h1, s1), VRigid(h2, s2)) if h1 == h2 => unify(s1, s2)
+      case (VRigid(h1, s1), VRigid(h2, s2)) if h1 == h2 => unify(s1, s2)
 
-    case (VUnitValue, _) => ()
-    case (_, VUnitValue) => ()
+      case (VUnitValue, _) => ()
+      case (_, VUnitValue) => ()
 
-    case (VUri(uri1, sp1, v1), VUri(uri2, sp2, v2)) if uri1 == uri2 =>
-      try unify(sp1, sp2)
-      catch case _: UnifyError => unify(v1(), v2())
-    case (VUri(_, _, v), VUri(_, _, w)) => unify(v(), w())
-    case (VUri(_, _, v), w)             => unify(v(), w)
-    case (w, VUri(_, _, v))             => unify(w, v())
+      case (VUri(uri1, sp1, v1), VUri(uri2, sp2, v2)) if uri1 == uri2 =>
+        try unify(sp1, sp2)
+        catch case _: UnifyError => unify(v1(), v2())
+      case (VUri(_, _, v), VUri(_, _, w)) => unify(v(), w())
+      case (VUri(_, _, v), w)             => unify(v(), w)
+      case (w, VUri(_, _, v))             => unify(w, v())
 
-    case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")
+      case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

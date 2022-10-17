@@ -38,29 +38,32 @@ object Elaboration:
         case DontBind  => false
     case RArgIcit(i) => i == i2
 
-  private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm = (tm, ty) match
-    case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
-    case (RHole(ox), _) =>
-      throw HoleError(s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.pretty(ty)}")
-    case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
-      ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
-      val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
-      Lam(x, i2, eb)
-    case (_, VPi(x, Impl, pty, rty)) =>
-      val etm = check(tm, ctx.inst(rty))(ctx.bind(x, pty, true))
-      Lam(x, Impl, etm)
-    case (RPair(fst, snd), VSigma(_, fty, sty)) =>
-      val efst = check(fst, fty)
-      val esnd = check(snd, sty.inst(ctx.eval(efst)))
-      Pair(efst, esnd)
-    case (RLet(x, t, v, b), _) =>
-      val (ev, et, vt) = checkValue(v, t)
-      val eb = check(b, ty)(ctx.define(x, vt, ctx.eval(ev)))
-      Let(x, et, ev, eb)
-    case _ =>
-      val (etm, vty) = infer(tm)
-      unify(vty, ty)
-      etm
+  private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =
+    (tm, force(ty)) match
+      case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
+      case (RHole(ox), _) =>
+        throw HoleError(
+          s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.pretty(ty)}"
+        )
+      case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
+        ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
+        val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
+        Lam(x, i2, eb)
+      case (_, VPi(x, Impl, pty, rty)) =>
+        val etm = check(tm, ctx.inst(rty))(ctx.bind(x, pty, true))
+        Lam(x, Impl, etm)
+      case (RPair(fst, snd), VSigma(_, fty, sty)) =>
+        val efst = check(fst, fty)
+        val esnd = check(snd, sty.inst(ctx.eval(efst)))
+        Pair(efst, esnd)
+      case (RLet(x, t, v, b), _) =>
+        val (ev, et, vt) = checkValue(v, t)
+        val eb = check(b, ty)(ctx.define(x, vt, ctx.eval(ev)))
+        Let(x, et, ev, eb)
+      case _ =>
+        val (etm, vty) = infer(tm)
+        unify(vty, ty)
+        etm
 
   private def projIndex(tm: Val, x: Bind, ix: Int, clash: Boolean): Val =
     x match
@@ -76,7 +79,7 @@ object Elaboration:
   ): (ProjType, VTy) =
     @tailrec
     def go(ty: VTy, ix: Int, ns: Set[Name]): (ProjType, VTy) =
-      ty match
+      force(ty) match
         case VSigma(DoBind(y), fstty, _) if x == y =>
           (Named(x, ix), fstty)
         case VSigma(y, _, sndty) =>
@@ -115,14 +118,14 @@ object Elaboration:
       (Sigma(x, et, eb), VType)
     case RApp(f, a, RArgIcit(i)) =>
       val (ef, ft) = infer(f)
-      ft match
+      force(ft) match
         case VPi(_, i2, vt, b) if i == i2 =>
           val ea = check(a, vt)
           (App(ef, ea, i), b.inst(ctx.eval(ea)))
         case _ => throw NotPiError(s"$tm: ${ctx.pretty(ft)}")
     case RProj(tm, proj) =>
       val (etm, ty) = infer(tm)
-      ty match
+      force(ty) match
         case VSigma(_, fty, sty) =>
           proj match
             case RFst => (Proj(etm, Fst), fty)

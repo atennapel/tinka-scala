@@ -18,7 +18,7 @@ sbt "run examples/nat.tinka"
 - [x] Add unit primitive
 - [ ] Global gluing and basic importing
   - [x] Basic loading
-  - [ ] Forcing/unfold modes
+  - [x] Forcing/unfold modes
   - [ ] open/import syntax
   - [ ] Load from URI generally
 - [ ] Local gluing

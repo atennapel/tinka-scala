@@ -46,23 +46,37 @@ object Evaluation:
     case UnitType  => VUnitType
     case UnitValue => VUnitValue
 
-  private def quote(hd: Tm, sp: Spine)(implicit l: Lvl): Tm = sp match
-    case SId              => hd
-    case SApp(fn, arg, i) => App(quote(hd, fn), quote(arg), i)
-    case SProj(tm, proj)  => Proj(quote(hd, tm), proj)
+  enum Unfold:
+    case UnfoldAll
+    case UnfoldNone
+  export Unfold.*
 
-  def quote(v: Val)(implicit l: Lvl): Tm = v match
-    case VType          => Type
-    case VRigid(hd, sp) => quote(Var(hd.toIx), sp)
-    case VUri(_, _, v)  => quote(v()) // TODO: unfold modes/forcing
+  def force(v: Val, unfold: Unfold = UnfoldAll): Val = v match
+    case VUri(_, _, w) if unfold == UnfoldAll => force(w(), UnfoldAll)
+    case _                                    => v
 
-    case VLam(x, i, b)   => Lam(x, i, quote(b.inst(VVar(l)))(l + 1))
-    case VPi(x, i, t, b) => Pi(x, i, quote(t), quote(b.inst(VVar(l)))(l + 1))
+  private def quote(hd: Tm, sp: Spine, unfold: Unfold)(implicit l: Lvl): Tm =
+    sp match
+      case SId              => hd
+      case SApp(fn, arg, i) => App(quote(hd, fn, unfold), quote(arg, unfold), i)
+      case SProj(tm, proj)  => Proj(quote(hd, tm, unfold), proj)
 
-    case VPair(fst, snd) => Pair(quote(fst), quote(snd))
-    case VSigma(x, t, b) => Sigma(x, quote(t), quote(b.inst(VVar(l)))(l + 1))
+  def quote(v: Val, unfold: Unfold = UnfoldNone)(implicit l: Lvl): Tm =
+    force(v, unfold) match
+      case VType            => Type
+      case VRigid(hd, sp)   => quote(Var(hd.toIx), sp, unfold)
+      case VUri(uri, sp, _) => quote(Uri(uri), sp, unfold)
 
-    case VUnitType  => UnitType
-    case VUnitValue => UnitValue
+      case VLam(x, i, b) => Lam(x, i, quote(b.inst(VVar(l)), unfold)(l + 1))
+      case VPi(x, i, t, b) =>
+        Pi(x, i, quote(t, unfold), quote(b.inst(VVar(l)), unfold)(l + 1))
 
-  def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = Nil): Tm = quote(eval(tm))
+      case VPair(fst, snd) => Pair(quote(fst, unfold), quote(snd, unfold))
+      case VSigma(x, t, b) =>
+        Sigma(x, quote(t, unfold), quote(b.inst(VVar(l)), unfold)(l + 1))
+
+      case VUnitType  => UnitType
+      case VUnitValue => UnitValue
+
+  def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = Nil): Tm =
+    quote(eval(tm), UnfoldAll)
