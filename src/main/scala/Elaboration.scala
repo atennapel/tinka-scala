@@ -242,6 +242,4 @@ object Elaboration:
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
     resetMetas()
     val (etm, vty) = infer(tm)
-    println(etm)
-    println(vty)
     (etm, ctx.quote(vty))

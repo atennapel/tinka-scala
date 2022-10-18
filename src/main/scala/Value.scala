@@ -1,6 +1,8 @@
 import Common.*
 import Syntax.{Tm, ProjType}
 
+import scala.annotation.tailrec
+
 object Value:
   type VTy = Val
 
@@ -16,6 +18,14 @@ object Value:
     case SId
     case SApp(fn: Spine, arg: Val, icit: Icit)
     case SProj(hd: Spine, proj: ProjType)
+
+    def size: Int =
+      @tailrec
+      def go(sp: Spine, i: Int): Int = sp match
+        case SId            => 0
+        case SApp(sp, _, _) => go(sp, i + 1)
+        case SProj(sp, _)   => go(sp, i + 1)
+      go(this, 0)
   export Spine.*
 
   enum Val:

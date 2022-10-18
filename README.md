@@ -22,7 +22,7 @@ sbt "run examples/nat.tinka"
   - [x] Open syntax
   - [x] Renaming
 - [x] Meta variables
-- [ ] Unification with pruning
+- [x] Unification with pruning
 - [ ] Elaboration with metas
 - [ ] Local gluing
   - [ ] Local gluing
@@ -35,3 +35,4 @@ sbt "run examples/nat.tinka"
 - [ ] Rigid variables
 - [ ] Open extensions: hiding
 - [ ] Load from URI generally (http/file schemes)
+- [ ] Syntax for modules or exporting

@@ -17,9 +17,13 @@ object Common:
   opaque type Lvl = Int
   inline def lvl0: Lvl = 0
 
+  inline def mkLvl(i: Int): Lvl = i
+
   extension (l: Lvl)
     @targetName("addLvl")
     inline def +(o: Int): Lvl = l + o
+    @targetName("exposeLvl")
+    inline def expose: Int = l
     inline def toIx(implicit k: Lvl): Ix = k - l - 1
 
   opaque type MetaId = Int
