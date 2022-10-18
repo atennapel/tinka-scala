@@ -32,3 +32,9 @@ object Errors:
   case class NameNotInSigmaError(msg: String)(implicit val ctx: Ctx)
       extends Exception(s"name not found in sigma: $msg")
       with ElabError
+  case class NamedImplicitError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"no implicit found with name: $msg")
+      with ElabError
+  case class IcitMismatchError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"icit mismatch: $msg")
+      with ElabError

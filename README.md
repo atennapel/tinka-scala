@@ -16,14 +16,18 @@ sbt "run examples/nat.tinka"
 - [x] Implicit functions
 - [x] Pretty printing
 - [x] Add unit primitive
-- [x] Global gluing and basic importing
+- [ ] Global gluing and importing
   - [x] Basic loading
   - [x] Forcing/unfold modes
   - [x] Open syntax
   - [x] Renaming
-- [x] Meta variables
-- [x] Unification with pruning
+  - [ ] Toposort imports
 - [ ] Elaboration with metas
+  - [x] Meta variables
+  - [x] Unification with pruning
+  - [x] Insert metas in elaboration
+  - [ ] Zonking
+  - [ ] Postponed named holes
 - [ ] Local gluing
   - [ ] Local gluing
   - [ ] Reuse introduced variables in `open`
@@ -32,7 +36,6 @@ sbt "run examples/nat.tinka"
 - [ ] Add fixpoint primitive
 - [ ] Add number primitives
 - [ ] Add String primitive
-- [ ] Rigid variables
 - [ ] Open extensions: hiding
 - [ ] Load from URI generally (http/file schemes)
 - [ ] Syntax for modules or exporting

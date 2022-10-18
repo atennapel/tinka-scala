@@ -10,6 +10,7 @@ object Evaluation:
   def vapp(fn: Val, arg: Val, icit: Icit): Val = fn match
     case VLam(_, _, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SApp(sp, arg, icit))
+    case VFlex(hd, sp)  => VFlex(hd, SApp(sp, arg, icit))
     case VUri(uri, sp, v) =>
       VUri(uri, SApp(sp, arg, icit), () => vapp(v(), arg, icit))
     case _ => impossible()
@@ -22,6 +23,7 @@ object Evaluation:
         case Named(_, 0) => fst
         case Named(x, i) => vproj(snd, Named(x, i - 1))
     case VRigid(hd, sp)   => VRigid(hd, SProj(sp, proj))
+    case VFlex(hd, sp)    => VFlex(hd, SProj(sp, proj))
     case VUri(uri, sp, v) => VUri(uri, SProj(sp, proj), () => vproj(v(), proj))
     case _                => impossible()
 

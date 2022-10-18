@@ -7,9 +7,49 @@ import Unification.{unify as unify0}
 import Globals.getGlobal
 import Metas.*
 import Errors.*
+import Debug.debug
 import scala.annotation.tailrec
+import java.io.Closeable
 
 object Elaboration:
+  // insertion
+  private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
+    case VUnitType => UnitValue
+    case _ =>
+      val closed = eval(ctx.closeTy(ty))(Nil)
+      val m = freshMeta(closed)
+      debug(s"newMeta ?$m : ${ctx.pretty(ty)}")
+      AppPruning(Meta(m), ctx.pruning)
+
+  private def insertPi(inp: (Tm, VTy))(implicit ctx: Ctx): (Tm, VTy) =
+    @tailrec
+    def go(tm: Tm, ty: VTy): (Tm, VTy) = force(ty) match
+      case VPi(x, Impl, a, b) =>
+        val m = newMeta(a)
+        val mv = ctx.eval(m)
+        go(App(tm, m, Impl), b.inst(mv))
+      case _ => (tm, ty)
+    go(inp._1, inp._2)
+
+  private def insert(inp: (Tm, VTy))(implicit ctx: Ctx): (Tm, VTy) =
+    inp._1 match
+      case Lam(_, Impl, _) => inp
+      case _               => insertPi(inp)
+
+  private def insertUntilName(x: Name, inp: (Tm, VTy))(implicit
+      ctx: Ctx
+  ): (Tm, VTy) =
+    def go(tm: Tm, ty: VTy): (Tm, VTy) = force(ty) match
+      case VPi(y, Impl, a, b) =>
+        if x == y then (tm, ty)
+        else
+          val m = newMeta(a)
+          val mv = ctx.eval(m)
+          go(App(tm, m, Impl), b.inst(mv))
+      case _ => throw NamedImplicitError(x.toString)
+    go(inp._1, inp._2)
+
+  // unification
   private def unify(a: VTy, b: VTy)(implicit ctx: Ctx): Unit =
     try unify0(a, b)(ctx.lvl)
     catch
@@ -18,6 +58,7 @@ object Elaboration:
           s"failed to unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${e.msg}"
         )
 
+  // elaboration
   private def checkType(ty: RTm)(implicit ctx: Ctx): Ty = check(ty, VType)
 
   private def checkValue(tm: RTm, ty: Option[RTm])(implicit
@@ -68,10 +109,17 @@ object Elaboration:
         def go(ctx: Ctx, tm: Tm, ty: Val, i: Int): (Ctx, Tm => Tm) =
           force(ty) match
             case VSigma(DoBind(x), pty, b) =>
+              val value = vproj(vtm, Named(Some(x), i))
               val (nctx, builder) = go(
-                ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+                ctx.define(
+                  x,
+                  pty,
+                  ctx.quote(pty),
+                  value,
+                  ctx.quote(value)
+                ),
                 Wk(tm),
-                b.inst(vproj(vtm, Named(Some(x), i))),
+                b.inst(vproj(vtm, Named(Some(x), i))), // TODO: local gluing
                 i + 1
               )
               (
@@ -88,7 +136,7 @@ object Elaboration:
               go(
                 ctx.bind(x, ty),
                 Wk(tm),
-                b.inst(vproj(vtm, Named(None, i))),
+                b.inst(vproj(vtm, Named(None, i))), // TODO: local gluing
                 i + 1
               )
             case _ => (ctx, t => t)
@@ -104,8 +152,9 @@ object Elaboration:
           case (x, oy) :: rest =>
             val y = oy.getOrElse(x)
             val (pty, i) = findNameInSigma(y, vtm, ty, map)
+            val value = vproj(vtm, Named(Some(y), i))
             val (nctx, builder) = go(
-              ctx.define(x, pty, vproj(vtm, Named(Some(y), i))),
+              ctx.define(x, pty, ctx.quote(pty), value, ctx.quote(value)),
               Wk(tm),
               rest,
               map + (y -> ctx.lvl)
@@ -116,7 +165,7 @@ object Elaboration:
                 Let(
                   x,
                   ctx.quote(pty),
-                  Proj(tm, Named(Some(y), i)),
+                  Proj(tm, Named(Some(y), i)), // TODO: local gluing
                   builder(b)
                 )
             )
@@ -129,17 +178,31 @@ object Elaboration:
         case DontBind  => false
     case RArgIcit(i) => i == i2
 
+  private def hasMetaType(x: Name)(implicit ctx: Ctx): Boolean =
+    ctx.lookup(x) match
+      case Some((_, vty)) =>
+        force(vty) match
+          case VFlex(_, _) => true
+          case _           => false
+      case _ => false
+
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =
+    debug(s"check $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
       case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
-      case (RHole(ox), _) =>
+      case (RHole(None), _)   => newMeta(ty)
+      case (RHole(Some(x)), _) =>
         throw HoleError(
-          s"hole ${ox.fold("_")(x => s"_$x")} : ${ctx.pretty(ty)}"
-        )
+          s"\nhole $x : ${ctx.pretty(ty)}\n${ctx.prettyLocals}"
+        ) // TODO: postpone named hole
       case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
         ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
         val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
         Lam(x, i2, eb)
+      case (RVar(x), VPi(_, Impl, _, _)) if hasMetaType(x) =>
+        val Some((ix, varty)) = ctx.lookup(x): @unchecked
+        unify(varty, ty)
+        Var(ix)
       case (_, VPi(x, Impl, pty, rty)) =>
         val etm = check(tm, ctx.inst(rty))(ctx.bind(x, pty, true))
         Lam(x, Impl, etm)
@@ -149,13 +212,13 @@ object Elaboration:
         Pair(efst, esnd)
       case (RLet(x, t, v, b), _) =>
         val (ev, et, vt) = checkValue(v, t)
-        val eb = check(b, ty)(ctx.define(x, vt, ctx.eval(ev)))
+        val eb = check(b, ty)(ctx.define(x, vt, et, ctx.eval(ev), ev))
         Let(x, et, ev, eb)
       case (ROpen(tm, ns, b), _) =>
         val (nctx, builder) = inferOpen(tm, ns)
         builder(check(b, ty)(nctx))
       case _ =>
-        val (etm, vty) = infer(tm)
+        val (etm, vty) = insert(infer(tm))
         unify(vty, ty)
         etm
 
@@ -185,61 +248,108 @@ object Elaboration:
           throw NotSigmaError(s"in named project $x, got ${ctx.pretty(ty)}")
     go(ty, 0, Set.empty)
 
-  private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy) = tm match
-    case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
-    case RType         => (Type, VType)
-    case RUnitType     => (UnitType, VType)
-    case RUnitValue    => (UnitValue, VUnitType)
-    case RVar(x) =>
-      ctx.lookup(x) match
-        case Some((ix, ty)) => (Var(ix), ty)
-        case None           => throw UndefVarError(x.toString)
-    case RUri(uri) =>
-      getGlobal(uri) match
-        case Some(e) => (Uri(uri), e.vty)
-        case None    => throw UndefUriError(uri.toString)
-    case RLet(x, t, v, b) =>
-      val (ev, et, vt) = checkValue(v, t)
-      val (eb, rt) = infer(b)(ctx.define(x, vt, ctx.eval(ev)))
-      (Let(x, et, ev, eb), rt)
-    case ROpen(tm, ns, b) =>
-      val (nctx, builder) = inferOpen(tm, ns)
-      val (eb, rty) = infer(b)(nctx)
-      (builder(eb), rty)
-    case RPi(x, i, t, b) =>
-      val et = checkType(t)
-      val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
-      (Pi(x, i, et, eb), VType)
-    case RSigma(x, t, b) =>
-      val et = checkType(t)
-      val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
-      (Sigma(x, et, eb), VType)
-    case RApp(f, a, RArgIcit(i)) =>
-      val (ef, ft) = infer(f)
-      force(ft) match
-        case VPi(_, i2, vt, b) if i == i2 =>
-          val ea = check(a, vt)
-          (App(ef, ea, i), b.inst(ctx.eval(ea)))
-        case _ => throw NotPiError(s"$tm: ${ctx.pretty(ft)}")
-    case RProj(tm, proj) =>
-      val (etm, ty) = infer(tm)
-      force(ty) match
-        case VSigma(_, fty, sty) =>
-          proj match
-            case RFst => (Proj(etm, Fst), fty)
-            case RSnd => (Proj(etm, Snd), sty.inst(vproj(ctx.eval(etm), Fst)))
-            case RNamed(x) =>
-              val (eproj, rty) = projNamed(ctx.eval(etm), ty, x)
-              (Proj(etm, eproj), rty)
-        case _ => throw NotSigmaError(s"$tm: ${ctx.pretty(ty)}")
-    case RLam(x, RArgIcit(i), Some(t), b) =>
-      val et = checkType(t)
-      val vt = ctx.eval(et)
-      val (eb, rt) = infer(b)(ctx.bind(x, vt))
-      (Lam(x, i, eb), VPi(x, i, vt, ctx.close(rt)))
-    case _ => throw CannotInferError(tm.toString)
+  private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy) =
+    debug(s"infer $tm")
+    tm match
+      case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
+      case RType         => (Type, VType)
+      case RUnitType     => (UnitType, VType)
+      case RUnitValue    => (UnitValue, VUnitType)
+      case RVar(x) =>
+        ctx.lookup(x) match
+          case Some((ix, ty)) => (Var(ix), ty)
+          case None           => throw UndefVarError(x.toString)
+      case RUri(uri) =>
+        getGlobal(uri) match
+          case Some(e) => (Uri(uri), e.vty)
+          case None    => throw UndefUriError(uri.toString)
+      case RLet(x, t, v, b) =>
+        val (ev, et, vt) = checkValue(v, t)
+        val (eb, rt) = infer(b)(ctx.define(x, vt, et, ctx.eval(ev), ev))
+        (Let(x, et, ev, eb), rt)
+      case ROpen(tm, ns, b) =>
+        val (nctx, builder) = inferOpen(tm, ns)
+        val (eb, rty) = infer(b)(nctx)
+        (builder(eb), rty)
+      case RPi(x, i, t, b) =>
+        val et = checkType(t)
+        val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
+        (Pi(x, i, et, eb), VType)
+      case RSigma(x, t, b) =>
+        val et = checkType(t)
+        val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))
+        (Sigma(x, et, eb), VType)
+      case RApp(f, a, i) =>
+        val (icit, ef, fty) = i match
+          case RArgNamed(x) =>
+            val (ef, fty) = insertUntilName(x, infer(f))
+            (Impl, ef, fty)
+          case RArgIcit(Impl) =>
+            val (ef, fty) = infer(f)
+            (Impl, ef, fty)
+          case RArgIcit(Expl) =>
+            val (ef, fty) = insertPi(infer(f))
+            (Expl, ef, fty)
+        val (pty, rty) = force(fty) match
+          case VPi(x, icit2, pty, rty) =>
+            if icit != icit2 then throw IcitMismatchError(tm.toString)
+            (pty, rty)
+          case tty =>
+            val pty = ctx.eval(newMeta(VType))
+            val x = DoBind(Name("x"))
+            val rty = Clos(newMeta(VType)(ctx.bind(x, pty)))(ctx.env)
+            unify(tty, VPi(x, icit, pty, rty))
+            (pty, rty)
+        val ea = check(a, pty)
+        (App(ef, ea, icit), rty.inst(ctx.eval(ea)))
+      case RProj(t, p) =>
+        val (et, ty) = insertPi(infer(t))
+        (force(ty), p) match
+          case (_, RNamed(x)) =>
+            val (p, pty) = projNamed(ctx.eval(et), ty, x)
+            (Proj(et, p), pty)
+          case (VSigma(_, fstty, _), RFst) => (Proj(et, Fst), fstty)
+          case (VSigma(_, _, sndty), RSnd) =>
+            (Proj(et, Snd), sndty.inst(vproj(ctx.eval(et), Fst)))
+          case (tty, RFst) =>
+            val pty = ctx.eval(newMeta(VType))
+            val rty =
+              Clos(
+                newMeta(VType)(ctx.bind(DoBind(Name("x")), pty))
+              )(ctx.env)
+            unify(tty, VSigma(DoBind(Name("x")), pty, rty))
+            (Proj(et, Fst), pty)
+          case (tty, RSnd) =>
+            val pty = ctx.eval(newMeta(VType))
+            val rty =
+              Clos(newMeta(VType)(ctx.bind(DoBind(Name("x")), pty)))(ctx.env)
+            unify(tty, VSigma(DoBind(Name("x")), pty, rty))
+            (Proj(et, Snd), rty.inst(vproj(ctx.eval(et), Fst)))
+      case RLam(x, RArgIcit(i), mty, b) =>
+        val pty = mty match
+          case Some(ty) => ctx.eval(checkType(ty))
+          case None     => ctx.eval(newMeta(VType))
+        val ctx2 = ctx.bind(x, pty)
+        val (eb, rty) = insert(infer(b)(ctx2))(ctx2)
+        (Lam(x, i, eb), VPi(x, i, pty, ctx.close(rty)))
+      case RPair(fst, snd) =>
+        val (efst, fstty) = infer(fst)
+        val (esnd, sndty) = infer(snd)
+        (
+          Pair(efst, esnd),
+          VSigma(DontBind, fstty, Clos(ctx.quote(sndty))(ctx.env))
+        )
+      case RHole(None) =>
+        val a = ctx.eval(newMeta(VType))
+        val t = newMeta(a)
+        (t, a)
+      case RHole(Some(x)) =>
+        val a = ctx.eval(newMeta(VType))
+        val t = newMeta(a)
+        (t, a) // TODO: postpone named hole
+      case _ => throw CannotInferError(tm.toString)
 
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
-    resetMetas()
+    // resetMetas() TODO: zonking
     val (etm, vty) = infer(tm)
     (etm, ctx.quote(vty))
