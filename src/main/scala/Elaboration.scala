@@ -51,12 +51,7 @@ object Elaboration:
       findNameInSigma(
         x,
         tm,
-        c.inst(
-          name
-            .flatMap(y => map.get(y))
-            .map(VVar.apply)
-            .getOrElse(vproj(tm, Named(name, i)))
-        ),
+        c.inst(vproj(tm, Named(name, i))),
         map,
         i + 1,
         name.map(xs + _).getOrElse(xs)
@@ -76,7 +71,7 @@ object Elaboration:
               val (nctx, builder) = go(
                 ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
                 Wk(tm),
-                b.inst(VVar(ctx.lvl)),
+                b.inst(vproj(vtm, Named(Some(x), i))),
                 i + 1
               )
               (
@@ -247,4 +242,6 @@ object Elaboration:
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
     resetMetas()
     val (etm, vty) = infer(tm)
+    println(etm)
+    println(vty)
     (etm, ctx.quote(vty))
