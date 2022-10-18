@@ -20,7 +20,7 @@ sbt "run examples/nat.tinka"
   - [x] Basic loading
   - [x] Forcing/unfold modes
   - [x] Open syntax
-  - [ ] Renaming
+  - [x] Renaming
   - [ ] Reuse introduced variables
 - [ ] Local gluing
 - [ ] Meta variables

@@ -23,7 +23,7 @@ object Presyntax:
     case RVar(name: Name)
     case RUri(uri: String)
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
-    case ROpen(tm: RTm, names: Option[List[Name]], body: RTm)
+    case ROpen(tm: RTm, names: Option[List[(Name, Option[Name])]], body: RTm)
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
@@ -60,7 +60,10 @@ object Presyntax:
       case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
       case ROpen(t, None, b)      => s"(open $t; $b)"
-      case ROpen(t, Some(ns), b)  => s"(open $t (${ns.mkString(", ")}); $b)"
+      case ROpen(t, Some(ns), b) =>
+        s"(open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}); $b)"
       case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
       case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
       case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"

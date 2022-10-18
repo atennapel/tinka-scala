@@ -175,10 +175,12 @@ object Parser:
 
     private lazy val open: Parsley[RTm] =
       ("open" *> projAtom <~> option(
-        "(" *> sepEndBy(identOrOp, ",") <* ")"
+        "(" *> sepEndBy(openPart, ",") <* ")"
       ) <~> ";" *> tm).map { case ((tm, ns), b) =>
         ROpen(tm, ns, b)
       }
+    private lazy val openPart: Parsley[(Name, Option[Name])] =
+      identOrOp <~> option("=" *> identOrOp)
 
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))

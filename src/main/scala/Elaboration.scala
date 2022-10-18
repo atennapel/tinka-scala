@@ -55,8 +55,8 @@ object Elaboration:
       )
     case _ => throw NameNotInSigmaError(x.toString)
 
-  private def inferOpen(rtm: RTm, ns: Option[List[Name]])(implicit
-      ctx: Ctx
+  private def inferOpen(rtm: RTm, ns: Option[List[(Name, Option[Name])]])(
+      implicit ctx: Ctx
   ): (Ctx, Tm => Tm) =
     val (tm, ty) = infer(rtm)
     val vtm = ctx.eval(tm)
@@ -91,19 +91,29 @@ object Elaboration:
             case _ => (ctx, t => t)
         go(ctx, tm, ty, 0)
       case Some(ns) =>
-        def go(ctx: Ctx, tm: Tm, ns: List[Name]): (Ctx, Tm => Tm) = ns match
+        def go(
+            ctx: Ctx,
+            tm: Tm,
+            ns: List[(Name, Option[Name])]
+        ): (Ctx, Tm => Tm) = ns match
           case Nil => (ctx, t => t)
-          case x :: rest =>
-            val (pty, i) = findNameInSigma(x, vtm, ty)
+          case (x, oy) :: rest =>
+            val y = oy.getOrElse(x)
+            val (pty, i) = findNameInSigma(y, vtm, ty)
             val (nctx, builder) = go(
-              ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
+              ctx.define(x, pty, vproj(vtm, Named(Some(y), i))),
               Wk(tm),
               rest
             )
             (
               nctx,
               b =>
-                Let(x, ctx.quote(pty), Proj(tm, Named(Some(x), i)), builder(b))
+                Let(
+                  x,
+                  ctx.quote(pty),
+                  Proj(tm, Named(Some(y), i)),
+                  builder(b)
+                )
             )
         go(ctx, tm, ns)
 
