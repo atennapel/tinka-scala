@@ -21,6 +21,7 @@ object Value:
   enum Val:
     case VType
     case VRigid(hd: Lvl, spine: Spine)
+    case VFlex(hd: MetaId, spine: Spine)
     case VUri(uri: String, spine: Spine, value: () => Val)
 
     case VLam(bind: Bind, icit: Icit, body: Clos)
@@ -38,3 +39,9 @@ object Value:
     def unapply(value: Val): Option[Lvl] = value match
       case VRigid(head, SId) => Some(head)
       case _                 => None
+
+  object VMeta:
+    def apply(id: MetaId) = VFlex(id, SId)
+    def unapply(value: Val): Option[MetaId] = value match
+      case VFlex(head, SId) => Some(head)
+      case _                => None

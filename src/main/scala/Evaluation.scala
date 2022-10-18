@@ -1,6 +1,7 @@
 import Common.*
 import Syntax.*
 import Value.*
+import Metas.*
 import Globals.getGlobal
 
 object Evaluation:
@@ -23,6 +24,22 @@ object Evaluation:
     case VRigid(hd, sp)   => VRigid(hd, SProj(sp, proj))
     case VUri(uri, sp, v) => VUri(uri, SProj(sp, proj), () => vproj(v(), proj))
     case _                => impossible()
+
+  def vspine(v: Val, sp: Spine): Val = sp match
+    case SId             => v
+    case SApp(sp, a, i)  => vapp(vspine(v, sp), a, i)
+    case SProj(sp, proj) => vproj(vspine(v, sp), proj)
+
+  def vmeta(id: MetaId): Val = getMeta(id) match
+    case Solved(v, _, _) => v
+    case Unsolved(_)     => VMeta(id)
+
+  def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
+    (env, pr) match
+      case (Nil, Nil)                => v
+      case (t :: env, Some(i) :: pr) => vapp(vappPruning(v, pr)(env), t, i)
+      case (_ :: env, None :: pr)    => vappPruning(v, pr)(env)
+      case _                         => impossible()
 
   def eval(tm: Tm)(implicit env: Env): Val = tm match
     case Type    => VType
@@ -48,12 +65,19 @@ object Evaluation:
 
     case Wk(tm) => eval(tm)(env.tail)
 
+    case Meta(id)           => vmeta(id)
+    case AppPruning(tm, pr) => vappPruning(eval(tm), pr)
+
   enum Unfold:
     case UnfoldAll
-    case UnfoldNone
+    case UnfoldMetas
   export Unfold.*
 
   def force(v: Val, unfold: Unfold = UnfoldAll): Val = v match
+    case VFlex(id, sp) =>
+      getMeta(id) match
+        case Solved(v, _, _) => force(vspine(v, sp))
+        case Unsolved(_)     => v
     case VUri(_, _, w) if unfold == UnfoldAll => force(w(), UnfoldAll)
     case _                                    => v
 
@@ -63,10 +87,11 @@ object Evaluation:
       case SApp(fn, arg, i) => App(quote(hd, fn, unfold), quote(arg, unfold), i)
       case SProj(tm, proj)  => Proj(quote(hd, tm, unfold), proj)
 
-  def quote(v: Val, unfold: Unfold = UnfoldNone)(implicit l: Lvl): Tm =
+  def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match
       case VType            => Type
       case VRigid(hd, sp)   => quote(Var(hd.toIx), sp, unfold)
+      case VFlex(id, sp)    => quote(Meta(id), sp, unfold)
       case VUri(uri, sp, _) => quote(Uri(uri), sp, unfold)
 
       case VLam(x, i, b) => Lam(x, i, quote(b.inst(VVar(l)), unfold)(l + 1))

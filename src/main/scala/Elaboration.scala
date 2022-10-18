@@ -5,6 +5,7 @@ import Value.*
 import Evaluation.*
 import Unification.{unify as unify0}
 import Globals.getGlobal
+import Metas.*
 import Errors.*
 import scala.annotation.tailrec
 
@@ -244,5 +245,6 @@ object Elaboration:
     case _ => throw CannotInferError(tm.toString)
 
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
+    resetMetas()
     val (etm, vty) = infer(tm)
     (etm, ctx.quote(vty))

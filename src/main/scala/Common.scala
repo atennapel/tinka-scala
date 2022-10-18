@@ -1,27 +1,39 @@
+import scala.annotation.targetName
+
 object Common:
   def impossible(): Nothing = throw new Exception("impossible")
 
   type Pos = (Int, Int) // (line, col)
 
   opaque type Ix = Int
+  inline def ix0: Ix = 0
 
   extension (i: Ix)
-    def expose: Int = i
-    def apply[A](xs: List[A]): A = xs(i)
-    def >(o: Int | Ix): Boolean = i > o
+    inline def expose: Int = i
+    inline def apply[A](xs: List[A]): A = xs(i)
+    inline def >(o: Int | Ix): Boolean = i > o
+    inline def +(o: Int): Ix = i + o
 
   opaque type Lvl = Int
-
-  val lvl0: Lvl = 0
+  inline def lvl0: Lvl = 0
 
   extension (l: Lvl)
-    def +(o: Int): Lvl = l + o
-    def toIx(implicit k: Lvl): Ix = k - l - 1
+    @targetName("addLvl")
+    inline def +(o: Int): Lvl = l + o
+    inline def toIx(implicit k: Lvl): Ix = k - l - 1
+
+  opaque type MetaId = Int
+
+  inline def metaId(id: Int): MetaId = id
+
+  extension (id: MetaId)
+    @targetName("exposeMetaId")
+    inline def expose: Int = id
 
   case class Name(x: String):
     override def toString: String =
       if x.head.isLetter then x else s"($x)"
-    def expose: String = x
+    inline def expose: String = x
 
   enum Bind:
     case DontBind
@@ -40,3 +52,9 @@ object Common:
     case Expl
     case Impl
   export Icit.*
+
+  type Pruning = List[Option[Icit]]
+
+  opaque type RevPruning = Pruning
+  inline def revPruning(p: Pruning): RevPruning = p.reverse
+  extension (p: RevPruning) inline def expose: List[Option[Icit]] = p

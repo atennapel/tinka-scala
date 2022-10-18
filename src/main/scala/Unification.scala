@@ -2,9 +2,20 @@ import Common.*
 import Value.*
 import Evaluation.*
 import Syntax.ProjType.*
+import Metas.*
 import Errors.UnifyError
 
 object Unification:
+  private def solve(m: MetaId, sp: Spine, v: Val)(implicit l: Lvl): Unit = ???
+
+  private def flexFlex(m1: MetaId, sp1: Spine, m2: MetaId, sp2: Spine)(implicit
+      l: Lvl
+  ): Unit = ???
+
+  private def intersect(m: MetaId, sp1: Spine, sp2: Spine)(implicit
+      l: Lvl
+  ): Unit = ???
+
   private def unifyProj(a: Spine, b: Spine, n: Int)(implicit l: Lvl): Unit =
     (a, n) match
       case (a, 0)             => unify(a, b)
@@ -24,7 +35,7 @@ object Unification:
     unify(a.inst(v), b.inst(v))(l + 1)
 
   def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
-    (force(a, UnfoldNone), force(b, UnfoldNone)) match
+    (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
       case (VType, VType)           => ()
       case (VUnitType, VUnitType)   => ()
       case (VUnitValue, VUnitValue) => ()
@@ -46,8 +57,11 @@ object Unification:
 
       case (VRigid(h1, s1), VRigid(h2, s2)) if h1 == h2 => unify(s1, s2)
 
-      case (VUnitValue, _) => ()
-      case (_, VUnitValue) => ()
+      case (VFlex(m1, sp1), VFlex(m2, sp2)) =>
+        if m1 == m2 then intersect(m1, sp1, sp2)
+        else flexFlex(m1, sp1, m2, sp2)
+      case (VFlex(m, sp), v) => solve(m, sp, v)
+      case (v, VFlex(m, sp)) => solve(m, sp, v)
 
       case (VUri(uri1, sp1, v1), VUri(uri2, sp2, v2)) if uri1 == uri2 =>
         try unify(sp1, sp2)
@@ -55,5 +69,8 @@ object Unification:
       case (VUri(_, _, v), VUri(_, _, w)) => unify(v(), w())
       case (VUri(_, _, v), w)             => unify(v(), w)
       case (w, VUri(_, _, v))             => unify(w, v())
+
+      case (VUnitValue, _) => ()
+      case (_, VUnitValue) => ()
 
       case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

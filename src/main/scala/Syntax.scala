@@ -33,21 +33,33 @@ object Syntax:
 
     case Wk(tm: Tm)
 
+    case Meta(id: MetaId)
+    case AppPruning(tm: Tm, spine: Pruning)
+
+    def appPruning(pr: Pruning): Tm =
+      def go(x: Ix, pr: Pruning): Tm = pr match
+        case Nil           => this
+        case Some(i) :: pr => App(go(x + 1, pr), Var(x), i)
+        case None :: pr    => go(x + 1, pr)
+      go(ix0, pr)
+
     override def toString: String = this match
-      case Type               => "Type"
-      case Var(ix)            => s"'$ix"
-      case Uri(uri)           => s"#$uri"
-      case Let(x, t, v, b)    => s"(let $x : $t = $v; $b)"
-      case Lam(x, Expl, b)    => s"(\\$x. $b)"
-      case Lam(x, Impl, b)    => s"(\\{$x}. $b)"
-      case App(fn, arg, Expl) => s"($fn $arg)"
-      case App(fn, arg, Impl) => s"($fn {$arg})"
-      case Pi(x, Expl, t, b)  => s"(($x : $t) -> $b)"
-      case Pi(x, Impl, t, b)  => s"({$x : $t} -> $b)"
-      case Pair(fst, snd)     => s"($fst, $snd)"
-      case Proj(tm, proj)     => s"$tm$proj"
-      case Sigma(x, t, b)     => s"(($x : $t) ** $b)"
-      case UnitType           => "()"
-      case UnitValue          => "[]"
-      case Wk(tm)             => s"(Wk $tm)"
+      case Type                  => "Type"
+      case Var(ix)               => s"'$ix"
+      case Uri(uri)              => s"#$uri"
+      case Let(x, t, v, b)       => s"(let $x : $t = $v; $b)"
+      case Lam(x, Expl, b)       => s"(\\$x. $b)"
+      case Lam(x, Impl, b)       => s"(\\{$x}. $b)"
+      case App(fn, arg, Expl)    => s"($fn $arg)"
+      case App(fn, arg, Impl)    => s"($fn {$arg})"
+      case Pi(x, Expl, t, b)     => s"(($x : $t) -> $b)"
+      case Pi(x, Impl, t, b)     => s"({$x : $t} -> $b)"
+      case Pair(fst, snd)        => s"($fst, $snd)"
+      case Proj(tm, proj)        => s"$tm$proj"
+      case Sigma(x, t, b)        => s"(($x : $t) ** $b)"
+      case UnitType              => "()"
+      case UnitValue             => "[]"
+      case Wk(tm)                => s"(Wk $tm)"
+      case Meta(id)              => s"?$id"
+      case AppPruning(tm, spine) => s"?*$tm"
   export Tm.*

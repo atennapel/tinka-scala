@@ -22,10 +22,10 @@ sbt "run examples/nat.tinka"
   - [x] Open syntax
   - [x] Renaming
   - [x] Reuse introduced variables
-- [ ] Local gluing
-- [ ] Meta variables
+- [x] Meta variables
 - [ ] Unification with pruning
 - [ ] Elaboration with metas
+- [ ] Local gluing
 - [ ] Add Void, Bool primitives
 - [ ] Add Identity primitive
 - [ ] Add fixpoint primitive
@@ -34,3 +34,6 @@ sbt "run examples/nat.tinka"
 - [ ] Rigid variables
 - [ ] Open extensions: hiding
 - [ ] Load from URI generally (http/file schemes)
+
+## Bugs
+- `open #lib/nat (Nat, Z); Z`
