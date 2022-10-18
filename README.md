@@ -16,12 +16,12 @@ sbt "run examples/nat.tinka"
 - [x] Implicit functions
 - [x] Pretty printing
 - [x] Add unit primitive
-- [ ] Global gluing and basic importing
+- [x] Global gluing and basic importing
   - [x] Basic loading
   - [x] Forcing/unfold modes
   - [x] Open syntax
   - [x] Renaming
-  - [ ] Reuse introduced variables
+  - [x] Reuse introduced variables
 - [ ] Local gluing
 - [ ] Meta variables
 - [ ] Unification with pruning

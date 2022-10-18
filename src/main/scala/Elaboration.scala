@@ -36,6 +36,7 @@ object Elaboration:
       x: Name,
       tm: Val,
       ty: Val,
+      map: Map[Name, Lvl],
       i: Int = 0,
       xs: Set[Name] = Set.empty
   )(implicit ctx: Ctx): (Val, Int) = force(
@@ -49,7 +50,13 @@ object Elaboration:
       findNameInSigma(
         x,
         tm,
-        c.inst(vproj(tm, Named(name, i))),
+        c.inst(
+          name
+            .flatMap(y => map.get(y))
+            .map(VVar.apply)
+            .getOrElse(vproj(tm, Named(name, i)))
+        ),
+        map,
         i + 1,
         name.map(xs + _).getOrElse(xs)
       )
@@ -68,7 +75,7 @@ object Elaboration:
               val (nctx, builder) = go(
                 ctx.define(x, pty, vproj(vtm, Named(Some(x), i))),
                 Wk(tm),
-                b.inst(vproj(vtm, Named(Some(x), i))),
+                b.inst(VVar(ctx.lvl)),
                 i + 1
               )
               (
@@ -94,16 +101,18 @@ object Elaboration:
         def go(
             ctx: Ctx,
             tm: Tm,
-            ns: List[(Name, Option[Name])]
+            ns: List[(Name, Option[Name])],
+            map: Map[Name, Lvl]
         ): (Ctx, Tm => Tm) = ns match
           case Nil => (ctx, t => t)
           case (x, oy) :: rest =>
             val y = oy.getOrElse(x)
-            val (pty, i) = findNameInSigma(y, vtm, ty)
+            val (pty, i) = findNameInSigma(y, vtm, ty, map)
             val (nctx, builder) = go(
               ctx.define(x, pty, vproj(vtm, Named(Some(y), i))),
               Wk(tm),
-              rest
+              rest,
+              map + (y -> ctx.lvl)
             )
             (
               nctx,
@@ -115,7 +124,7 @@ object Elaboration:
                   builder(b)
                 )
             )
-        go(ctx, tm, ns)
+        go(ctx, tm, ns, Map.empty)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
