@@ -12,8 +12,8 @@ object Parser:
 
     private val userOps = "`~!@$%^&*-+=|:/?><,."
     private val userOpsTail = s"${userOps}#_;"
-    private val uriCharsHead = "-._~:/?#@!$&'*+,%="
-    private val uriChars = "-._~:/?#@!$&'*+,%="
+    private val uriCharsHead = "-_~:/?#@!$&'*+,%="
+    private val uriChars = "-_~:/?#@!$&'*+,%="
 
     val lang = LanguageDef.plain.copy(
       commentLine = "--",

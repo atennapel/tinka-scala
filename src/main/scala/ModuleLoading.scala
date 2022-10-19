@@ -4,8 +4,6 @@ import Presyntax.RTm
 import Elaboration.elaborate
 import Globals.{GlobalEntry, addGlobal}
 import Debug.debug
-import java.net.URI
-import java.io.File
 import scala.io.Source
 import scala.collection.mutable
 import parsley.io.given
@@ -37,19 +35,25 @@ object ModuleLoading:
   private def loadUris(uri: String): Unit =
     if !urimap.contains(uri) then
       debug(s"load uris: $uri")
+      val text = Source.fromURL(transformFilename(uri)).mkString
       val tm = parser
-        .parseFromFile(new File(transformFilename(uri)))
-        .flatMap(_.toTry)
+        .parse(text)
+        .toTry
         .get
       val uris = tm.uris
       urimap.put(uri, Entry(uri, tm, uris))
       uris.filter(!urimap.contains(_)).foreach(loadUris)
       ()
 
+  private def hasScheme(uri: String): Boolean = uri.contains(":")
   private def transformFilename(uri: String): String =
-    if uri.endsWith(".tinka") then uri else s"$uri.tinka"
+    if hasScheme(uri) then uri
+    else if uri.endsWith(".tinka") then s"file:$uri"
+    else s"file:$uri.tinka"
   private def transformUri(uri: String): String =
-    if uri.endsWith(".tinka") then uri.take(uri.size - 6) else uri
+    if hasScheme(uri) then uri
+    else if uri.endsWith(".tinka") then uri.take(uri.size - 6)
+    else uri
 
   private def loadUri(uri: String): Unit =
     debug(s"load uri: $uri")

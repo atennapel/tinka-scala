@@ -12,17 +12,18 @@ sbt "run examples/nat.tinka"
 ## TODO
 - [x] Basic language
 - [x] Parser
-- [x] Sigmas
-- [x] Implicit functions
 - [x] Pretty printing
-- [x] Add unit primitive
-- [x] Global gluing and importing
+- [ ] Global gluing and importing
   - [x] Basic loading
   - [x] Forcing/unfold modes
   - [x] Open syntax
   - [x] Renaming
   - [x] Toposort imports
+  - [x] Load from URI generally (http/file schemes)
+  - [ ] Open with hiding
+  - [ ] Syntax for modules or exporting
 - [ ] Elaboration with metas
+  - [x] Implicit functions
   - [x] Meta variables
   - [x] Unification with pruning
   - [x] Insert metas in elaboration
@@ -31,11 +32,12 @@ sbt "run examples/nat.tinka"
 - [ ] Local gluing
   - [ ] Local gluing
   - [ ] Reuse introduced variables in `open`
-- [ ] Add Void, Bool primitives
-- [ ] Add Identity primitive
-- [ ] Add fixpoint primitive
-- [ ] Add number primitives
-- [ ] Add String primitive
-- [ ] Open extensions: hiding
-- [ ] Load from URI generally (http/file schemes)
-- [ ] Syntax for modules or exporting
+- [ ] Primitives
+  - [x] Unit
+  - [ ] Void
+  - [ ] Bool
+  - [ ] Id
+  - [ ] Fix
+  - [ ] Number
+  - [ ] String
+- [ ] Compiler
