@@ -26,8 +26,8 @@ sbt "run examples/nat.tinka"
   - [x] Meta variables
   - [x] Unification with pruning
   - [x] Insert metas in elaboration
+  - [x] Postponed named holes
   - [ ] Zonking
-  - [ ] Postponed named holes
 - [ ] Local gluing
   - [ ] Local gluing
   - [ ] Reuse introduced variables in `open`

@@ -8,10 +8,17 @@ import Globals.getGlobal
 import Metas.*
 import Errors.*
 import Debug.debug
+
 import scala.annotation.tailrec
 import java.io.Closeable
+import scala.collection.mutable
 
 object Elaboration:
+  // holes
+  private val holes: mutable.Map[Name, HoleEntry] = mutable.Map.empty
+
+  private case class HoleEntry(ctx: Ctx, tm: Tm, ty: VTy)
+
   // insertion
   private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
     case VUnitType => UnitValue
@@ -192,9 +199,9 @@ object Elaboration:
       case (RPos(pos, tm), _) => check(tm, ty)(ctx.enter(pos))
       case (RHole(None), _)   => newMeta(ty)
       case (RHole(Some(x)), _) =>
-        throw HoleError(
-          s"\nhole $x : ${ctx.pretty(ty)}\n${ctx.prettyLocals}"
-        ) // TODO: postpone named hole
+        val t = newMeta(ty)
+        holes += x -> HoleEntry(ctx, t, ty)
+        t
       case (RLam(x, i, ot, b), VPi(y, i2, t, rt)) if icitMatch(i, y, i2) =>
         ot.foreach(t0 => unify(ctx.eval(checkType(t0)), t))
         val eb = check(b, ctx.inst(rt))(ctx.bind(x, t))
@@ -346,10 +353,26 @@ object Elaboration:
       case RHole(Some(x)) =>
         val a = ctx.eval(newMeta(VType))
         val t = newMeta(a)
-        (t, a) // TODO: postpone named hole
+        holes += x -> HoleEntry(ctx, t, a)
+        (t, a)
       case _ => throw CannotInferError(tm.toString)
+
+  private def prettyHoles(implicit ctx0: Ctx): String =
+    holes
+      .map((x, e) =>
+        e match
+          case HoleEntry(ctx, tm, vty) =>
+            s"_$x : ${ctx.pretty(vty)} = ${ctx.pretty(tm)}\nlocals:\n${ctx.prettyLocals}"
+      )
+      .mkString("\n\n")
 
   def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
     // resetMetas() TODO: zonking
+    holes.clear()
     val (etm, vty) = infer(tm)
-    (etm, ctx.quote(vty))
+    val ety = ctx.quote(vty)
+    if holes.nonEmpty then
+      throw HoleError(
+        s"holes found: ${ctx.pretty(etm)} : ${ctx.pretty(ety)}\n\n${prettyHoles}"
+      )
+    (etm, ety)
