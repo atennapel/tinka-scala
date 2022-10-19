@@ -20,7 +20,7 @@ object Parser:
       commentStart = "{-",
       commentEnd = "-}",
       nestedComments = true,
-      keywords = Set("Type", "let", "open", "if", "then", "else"),
+      keywords = Set("Type", "let", "open", "hiding", "if", "then", "else"),
       operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter =
@@ -176,8 +176,10 @@ object Parser:
     private lazy val open: Parsley[RTm] =
       ("open" *> projAtom <~> option(
         "(" *> sepEndBy(openPart, ",") <* ")"
-      ) <~> ";" *> tm).map { case ((tm, ns), b) =>
-        ROpen(tm, ns, b)
+      ) <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      ) <~> ";" *> tm).map { case (((tm, ns), hiding), b) =>
+        ROpen(tm, ns, hiding.getOrElse(Nil), b)
       }
     private lazy val openPart: Parsley[(Name, Option[Name])] =
       identOrOp <~> option("=" *> identOrOp)

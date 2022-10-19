@@ -80,6 +80,14 @@ object Elaboration:
       val (etm, vty) = infer(tm)
       (etm, ctx.quote(vty), vty)
 
+  private def namesFromSigma(ty: Val)(implicit ctx: Ctx): List[Name] =
+    force(ty) match
+      case VSigma(bd @ DoBind(x), ty, b) =>
+        x :: namesFromSigma(b.inst(VVar(ctx.lvl)))(ctx.bind(bd, ty))
+      case VSigma(bd, ty, b) =>
+        namesFromSigma(b.inst(VVar(ctx.lvl)))(ctx.bind(bd, ty))
+      case _ => Nil
+
   @tailrec
   private def findNameInSigma(
       x: Name,
@@ -88,95 +96,68 @@ object Elaboration:
       map: Map[Name, Lvl],
       i: Int = 0,
       xs: Set[Name] = Set.empty
-  )(implicit ctx: Ctx): (Val, Int) = force(
-    ty
-  ) match
-    case VSigma(DoBind(y), ty, c) if x == y => (ty, i)
-    case VSigma(y, ty, c) =>
-      val name = y match
-        case DoBind(y) if !xs.contains(y) => Some(y)
-        case _                            => None
-      findNameInSigma(
-        x,
-        tm,
-        c.inst(vproj(tm, Named(name, i))),
-        map,
-        i + 1,
-        name.map(xs + _).getOrElse(xs)
-      )
-    case _ => throw NameNotInSigmaError(x.toString)
+  )(implicit ctx: Ctx): (Val, Int) =
+    force(ty) match
+      case VSigma(DoBind(y), ty, c) if x == y => (ty, i)
+      case VSigma(y, ty, c) =>
+        val name = y match
+          case DoBind(y) if !xs.contains(y) => Some(y)
+          case _                            => None
+        findNameInSigma(
+          x,
+          tm,
+          c.inst(vproj(tm, Named(name, i))),
+          map,
+          i + 1,
+          name.map(xs + _).getOrElse(xs)
+        )
+      case _ => throw NameNotInSigmaError(x.toString)
 
-  private def inferOpen(rtm: RTm, ns: Option[List[(Name, Option[Name])]])(
-      implicit ctx: Ctx
+  private def inferOpen(
+      rtm: RTm,
+      ns: Option[List[(Name, Option[Name])]],
+      hiding: Set[Name]
+  )(implicit
+      ctx: Ctx
   ): (Ctx, Tm => Tm) =
     val (tm, ty) = infer(rtm)
     val vtm = ctx.eval(tm)
-    ns match
-      case None =>
-        def go(ctx: Ctx, tm: Tm, ty: Val, i: Int): (Ctx, Tm => Tm) =
-          force(ty) match
-            case VSigma(DoBind(x), pty, b) =>
-              val value = vproj(vtm, Named(Some(x), i))
-              val (nctx, builder) = go(
-                ctx.define(
-                  x,
-                  pty,
-                  ctx.quote(pty),
-                  value,
-                  ctx.quote(value)
-                ),
-                Wk(tm),
-                b.inst(vproj(vtm, Named(Some(x), i))), // TODO: local gluing
-                i + 1
+    def go(
+        ctx: Ctx,
+        tm: Tm,
+        ns: List[(Name, Option[Name])],
+        map: Map[Name, Lvl]
+    ): (Ctx, Tm => Tm) = ns match
+      case Nil => (ctx, t => t)
+      case (x, oy) :: rest =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then go(ctx, tm, rest, map)
+        else
+          val (pty, i) = findNameInSigma(y, vtm, ty, map)
+          val value = vproj(vtm, Named(Some(y), i))
+          val (nctx, builder) = go(
+            ctx.define(
+              x,
+              pty,
+              ctx.quote(pty),
+              value,
+              ctx.quote(value)
+            ), // TODO: local gluing
+            Wk(tm),
+            rest,
+            map + (y -> ctx.lvl)
+          )
+          (
+            nctx,
+            b =>
+              Let(
+                x,
+                ctx.quote(pty),
+                Proj(tm, Named(Some(y), i)),
+                builder(b)
               )
-              (
-                nctx,
-                b =>
-                  Let(
-                    x,
-                    ctx.quote(pty),
-                    Proj(tm, Named(Some(x), i)),
-                    builder(b)
-                  )
-              )
-            case VSigma(x, ty, b) =>
-              go(
-                ctx.bind(x, ty),
-                Wk(tm),
-                b.inst(vproj(vtm, Named(None, i))), // TODO: local gluing
-                i + 1
-              )
-            case _ => (ctx, t => t)
-        go(ctx, tm, ty, 0)
-      case Some(ns) =>
-        def go(
-            ctx: Ctx,
-            tm: Tm,
-            ns: List[(Name, Option[Name])],
-            map: Map[Name, Lvl]
-        ): (Ctx, Tm => Tm) = ns match
-          case Nil => (ctx, t => t)
-          case (x, oy) :: rest =>
-            val y = oy.getOrElse(x)
-            val (pty, i) = findNameInSigma(y, vtm, ty, map)
-            val value = vproj(vtm, Named(Some(y), i))
-            val (nctx, builder) = go(
-              ctx.define(x, pty, ctx.quote(pty), value, ctx.quote(value)),
-              Wk(tm),
-              rest,
-              map + (y -> ctx.lvl)
-            )
-            (
-              nctx,
-              b =>
-                Let(
-                  x,
-                  ctx.quote(pty),
-                  Proj(tm, Named(Some(y), i)), // TODO: local gluing
-                  builder(b)
-                )
-            )
-        go(ctx, tm, ns, Map.empty)
+          )
+    go(ctx, tm, ns.getOrElse(namesFromSigma(ty).map(x => (x, None))), Map.empty)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
@@ -221,8 +202,8 @@ object Elaboration:
         val (ev, et, vt) = checkValue(v, t)
         val eb = check(b, ty)(ctx.define(x, vt, et, ctx.eval(ev), ev))
         Let(x, et, ev, eb)
-      case (ROpen(tm, ns, b), _) =>
-        val (nctx, builder) = inferOpen(tm, ns)
+      case (ROpen(tm, ns, hiding, b), _) =>
+        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
         builder(check(b, ty)(nctx))
       case _ =>
         val (etm, vty) = insert(infer(tm))
@@ -274,8 +255,8 @@ object Elaboration:
         val (ev, et, vt) = checkValue(v, t)
         val (eb, rt) = infer(b)(ctx.define(x, vt, et, ctx.eval(ev), ev))
         (Let(x, et, ev, eb), rt)
-      case ROpen(tm, ns, b) =>
-        val (nctx, builder) = inferOpen(tm, ns)
+      case ROpen(tm, ns, hiding, b) =>
+        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
         val (eb, rty) = infer(b)(nctx)
         (builder(eb), rty)
       case RPi(x, i, t, b) =>

@@ -20,7 +20,7 @@ sbt "run examples/nat.tinka"
   - [x] Renaming
   - [x] Toposort imports
   - [x] Load from URI generally (http/file schemes)
-  - [ ] Open with hiding
+  - [x] Open with hiding
   - [ ] Syntax for modules or exporting
 - [ ] Elaboration with metas
   - [x] Implicit functions

@@ -22,6 +22,8 @@ import parsley.io.given
     val entry = getGlobal(uri).get
     val etm = entry.tm
     val ety = entry.ty
+    debug(ety)
+    debug(etm)
     println(s"time: ${time1 / 1000000}ms (${time1}ns)")
     println("type:")
     println(ctx.pretty(ety))
