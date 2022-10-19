@@ -29,6 +29,10 @@ object Presyntax:
         hiding: List[Name],
         body: RTm
     )
+    case RExport(
+        names: Option[List[(Name, Option[Name])]],
+        hiding: List[Name]
+    )
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
@@ -75,6 +79,16 @@ object Presyntax:
         s"(open $t (${ns
             .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
             .mkString(", ")}) hiding (${hiding.mkString(", ")}); $b)"
+      case RExport(None, Nil)    => s"export"
+      case RExport(None, hiding) => s"export hiding (${hiding.mkString(", ")})"
+      case RExport(Some(ns), Nil) =>
+        s"(export (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}))"
+      case RExport(Some(ns), hiding) =>
+        s"(export (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}) hiding (${hiding.mkString(", ")}))"
       case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
       case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
       case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"

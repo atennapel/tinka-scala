@@ -117,9 +117,7 @@ object Elaboration:
       rtm: RTm,
       ns: Option[List[(Name, Option[Name])]],
       hiding: Set[Name]
-  )(implicit
-      ctx: Ctx
-  ): (Ctx, Tm => Tm) =
+  )(implicit ctx: Ctx): (Ctx, Tm => Tm) =
     val (tm, ty) = infer(rtm)
     val vtm = ctx.eval(tm)
     def go(
@@ -158,6 +156,23 @@ object Elaboration:
               )
           )
     go(ctx, tm, ns.getOrElse(namesFromSigma(ty).map(x => (x, None))), Map.empty)
+
+  private def inferExport(
+      ns: Option[List[(Name, Option[Name])]],
+      hiding: Set[Name]
+  )(implicit ctx: Ctx): (Tm, VTy) =
+    def go(ctx: Ctx, ns: List[(Name, Option[Name])]): Tm = ns match
+      case Nil => UnitValue
+      case (x, oy) :: ns =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then go(ctx, ns)
+        else
+          val (ix, _) = ctx.lookup(x).get
+          Pair(Var(ix), go(ctx, ns))
+    val xs = ns.getOrElse(ctx.names.reverse.map(x => (x, None)))
+    val tm = go(ctx, xs)
+    println(ctx.pretty(tm))
+    (tm, ???)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
@@ -259,6 +274,7 @@ object Elaboration:
         val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
         val (eb, rty) = infer(b)(nctx)
         (builder(eb), rty)
+      case RExport(ns, hiding) => inferExport(ns, hiding.toSet)
       case RPi(x, i, t, b) =>
         val et = checkType(t)
         val eb = checkType(b)(ctx.bind(x, ctx.eval(et)))

@@ -20,7 +20,8 @@ object Parser:
       commentStart = "{-",
       commentEnd = "-}",
       nestedComments = true,
-      keywords = Set("Type", "let", "open", "hiding", "if", "then", "else"),
+      keywords =
+        Set("Type", "let", "open", "hiding", "export", "if", "then", "else"),
       operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter =
@@ -111,7 +112,7 @@ object Parser:
     )
 
     lazy val tm: Parsley[RTm] = positioned(
-      attempt(piOrSigma) <|> ifTm <|> let <|> open <|> lam <|>
+      attempt(piOrSigma) <|> ifTm <|> let <|> open <|> exportP <|> lam <|>
         precedence[RTm](app)(
           Ops(InfixR)("**" #> ((l, r) => RSigma(DontBind, l, r))),
           Ops(InfixR)("->" #> ((l, r) => RPi(DontBind, Expl, l, r)))
@@ -183,6 +184,11 @@ object Parser:
       }
     private lazy val openPart: Parsley[(Name, Option[Name])] =
       identOrOp <~> option("=" *> identOrOp)
+
+    private lazy val exportP: Parsley[RTm] =
+      ("export" *> option("(" *> sepEndBy(openPart, ",") <* ")") <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      )).map { case (ns, hiding) => RExport(ns, hiding.getOrElse(Nil)) }
 
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))

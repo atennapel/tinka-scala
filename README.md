@@ -40,4 +40,11 @@ sbt "run examples/nat.tinka"
   - [ ] Fix
   - [ ] Number
   - [ ] String
+- [ ] Core verification
+  - [ ] Ensure lambda, pair and export are wrapped with a let with type
+  - [ ] Core verification
+- [ ] Keep track of inserted terms
+- [ ] Erasure annotations
+- [ ] Instance parameters
 - [ ] Compiler
+- [ ] Postponing
