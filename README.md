@@ -24,16 +24,16 @@ sbt "run examples/nat.tinka"
   - [x] Syntax exporting
   - [ ] Signatures
   - [ ] Modules
-- [ ] Elaboration with metas
+- [x] Elaboration with metas
   - [x] Implicit functions
   - [x] Meta variables
   - [x] Unification with pruning
   - [x] Insert metas in elaboration
   - [x] Postponed named holes
-  - [ ] Zonking
 - [ ] Local gluing
   - [ ] Local gluing
   - [ ] Reuse introduced variables in `open` and `export`
+  - [ ] Zonking
 - [ ] Primitives
   - [x] Unit
   - [ ] Void
@@ -43,10 +43,10 @@ sbt "run examples/nat.tinka"
   - [ ] Number
   - [ ] String
 - [ ] Core verification
-  - [ ] Ensure lambda, pair and export are wrapped with a let with type
+  - [ ] Ensure lambda, pair, export and modules are wrapped with a let with type
   - [ ] Core verification
 - [ ] Keep track of inserted terms
 - [ ] Erasure annotations
 - [ ] Instance parameters
-- [ ] Compiler
 - [ ] Postponing
+- [ ] Compile to ChezScheme
