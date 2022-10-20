@@ -21,7 +21,9 @@ sbt "run examples/nat.tinka"
   - [x] Toposort imports
   - [x] Load from URI generally (http/file schemes)
   - [x] Open with hiding
-  - [ ] Syntax for modules or exporting
+  - [x] Syntax exporting
+  - [ ] Signatures
+  - [ ] Modules
 - [ ] Elaboration with metas
   - [x] Implicit functions
   - [x] Meta variables
@@ -31,7 +33,7 @@ sbt "run examples/nat.tinka"
   - [ ] Zonking
 - [ ] Local gluing
   - [ ] Local gluing
-  - [ ] Reuse introduced variables in `open`
+  - [ ] Reuse introduced variables in `open` and `export`
 - [ ] Primitives
   - [x] Unit
   - [ ] Void

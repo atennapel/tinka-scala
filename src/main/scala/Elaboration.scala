@@ -167,12 +167,24 @@ object Elaboration:
         val y = oy.getOrElse(x)
         if hiding.contains(y) then go(ctx, ns)
         else
-          val (ix, _) = ctx.lookup(x).get
+          val (ix, _) = ctx.lookup(y).get
           Pair(Var(ix), go(ctx, ns))
+    def goTy(ctx: Ctx, ns: List[(Name, Option[Name])]): Tm = ns match
+      case Nil => UnitType
+      case (x, oy) :: ns =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then
+          val (_, ty) = ctx.lookup(y).get
+          goTy(ctx.bind(DoBind(y), ty), ns)
+        else
+          val (ix, ty) = ctx.lookup(y).get
+          Sigma(DoBind(x), ctx.quote(ty), goTy(ctx.bind(DoBind(y), ty), ns))
     val xs = ns.getOrElse(ctx.names.reverse.map(x => (x, None)))
     val tm = go(ctx, xs)
+    val ty = ctx.eval(goTy(ctx, xs))
     println(ctx.pretty(tm))
-    (tm, ???)
+    println(ctx.pretty(ty))
+    (tm, ty)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>

@@ -6,22 +6,3 @@ let foldNat {A} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
 let (+) (a b : Nat) : Nat = foldNat a b S;
 
 export
-
-{-
-let exports :
-  (Nat : Type) **
-  (Z : Nat) **
-  (S : Nat -> Nat) **
-  (foldNat : {A : Type} -> Nat -> A -> (A -> A) -> A) **
-  ((+) : Nat -> Nat -> Nat) **
-  ()
-  = [Nat, Z, S, foldNat, (+)];
-exports
--}
-
-{-
-(Nat : Type) **
-(S : '0 -> '0) **
-()
-
--}

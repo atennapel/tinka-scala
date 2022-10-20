@@ -4,12 +4,4 @@ let flip {A B C} (f : A -> B -> C) (x : B) (y : A) : C = f y x;
 let compose {A B C} (f : B -> C) (g : A -> B) (x: A) : C = f (g x);
 let (<<) = compose;
 
-let exports :
-  (id : {A} -> A -> A) **
-  (const : {A B} -> A -> B -> A) **
-  (flip : {A B C} -> (A -> B -> C) -> B -> A -> C) **
-  (compose : {A B C} -> (B -> C) -> (A -> B) -> A -> C) **
-  ((<<) : {A B C} -> (B -> C) -> (A -> B) -> A -> C) **
-  ()
-  = [id, const, flip, compose, (<<)];
-exports
+export
