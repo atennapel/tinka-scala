@@ -35,6 +35,7 @@ object Syntax:
 
     case Meta(id: MetaId)
     case AppPruning(tm: Tm, spine: Pruning)
+    case PostponedCheck(id: CheckId)
 
     def appPruning(pr: Pruning): Tm =
       def go(x: Ix, pr: Pruning): Tm = pr match
@@ -62,4 +63,5 @@ object Syntax:
       case Wk(tm)                => s"(Wk $tm)"
       case Meta(id)              => s"?$id"
       case AppPruning(tm, spine) => s"?*$tm"
+      case PostponedCheck(id)    => s"??$id"
   export Tm.*

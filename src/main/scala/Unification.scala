@@ -10,7 +10,7 @@ import Debug.debug
 import scala.collection.immutable.IntMap
 import scala.util.Try
 
-object Unification:
+class Unification(elab: IElaboration) extends IUnification:
   private final case class PRen(
       occ: Option[MetaId],
       dom: Lvl,
@@ -67,7 +67,7 @@ object Unification:
     val u = getMetaUnsolved(m)
     val mty = u.ty
     val prunedty = eval(pruneTy(revPruning(pr), mty))(Nil)
-    val m2 = freshMeta(prunedty)
+    val m2 = freshMeta(u.blocking, prunedty)
     val solution = lams(mkLvl(pr.size), mty, AppPruning(Meta(m2), pr))
     solveMeta(m, eval(solution)(Nil), solution)
     m2
@@ -177,6 +177,7 @@ object Unification:
     val solution = lams(pren.dom, mty, rhs)
     debug(s"solution ?$m := $solution")
     solveMeta(m, eval(solution)(Nil), solution)
+    u.blocking.foreach(elab.retryCheck)
 
   private def flexFlex(m: MetaId, sp: Spine, m2: MetaId, sp2: Spine)(implicit
       k: Lvl
@@ -225,7 +226,7 @@ object Unification:
     val v = VVar(l)
     unify(a.inst(v), b.inst(v))(l + 1)
 
-  def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
+  override def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
     (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
       case (VType, VType)           => ()
       case (VUnitType, VUnitType)   => ()

@@ -1,7 +1,7 @@
 import Common.*
 import Parser.parser
 import Presyntax.RTm
-import Elaboration.elaborate
+import Elaborator.elaborate
 import Globals.{GlobalEntry, addGlobal}
 import Debug.debug
 import scala.io.Source

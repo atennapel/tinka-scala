@@ -34,7 +34,11 @@ object Evaluation:
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Solved(v, _, _) => v
-    case Unsolved(_)     => VMeta(id)
+    case Unsolved(_, _)  => VMeta(id)
+
+  def vcheck(id: CheckId)(implicit env: Env): Val = getCheck(id) match
+    case Unchecked(ctx, t, a, m) => vappPruning(vmeta(m), ctx.pruning)
+    case Checked(t)              => eval(t)
 
   def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
     (env, pr) match
@@ -69,6 +73,7 @@ object Evaluation:
 
     case Meta(id)           => vmeta(id)
     case AppPruning(tm, pr) => vappPruning(eval(tm), pr)
+    case PostponedCheck(c)  => vcheck(c)
 
   enum Unfold:
     case UnfoldAll
@@ -79,7 +84,7 @@ object Evaluation:
     case VFlex(id, sp) =>
       getMeta(id) match
         case Solved(v, _, _) => force(vspine(v, sp))
-        case Unsolved(_)     => v
+        case Unsolved(_, _)  => v
     case VUri(_, _, w) if unfold == UnfoldAll => force(w(), UnfoldAll)
     case _                                    => v
 

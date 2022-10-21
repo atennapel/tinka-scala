@@ -34,6 +34,14 @@ object Common:
     @targetName("exposeMetaId")
     inline def expose: Int = id
 
+  opaque type CheckId = Int
+
+  inline def checkId(id: Int): CheckId = id
+
+  extension (id: CheckId)
+    @targetName("exposeCheckId")
+    inline def expose: Int = id
+
   case class Name(x: String):
     override def toString: String =
       if x.head.isLetter then x else s"($x)"

@@ -1,7 +1,7 @@
 import Common.*
 import Presyntax.*
 import Evaluation.*
-import Elaboration.*
+import Elaborator.elaborate
 import Debug.*
 import Parser.parser
 import Errors.*

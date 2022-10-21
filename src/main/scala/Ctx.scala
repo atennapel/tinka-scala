@@ -51,7 +51,7 @@ final case class Ctx(
   def pretty(v: Val): String = pretty(quote(v))
 
   def closeTy(b: Ty): Ty = path.closeTy(b)
-  def closeTy(b: VTy): Ty = closeTy(quote(b))
+  def closeVTy(b: VTy): VTy = eval0(closeTy(quote(b)))(Nil)
   def closeTm(b: Tm): Tm = path.closeTm(b)
   def closeTm(b: Val): Tm = closeTm(quote(b))
 

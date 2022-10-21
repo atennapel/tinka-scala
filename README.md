@@ -24,12 +24,14 @@ sbt "run examples/nat.tinka"
   - [x] Syntax exporting
   - [ ] Signatures
   - [ ] Modules
-- [x] Elaboration with metas
+- [ ] Elaboration with metas
   - [x] Implicit functions
   - [x] Meta variables
   - [x] Unification with pruning
   - [x] Insert metas in elaboration
   - [x] Postponed named holes
+  - [x] Postponed checks
+  - [ ] Postponed unification
 - [ ] Local gluing
   - [ ] Local gluing
   - [ ] Reuse introduced variables in `open` and `export`
@@ -48,5 +50,4 @@ sbt "run examples/nat.tinka"
 - [ ] Keep track of inserted terms
 - [ ] Erasure annotations
 - [ ] Instance parameters
-- [ ] Postponing
 - [ ] Compile to ChezScheme

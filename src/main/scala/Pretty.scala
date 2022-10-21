@@ -37,6 +37,7 @@ object Pretty:
     case Uri(_)              => pretty(tm)
     case Meta(_)             => pretty(tm)
     case AppPruning(_, _)    => pretty(tm)
+    case PostponedCheck(_)   => pretty(tm)
     case Type                => pretty(tm)
     case UnitType            => pretty(tm)
     case UnitValue           => pretty(tm)
@@ -71,6 +72,7 @@ object Pretty:
     case UnitValue          => "[]"
     case Meta(id)           => s"?$id"
     case AppPruning(tm, sp) => s"?*${prettyParen(tm)}"
+    case PostponedCheck(id) => s"??$id"
     case Wk(tm)             => pretty(tm)(ns.tail)
 
     case Let(x, t, v, b) =>

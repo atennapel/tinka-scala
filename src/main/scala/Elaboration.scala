@@ -3,7 +3,6 @@ import Presyntax.*
 import Syntax.*
 import Value.*
 import Evaluation.*
-import Unification.{unify as unify0}
 import Globals.getGlobal
 import Metas.*
 import Errors.*
@@ -13,7 +12,63 @@ import scala.annotation.tailrec
 import java.io.Closeable
 import scala.collection.mutable
 
-object Elaboration:
+class Elaboration extends IElaboration:
+  // unification
+  private var unif: Option[IUnification] = None
+  def setUnification(unif: IUnification): Unit = this.unif = Some(unif)
+
+  override def retryCheck(c: CheckId): Unit = getCheck(c) match
+    case Unchecked(ctxU, t, a, m) =>
+      implicit val ctx: Ctx = ctxU
+      force(a) match
+        case VFlex(m2, _) => addBlocking(m2, c)
+        case _ =>
+          debug(s"retry check !$c with ?$m")
+          val etm = check(t, a)
+          unifyPlaceholder(etm, m)
+          solveCheck(c, etm)
+    case _ =>
+
+  private def unifyPlaceholder(tm: Tm, m: MetaId)(implicit ctx: Ctx): Unit =
+    getMeta(m) match
+      case Unsolved(bs, a) =>
+        debug(s"solve unconstrained placeholder ?$m")
+        val solution = ctx.closeTm(tm)
+        debug(s"?$m := $solution")
+        solveMeta(m, eval(solution)(Nil), solution)
+        bs.foreach(retryCheck)
+      case Solved(v, _, _) =>
+        debug(s"unify solved placeholder ?$m")
+        unif.get.unify(ctx.eval(tm), vappPruning(v, ctx.pruning)(ctx.env))(
+          ctx.lvl
+        )
+
+  private def checkEverything(): Unit =
+    @tailrec
+    def go(c: Int): Unit =
+      val c2 = nextCheckId()
+      if c < c2 then
+        val id = checkId(c)
+        getCheck(id) match
+          case Unchecked(ctxU, t, a, m) =>
+            implicit val ctx: Ctx = ctxU
+            debug(s"check everything: !$c < !$c2")
+            val (etm, ty) = insert(infer(t))
+            solveCheck(id, etm)
+            unify(a, ty)
+            unifyPlaceholder(etm, m)
+          case _ =>
+        go(c + 1)
+    go(0)
+
+  private def unify(a: VTy, b: VTy)(implicit ctx: Ctx): Unit =
+    try unif.get.unify(a, b)(ctx.lvl)
+    catch
+      case e: UnifyError =>
+        throw ElabUnifyError(
+          s"failed to unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${e.msg}"
+        )
+
   // holes
   private val holes: mutable.Map[Name, HoleEntry] = mutable.Map.empty
 
@@ -23,8 +78,8 @@ object Elaboration:
   private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
     case VUnitType => UnitValue
     case _ =>
-      val closed = eval(ctx.closeTy(ty))(Nil)
-      val m = freshMeta(closed)
+      val closed = ctx.closeVTy(ty)
+      val m = freshMeta(Set.empty, closed)
       debug(s"newMeta ?$m : ${ctx.pretty(ty)}")
       AppPruning(Meta(m), ctx.pruning)
 
@@ -55,15 +110,6 @@ object Elaboration:
           go(App(tm, m, Impl), b.inst(mv))
       case _ => throw NamedImplicitError(x.toString)
     go(inp._1, inp._2)
-
-  // unification
-  private def unify(a: VTy, b: VTy)(implicit ctx: Ctx): Unit =
-    try unify0(a, b)(ctx.lvl)
-    catch
-      case e: UnifyError =>
-        throw ElabUnifyError(
-          s"failed to unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${e.msg}"
-        )
 
   // elaboration
   private def checkType(ty: RTm)(implicit ctx: Ctx): Ty = check(ty, VType)
@@ -201,6 +247,11 @@ object Elaboration:
           case _           => false
       case _ => false
 
+  private def shouldPostpone(t: RTm): Boolean = t match
+    case RUnitType  => false
+    case RUnitValue => false
+    case _          => true
+
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ctx.pretty(ty)}")
     (tm, force(ty)) match
@@ -221,6 +272,12 @@ object Elaboration:
       case (_, VPi(x, Impl, pty, rty)) =>
         val etm = check(tm, ctx.inst(rty))(ctx.bind(x, pty, true))
         Lam(x, Impl, etm)
+      case (tm, VFlex(m, _)) if shouldPostpone(tm) =>
+        val placeholder = freshMeta(Set.empty, ctx.closeVTy(ty))
+        val c = freshCheck(ctx, tm, ty, placeholder)
+        addBlocking(m, c)
+        debug(s"postpone $tm : ${ctx.pretty(ty)} as ?$placeholder")
+        PostponedCheck(c)
       case (RPair(fst, snd), VSigma(_, fty, sty)) =>
         val efst = check(fst, fty)
         val esnd = check(snd, sty.inst(ctx.eval(efst)))
@@ -375,10 +432,11 @@ object Elaboration:
       )
       .mkString("\n\n")
 
-  def elaborate(tm: RTm)(implicit ctx: Ctx = Ctx.empty()): (Tm, Ty) =
+  def elaborate(tm: RTm)(implicit ctx: Ctx): (Tm, Ty) =
     // resetMetas() TODO: zonking
     holes.clear()
     val (etm, vty) = infer(tm)
+    checkEverything()
     val ety = ctx.quote(vty)
     if holes.nonEmpty then
       throw HoleError(
