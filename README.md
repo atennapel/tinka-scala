@@ -51,3 +51,4 @@ sbt "run examples/nat.tinka"
 - [ ] Erasure annotations
 - [ ] Instance parameters
 - [ ] Compile to ChezScheme
+- [ ] Operator sectioning

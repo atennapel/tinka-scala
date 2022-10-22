@@ -228,8 +228,6 @@ class Elaboration extends IElaboration:
     val xs = ns.getOrElse(ctx.names.reverse.map(x => (x, None)))
     val tm = go(ctx, xs)
     val ty = ctx.eval(goTy(ctx, xs))
-    println(ctx.pretty(tm))
-    println(ctx.pretty(ty))
     (tm, ty)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
