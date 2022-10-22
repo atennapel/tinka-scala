@@ -1,0 +1,11 @@
+let List A = (R : Type) -> R -> (A -> R -> R) -> R;
+let Nil {A} : List A = \R n c. n;
+let (::) {A} (hd : A) (tl : List A) : List A = \R n c. c hd (tl R n c);
+let foldr {A R} (cons : A -> R -> R) (nil : R) (l : List A) : R = l R nil cons;
+
+let map {A B} (f : A -> B) (l : List A) : List B = foldr (\hd tl. f hd :: tl) Nil l;
+let (<$>) = map;
+
+let (++) {A} (a b : List A) : List A = foldr (::) b a;
+
+export

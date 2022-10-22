@@ -1,0 +1,10 @@
+let Bool = (A : Type) -> A -> A -> A;
+let True : Bool = \A t f. f;
+let False : Bool = \A t f. f;
+let if_ {A} (b : Bool) (t : A) (f : A) : A = b A t f;
+
+let (!) (b : Bool) : Bool = if b then False else True;
+let (&&) (a b : Bool) : Bool = if a then b else False;
+let (||) (a b : Bool) : Bool = if a then True else b;
+
+export

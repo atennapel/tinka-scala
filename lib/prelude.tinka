@@ -1,4 +1,6 @@
 open #lib/combinators;
+open #lib/bool;
 open #lib/nat;
+open #lib/list;
 
 export
