@@ -18,6 +18,7 @@ object Syntax:
     case Type
     case Var(ix: Ix)
     case Uri(uri: String)
+    case Prim(name: PrimName)
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
 
     case Lam(bind: Bind, icit: Icit, body: Tm)
@@ -27,9 +28,6 @@ object Syntax:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
     case Sigma(bind: Bind, ty: Ty, body: Ty)
-
-    case UnitType
-    case UnitValue
 
     case Wk(tm: Tm)
 
@@ -48,6 +46,7 @@ object Syntax:
       case Type                  => "Type"
       case Var(ix)               => s"'$ix"
       case Uri(uri)              => s"#$uri"
+      case Prim(x)               => s"$x"
       case Let(x, t, v, b)       => s"(let $x : $t = $v; $b)"
       case Lam(x, Expl, b)       => s"(\\$x. $b)"
       case Lam(x, Impl, b)       => s"(\\{$x}. $b)"
@@ -58,10 +57,11 @@ object Syntax:
       case Pair(fst, snd)        => s"($fst, $snd)"
       case Proj(tm, proj)        => s"$tm$proj"
       case Sigma(x, t, b)        => s"(($x : $t) ** $b)"
-      case UnitType              => "()"
-      case UnitValue             => "[]"
       case Wk(tm)                => s"(Wk $tm)"
       case Meta(id)              => s"?$id"
       case AppPruning(tm, spine) => s"?*$tm"
       case PostponedCheck(id)    => s"??$id"
   export Tm.*
+
+  val UnitValue = Prim(PUnitValue)
+  val UnitType = Prim(PUnitType)

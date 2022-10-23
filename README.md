@@ -37,11 +37,14 @@ sbt "run examples/nat.tinka"
   - [ ] Reuse introduced variables in `open` and `export`
   - [ ] Zonking
 - [ ] Primitives
+  - [x] Primitive constructors
+  - [ ] Primitive eliminators
   - [x] Unit
   - [ ] Void
   - [ ] Bool
   - [ ] Id
   - [ ] Fix
+  - [ ] Inductive-recursive fix
   - [ ] Number
   - [ ] String
 - [ ] Core verification

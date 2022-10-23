@@ -117,18 +117,17 @@ class Unification(elab: IElaboration) extends IUnification:
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
     def go(v: Val)(implicit pren: PRen): Tm = force(v, UnfoldMetas) match
-      case VRigid(x, sp) =>
+      case VRigid(HVar(x), sp) =>
         pren.ren.get(x.expose) match
           case None     => throw UnifyError("escaping variable")
           case Some(x2) => goSp(Var(x2.toIx(pren.dom)), sp)
+      case VRigid(HPrim(x), sp) => goSp(Prim(x), sp)
       case VFlex(x, sp) =>
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
           case _                 => pruneFlex(x, sp)
       case VUri(x, sp, _)  => goSp(Uri(x), sp)
       case VType           => Type
-      case VUnitType       => UnitType
-      case VUnitValue      => UnitValue
       case VPair(fst, snd) => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
         Lam(bind, icit, go(body.inst(VVar(pren.cod)))(pren.lift))
@@ -228,9 +227,7 @@ class Unification(elab: IElaboration) extends IUnification:
 
   override def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
     (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
-      case (VType, VType)           => ()
-      case (VUnitType, VUnitType)   => ()
-      case (VUnitValue, VUnitValue) => ()
+      case (VType, VType) => ()
 
       case (VPi(_, i1, t1, b1), VPi(_, i2, t2, b2)) if i1 == i2 =>
         unify(t1, t2); unify(b1, b2)
@@ -262,7 +259,7 @@ class Unification(elab: IElaboration) extends IUnification:
       case (VUri(_, _, v), w)             => unify(v(), w)
       case (w, VUri(_, _, v))             => unify(w, v())
 
-      case (VUnitValue, _) => ()
-      case (_, VUnitValue) => ()
+      case (VUnitValue(), _) => ()
+      case (_, VUnitValue()) => ()
 
       case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

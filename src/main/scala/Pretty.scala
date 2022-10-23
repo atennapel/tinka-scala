@@ -35,12 +35,11 @@ object Pretty:
   ): String = tm match
     case Var(_)              => pretty(tm)
     case Uri(_)              => pretty(tm)
+    case Prim(_)             => pretty(tm)
     case Meta(_)             => pretty(tm)
     case AppPruning(_, _)    => pretty(tm)
     case PostponedCheck(_)   => pretty(tm)
     case Type                => pretty(tm)
-    case UnitType            => pretty(tm)
-    case UnitValue           => pretty(tm)
     case Pair(_, _)          => pretty(tm)
     case Proj(_, _)          => pretty(tm)
     case App(_, _, _) if app => pretty(tm)
@@ -67,9 +66,8 @@ object Pretty:
       val countSkipped = ns.take(ix.expose).count(_ == x)
       if countSkipped > 0 then s"$x^$countSkipped" else s"$x"
     case Uri(uri)           => s"#$uri"
+    case Prim(x)            => s"$x"
     case Type               => "Type"
-    case UnitType           => "()"
-    case UnitValue          => "[]"
     case Meta(id)           => s"?$id"
     case AppPruning(tm, sp) => s"?*${prettyParen(tm)}"
     case PostponedCheck(id) => s"??$id"

@@ -44,7 +44,7 @@ object Common:
 
   case class Name(x: String):
     override def toString: String =
-      if x.head.isLetter then x else s"($x)"
+      if x.head.isLetter || x == "[]" || x == "()" then x else s"($x)"
     inline def expose: String = x
 
   enum Bind:
@@ -70,3 +70,60 @@ object Common:
   opaque type RevPruning = Pruning
   inline def revPruning(p: Pruning): RevPruning = p.reverse
   extension (p: RevPruning) inline def expose: List[Option[Icit]] = p
+
+  // primitives
+  enum PrimName:
+    case PUnitValue
+    case PUnitType
+
+    case PVoid
+    case PAbsurd
+
+    case PBool
+    case PTrue
+    case PFalse
+
+    case PId
+    case PRefl
+
+    case PFix
+    case PRoll
+
+    override def toString: String = this match
+      case PUnitValue => "[]"
+      case PUnitType  => "()"
+
+      case PVoid   => "Void"
+      case PAbsurd => "absurd"
+      case PBool   => "Bool"
+      case PTrue   => "True"
+      case PFalse  => "False"
+
+      case PId   => "Id"
+      case PRefl => "Refl"
+
+      case PFix  => "Fix"
+      case PRoll => "Roll"
+
+  object PrimName:
+    def apply(x: String): Option[PrimName] = x match
+      case "[]" => Some(PUnitValue)
+      case "()" => Some(PUnitType)
+
+      case "Void"   => Some(PVoid)
+      case "absurd" => Some(PAbsurd)
+
+      case "Bool"  => Some(PBool)
+      case "True"  => Some(PTrue)
+      case "False" => Some(PFalse)
+
+      case "Id"   => Some(PId)
+      case "Refl" => Some(PRefl)
+
+      case "Fix"  => Some(PFix)
+      case "Roll" => Some(PRoll)
+
+      case _ => None
+
+    def apply(x: Name): Option[PrimName] = PrimName(x.expose)
+  export PrimName.*

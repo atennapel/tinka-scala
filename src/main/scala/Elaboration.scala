@@ -6,6 +6,7 @@ import Evaluation.*
 import Globals.getGlobal
 import Metas.*
 import Errors.*
+import Prims.*
 import Debug.debug
 
 import scala.annotation.tailrec
@@ -76,7 +77,7 @@ class Elaboration extends IElaboration:
 
   // insertion
   private def newMeta(ty: VTy)(implicit ctx: Ctx): Tm = ty match
-    case VUnitType => UnitValue
+    case VUnitType() => UnitValue
     case _ =>
       val closed = ctx.closeVTy(ty)
       val m = freshMeta(Set.empty, closed)
@@ -246,9 +247,9 @@ class Elaboration extends IElaboration:
       case _ => false
 
   private def shouldPostpone(t: RTm): Boolean = t match
-    case RUnitType  => false
-    case RUnitValue => false
-    case _          => true
+    case RVar(Name("()")) => false
+    case RVar(Name("[]")) => false
+    case _                => true
 
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =
     debug(s"check $tm : ${ctx.pretty(ty)}")
@@ -287,6 +288,13 @@ class Elaboration extends IElaboration:
       case (ROpen(tm, ns, hiding, b), _) =>
         val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
         builder(check(b, ty)(nctx))
+      // sugar
+      case (RVar(Name("[]")), VId(_, _, _, _)) => check(RVar(Name("Refl")), ty)
+      case (RVar(Name("[]")), VFix(_, _, _)) =>
+        check(RApp(RVar(Name("Roll")), tm, RArgIcit(Expl)), ty)
+      case (RPair(_, _), VFix(_, _, _)) =>
+        check(RApp(RVar(Name("Roll")), tm, RArgIcit(Expl)), ty)
+      // switch to infer
       case _ =>
         val (etm, vty) = insert(infer(tm))
         unify(vty, ty)
@@ -323,12 +331,13 @@ class Elaboration extends IElaboration:
     tm match
       case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
       case RType         => (Type, VType)
-      case RUnitType     => (UnitType, VType)
-      case RUnitValue    => (UnitValue, VUnitType)
       case RVar(x) =>
         ctx.lookup(x) match
           case Some((ix, ty)) => (Var(ix), ty)
-          case None           => throw UndefVarError(x.toString)
+          case None =>
+            PrimName(x) match
+              case Some(p) => (Prim(p), primType(p))
+              case None    => throw UndefVarError(x.toString)
       case RUri(uri) =>
         getGlobal(uri) match
           case Some(e) => (Uri(uri), e.vty)

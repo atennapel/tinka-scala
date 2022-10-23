@@ -86,8 +86,8 @@ object Parser:
         <|> ident.map(RVar.apply)
     )
 
-    private val unittype = RUnitType
-    private val unit = RUnitValue
+    private val unittype = RVar(Name("()"))
+    private val unit = RVar(Name("[]"))
     private val hole = RHole(None)
 
     private def mkPair(ts: List[RTm]): RTm = ts match

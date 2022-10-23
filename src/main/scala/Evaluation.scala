@@ -5,7 +5,10 @@ import Metas.*
 import Globals.getGlobal
 
 object Evaluation:
-  extension (c: Clos) def inst(v: Val): Val = eval(c.tm)(v :: c.env)
+  extension (c: Clos)
+    def inst(v: Val): Val = c match
+      case CClos(env, tm) => eval(tm)(v :: env)
+      case CFun(fn)       => fn(v)
 
   def vapp(fn: Val, arg: Val, icit: Icit): Val = fn match
     case VLam(_, _, b)  => b.inst(arg)
@@ -56,6 +59,7 @@ object Evaluation:
         case Some(e) =>
           val value = e.value
           VUri(uri, SId, () => value)
+    case Prim(x)         => VPrim(x)
     case Let(_, _, v, b) => eval(b)(eval(v) :: env)
 
     case Lam(x, i, b)   => VLam(x, i, Clos(b))
@@ -65,9 +69,6 @@ object Evaluation:
     case Pair(fst, snd) => VPair(eval(fst), eval(snd))
     case Proj(tm, proj) => vproj(eval(tm), proj)
     case Sigma(x, t, b) => VSigma(x, eval(t), Clos(b))
-
-    case UnitType  => VUnitType
-    case UnitValue => VUnitValue
 
     case Wk(tm) => eval(tm)(env.tail)
 
@@ -94,10 +95,14 @@ object Evaluation:
       case SApp(fn, arg, i) => App(quote(hd, fn, unfold), quote(arg, unfold), i)
       case SProj(tm, proj)  => Proj(quote(hd, tm, unfold), proj)
 
+  private def quote(hd: Head)(implicit l: Lvl): Tm = hd match
+    case HVar(ix) => Var(ix.toIx)
+    case HPrim(x) => Prim(x)
+
   def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match
       case VType            => Type
-      case VRigid(hd, sp)   => quote(Var(hd.toIx), sp, unfold)
+      case VRigid(hd, sp)   => quote(quote(hd), sp, unfold)
       case VFlex(id, sp)    => quote(Meta(id), sp, unfold)
       case VUri(uri, sp, _) => quote(Uri(uri), sp, unfold)
 
@@ -108,9 +113,6 @@ object Evaluation:
       case VPair(fst, snd) => Pair(quote(fst, unfold), quote(snd, unfold))
       case VSigma(x, t, b) =>
         Sigma(x, quote(t, unfold), quote(b.inst(VVar(l)), unfold)(l + 1))
-
-      case VUnitType  => UnitType
-      case VUnitValue => UnitValue
 
   def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = Nil): Tm =
     quote(eval(tm), UnfoldAll)

@@ -42,9 +42,6 @@ object Presyntax:
     case RProj(tm: RTm, proj: RProjType)
     case RSigma(bind: Bind, ty: RTy, body: RTy)
 
-    case RUnitType
-    case RUnitValue
-
     case RPos(pos: Pos, tm: RTm)
     case RHole(name: Option[Name])
 
@@ -103,8 +100,6 @@ object Presyntax:
       case RPair(fst, snd)                     => s"($fst, $snd)"
       case RProj(tm, proj)                     => s"$tm$proj"
       case RSigma(x, t, b)                     => s"(($x : $t) ** $b)"
-      case RUnitType                           => "()"
-      case RUnitValue                          => "[]"
       case RPos(_, tm)                         => tm.toString
       case RHole(x)                            => s"_${x.getOrElse("")}"
   export RTm.*
