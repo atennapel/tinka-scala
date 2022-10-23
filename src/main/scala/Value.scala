@@ -135,12 +135,12 @@ object Value:
   object VRefl:
     def apply(ta: Val, a: Val) =
       VRigid(
-        HPrim(PId),
+        HPrim(PRefl),
         SApp(SApp(SId, ta, Impl), a, Impl)
       )
     def unapply(value: Val): Option[(Val, Val)] = value match
       case VRigid(
-            HPrim(PId),
+            HPrim(PRefl),
             SApp(SApp(SId, ta, Impl), a, Impl)
           ) =>
         Some((ta, a))

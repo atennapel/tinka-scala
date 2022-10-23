@@ -34,6 +34,12 @@ object Evaluation:
     (x, args, v) match
       case (PElimBool, List((p, _), (t, _), (f, _)), VTrue())  => t
       case (PElimBool, List((p, _), (t, _), (f, _)), VFalse()) => f
+      case (
+            PElimId,
+            List((a, _), (x, _), (p, _), (refl, _), (y, _)),
+            VRefl(_, _)
+          ) =>
+        refl
       case (_, _, VRigid(hd, sp)) => VRigid(hd, SPrim(x, args, sp))
       case (_, _, VFlex(hd, sp))  => VFlex(hd, SPrim(x, args, sp))
       case (_, _, VUri(hd, sp, v)) =>
@@ -105,6 +111,42 @@ object Evaluation:
                     "b",
                     b =>
                       vprim(PElimBool, List((P, Expl), (t, Expl), (f, Expl)), b)
+                  )
+              )
+          )
+      )
+    case PElimId =>
+      vlamI(
+        "A",
+        A =>
+          vlamI(
+            "x",
+            x =>
+              vlamE(
+                "P",
+                P =>
+                  vlamE(
+                    "refl",
+                    refl =>
+                      vlamI(
+                        "y",
+                        y =>
+                          vlamE(
+                            "p",
+                            p =>
+                              vprim(
+                                PElimId,
+                                List(
+                                  (A, Impl),
+                                  (x, Impl),
+                                  (P, Expl),
+                                  (refl, Expl),
+                                  (y, Impl)
+                                ),
+                                p
+                              )
+                          )
+                      )
                   )
               )
           )

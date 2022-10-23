@@ -33,6 +33,43 @@ object Prims:
     ),
     // {A : Type} {x : A} -> Id {A} {A} x x
     PRefl -> vpiI("A", VType, A => vpiI("x", A, x => VId(A, A, x, x))),
+    /*
+    {A : Type} {x : A}
+      (P : {y : A} -> Id x y -> Type)
+      (refl : P {x} Refl)
+      {y : A}
+      (p : Id x y)
+      -> P p
+     */
+    PElimId ->
+      vpiI(
+        "A",
+        VType,
+        A =>
+          vpiI(
+            "x",
+            A,
+            x =>
+              vpiE(
+                "P",
+                vpiI("y", A, y => vfun(VId(A, A, x, y), VType)),
+                P =>
+                  vfun(
+                    vapp(vapp(P, x, Impl), VRefl(A, x), Expl),
+                    vpiI(
+                      "y",
+                      A,
+                      y =>
+                        vpiE(
+                          "p",
+                          VId(A, A, x, y),
+                          p => vapp(vapp(P, y, Impl), p, Expl)
+                        )
+                    )
+                  )
+              )
+          )
+      ),
     // {I : Type} -> ((I -> Type) -> I -> Type) -> I -> Type
     PFix -> vpiI(
       "I",

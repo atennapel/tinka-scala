@@ -109,10 +109,12 @@ object Common:
   enum PrimElimName extends PrimName:
     case PAbsurd
     case PElimBool
+    case PElimId
 
     override def toString: String = this match
       case PAbsurd   => "absurd"
       case PElimBool => "elimBool"
+      case PElimId   => "elimId"
   export PrimElimName.*
 
   object PrimName:
@@ -128,8 +130,9 @@ object Common:
       case "False"    => Some(Right(PFalse))
       case "elimBool" => Some(Left(PElimBool))
 
-      case "Id"   => Some(Right(PId))
-      case "Refl" => Some(Right(PRefl))
+      case "Id"     => Some(Right(PId))
+      case "Refl"   => Some(Right(PRefl))
+      case "elimId" => Some(Left(PElimId))
 
       case "Fix"  => Some(Right(PFix))
       case "Roll" => Some(Right(PRoll))

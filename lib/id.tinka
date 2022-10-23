@@ -1,0 +1,10 @@
+let Id1 {A} x y = Id {A} {A} x y;
+let (~~) = Id;
+let (~) = Id1;
+let (!~~) {A B : Type} (x : A) (y : B) = x ~~ y -> Void;
+let (!~) {A : Type} (x y : A) = x ~ y -> Void;
+
+let idJ {A} (P : {a b : A} -> a ~ b -> Type) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
+  = elimId (\{c} q. P {a} {c} q) refl p;
+
+export

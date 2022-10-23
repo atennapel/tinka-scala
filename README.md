@@ -42,7 +42,7 @@ sbt "run examples/nat.tinka"
   - [x] Unit
   - [x] Void
   - [x] Bool
-  - [ ] Id
+  - [x] Id
   - [ ] Fix
   - [ ] Inductive-recursive fix
   - [ ] Number
