@@ -38,10 +38,10 @@ sbt "run examples/nat.tinka"
   - [ ] Zonking
 - [ ] Primitives
   - [x] Primitive constructors
-  - [ ] Primitive eliminators
+  - [x] Primitive eliminators
   - [x] Unit
-  - [ ] Void
-  - [ ] Bool
+  - [x] Void
+  - [x] Bool
   - [ ] Id
   - [ ] Fix
   - [ ] Inductive-recursive fix

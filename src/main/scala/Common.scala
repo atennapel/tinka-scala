@@ -72,12 +72,12 @@ object Common:
   extension (p: RevPruning) inline def expose: List[Option[Icit]] = p
 
   // primitives
-  enum PrimName:
+  trait PrimName
+  enum PrimConName extends PrimName:
     case PUnitValue
     case PUnitType
 
     case PVoid
-    case PAbsurd
 
     case PBool
     case PTrue
@@ -93,11 +93,11 @@ object Common:
       case PUnitValue => "[]"
       case PUnitType  => "()"
 
-      case PVoid   => "Void"
-      case PAbsurd => "absurd"
-      case PBool   => "Bool"
-      case PTrue   => "True"
-      case PFalse  => "False"
+      case PVoid => "Void"
+
+      case PBool  => "Bool"
+      case PTrue  => "True"
+      case PFalse => "False"
 
       case PId   => "Id"
       case PRefl => "Refl"
@@ -105,25 +105,36 @@ object Common:
       case PFix  => "Fix"
       case PRoll => "Roll"
 
+  export PrimConName.*
+  enum PrimElimName extends PrimName:
+    case PAbsurd
+    case PElimBool
+
+    override def toString: String = this match
+      case PAbsurd   => "absurd"
+      case PElimBool => "elimBool"
+  export PrimElimName.*
+
   object PrimName:
-    def apply(x: String): Option[PrimName] = x match
-      case "[]" => Some(PUnitValue)
-      case "()" => Some(PUnitType)
+    def apply(x: String): Option[Either[PrimElimName, PrimConName]] = x match
+      case "[]" => Some(Right(PUnitValue))
+      case "()" => Some(Right(PUnitType))
 
-      case "Void"   => Some(PVoid)
-      case "absurd" => Some(PAbsurd)
+      case "Void"   => Some(Right(PVoid))
+      case "absurd" => Some(Left(PAbsurd))
 
-      case "Bool"  => Some(PBool)
-      case "True"  => Some(PTrue)
-      case "False" => Some(PFalse)
+      case "Bool"     => Some(Right(PBool))
+      case "True"     => Some(Right(PTrue))
+      case "False"    => Some(Right(PFalse))
+      case "elimBool" => Some(Left(PElimBool))
 
-      case "Id"   => Some(PId)
-      case "Refl" => Some(PRefl)
+      case "Id"   => Some(Right(PId))
+      case "Refl" => Some(Right(PRefl))
 
-      case "Fix"  => Some(PFix)
-      case "Roll" => Some(PRoll)
+      case "Fix"  => Some(Right(PFix))
+      case "Roll" => Some(Right(PRoll))
 
       case _ => None
 
-    def apply(x: Name): Option[PrimName] = PrimName(x.expose)
-  export PrimName.*
+    def apply(x: Name): Option[Either[PrimElimName, PrimConName]] =
+      PrimName(x.expose)

@@ -30,10 +30,21 @@ object Evaluation:
     case VUri(uri, sp, v) => VUri(uri, SProj(sp, proj), () => vproj(v(), proj))
     case _                => impossible()
 
+  def vprim(x: PrimElimName, args: List[(Val, Icit)], v: Val): Val =
+    (x, args, v) match
+      case (PElimBool, List((p, _), (t, _), (f, _)), VTrue())  => t
+      case (PElimBool, List((p, _), (t, _), (f, _)), VFalse()) => f
+      case (_, _, VRigid(hd, sp)) => VRigid(hd, SPrim(x, args, sp))
+      case (_, _, VFlex(hd, sp))  => VFlex(hd, SPrim(x, args, sp))
+      case (_, _, VUri(hd, sp, v)) =>
+        VUri(hd, SPrim(x, args, sp), () => vprim(x, args, v()))
+      case _ => impossible()
+
   def vspine(v: Val, sp: Spine): Val = sp match
-    case SId             => v
-    case SApp(sp, a, i)  => vapp(vspine(v, sp), a, i)
-    case SProj(sp, proj) => vproj(vspine(v, sp), proj)
+    case SId                => v
+    case SApp(sp, a, i)     => vapp(vspine(v, sp), a, i)
+    case SProj(sp, proj)    => vproj(vspine(v, sp), proj)
+    case SPrim(x, args, sp) => vprim(x, args, vspine(v, sp))
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Solved(v, _, _) => v
@@ -59,7 +70,8 @@ object Evaluation:
         case Some(e) =>
           val value = e.value
           VUri(uri, SId, () => value)
-    case Prim(x)         => VPrim(x)
+    case Prim(Right(x))  => VPrim(x)
+    case Prim(Left(x))   => evalprimelim(x)
     case Let(_, _, v, b) => eval(b)(eval(v) :: env)
 
     case Lam(x, i, b)   => VLam(x, i, Clos(b))
@@ -75,6 +87,28 @@ object Evaluation:
     case Meta(id)           => vmeta(id)
     case AppPruning(tm, pr) => vappPruning(eval(tm), pr)
     case PostponedCheck(c)  => vcheck(c)
+
+  def evalprimelim(x: PrimElimName): Val = x match
+    case PAbsurd =>
+      vlamI("A", A => vlamE("x", x => vprim(PAbsurd, List((A, Impl)), x)))
+    case PElimBool =>
+      vlamE(
+        "P",
+        P =>
+          vlamE(
+            "t",
+            t =>
+              vlamE(
+                "f",
+                f =>
+                  vlamE(
+                    "b",
+                    b =>
+                      vprim(PElimBool, List((P, Expl), (t, Expl), (f, Expl)), b)
+                  )
+              )
+          )
+      )
 
   enum Unfold:
     case UnfoldAll
@@ -94,10 +128,18 @@ object Evaluation:
       case SId              => hd
       case SApp(fn, arg, i) => App(quote(hd, fn, unfold), quote(arg, unfold), i)
       case SProj(tm, proj)  => Proj(quote(hd, tm, unfold), proj)
+      case SPrim(x, args, sp) =>
+        App(
+          args.foldLeft(Prim(Left(x))) { case (fn, (arg, i)) =>
+            App(fn, quote(arg, unfold), i)
+          },
+          quote(hd, sp, unfold),
+          Expl
+        )
 
   private def quote(hd: Head)(implicit l: Lvl): Tm = hd match
     case HVar(ix) => Var(ix.toIx)
-    case HPrim(x) => Prim(x)
+    case HPrim(x) => Prim(Right(x))
 
   def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match

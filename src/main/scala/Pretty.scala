@@ -66,7 +66,8 @@ object Pretty:
       val countSkipped = ns.take(ix.expose).count(_ == x)
       if countSkipped > 0 then s"$x^$countSkipped" else s"$x"
     case Uri(uri)           => s"#$uri"
-    case Prim(x)            => s"$x"
+    case Prim(Left(x))      => s"$x"
+    case Prim(Right(x))     => s"$x"
     case Type               => "Type"
     case Meta(id)           => s"?$id"
     case AppPruning(tm, sp) => s"?*${prettyParen(tm)}"

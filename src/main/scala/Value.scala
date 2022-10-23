@@ -21,19 +21,21 @@ object Value:
     case SId
     case SApp(fn: Spine, arg: Val, icit: Icit)
     case SProj(hd: Spine, proj: ProjType)
+    case SPrim(name: PrimElimName, args: List[(Val, Icit)], scrut: Spine)
 
     def size: Int =
       @tailrec
       def go(sp: Spine, i: Int): Int = sp match
-        case SId            => 0
-        case SApp(sp, _, _) => go(sp, i + 1)
-        case SProj(sp, _)   => go(sp, i + 1)
+        case SId             => 0
+        case SApp(sp, _, _)  => go(sp, i + 1)
+        case SProj(sp, _)    => go(sp, i + 1)
+        case SPrim(_, _, sp) => go(sp, i + 1)
       go(this, 0)
   export Spine.*
 
   enum Head:
     case HVar(lvl: Lvl)
-    case HPrim(name: PrimName)
+    case HPrim(name: PrimConName)
   export Head.*
 
   enum Val:
@@ -69,8 +71,8 @@ object Value:
       case _                       => None
 
   object VPrim:
-    def apply(name: PrimName) = VRigid(HPrim(name), SId)
-    def unapply(value: Val): Option[PrimName] = value match
+    def apply(name: PrimConName) = VRigid(HPrim(name), SId)
+    def unapply(value: Val): Option[PrimConName] = value match
       case VRigid(HPrim(head), SId) => Some(head)
       case _                        => None
 

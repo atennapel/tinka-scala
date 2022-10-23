@@ -336,7 +336,7 @@ class Elaboration extends IElaboration:
           case Some((ix, ty)) => (Var(ix), ty)
           case None =>
             PrimName(x) match
-              case Some(p) => (Prim(p), primType(p))
+              case Some(p) => (Prim(p), primType(p.fold(x => x, x => x)))
               case None    => throw UndefVarError(x.toString)
       case RUri(uri) =>
         getGlobal(uri) match

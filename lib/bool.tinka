@@ -1,7 +1,5 @@
-let Bool = (A : Type) -> A -> A -> A;
-let True : Bool = \A t f. f;
-let False : Bool = \A t f. f;
-let if_ {A} (b : Bool) (t : A) (f : A) : A = b A t f;
+let if-ind_ P b t f = elimBool P t f b;
+let if_ {A} b t f = if b : \_. A then t else f;
 
 let (!) (b : Bool) : Bool = if b then False else True;
 let (&&) (a b : Bool) : Bool = if a then b else False;

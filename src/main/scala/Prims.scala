@@ -12,6 +12,19 @@ object Prims:
     PBool -> VType,
     PTrue -> VBool(),
     PFalse -> VBool(),
+    // (P : Bool -> Type) -> P True -> P False -> (b : Bool) -> P b
+    PElimBool -> vpiE(
+      "P",
+      vfun(VBool(), VType),
+      P =>
+        vfun(
+          vapp(P, VTrue(), Expl),
+          vfun(
+            vapp(P, VFalse(), Expl),
+            vpiE("b", VBool(), b => vapp(P, b, Expl))
+          )
+        )
+    ),
     // {A B : Type} -> A -> B -> Type
     PId -> vpiI(
       "A",

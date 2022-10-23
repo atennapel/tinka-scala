@@ -116,12 +116,20 @@ class Unification(elab: IElaboration) extends IUnification:
       case SId            => t
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
+      case SPrim(x, args, sp) =>
+        App(
+          args.foldLeft(Prim(Left(x))) { case (fn, (arg, i)) =>
+            App(fn, go(arg), i)
+          },
+          goSp(t, sp),
+          Expl
+        )
     def go(v: Val)(implicit pren: PRen): Tm = force(v, UnfoldMetas) match
       case VRigid(HVar(x), sp) =>
         pren.ren.get(x.expose) match
           case None     => throw UnifyError("escaping variable")
           case Some(x2) => goSp(Var(x2.toIx(pren.dom)), sp)
-      case VRigid(HPrim(x), sp) => goSp(Prim(x), sp)
+      case VRigid(HPrim(x), sp) => goSp(Prim(Right(x)), sp)
       case VFlex(x, sp) =>
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")

@@ -18,7 +18,7 @@ object Syntax:
     case Type
     case Var(ix: Ix)
     case Uri(uri: String)
-    case Prim(name: PrimName)
+    case Prim(name: Either[PrimElimName, PrimConName])
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
 
     case Lam(bind: Bind, icit: Icit, body: Tm)
@@ -46,7 +46,8 @@ object Syntax:
       case Type                  => "Type"
       case Var(ix)               => s"'$ix"
       case Uri(uri)              => s"#$uri"
-      case Prim(x)               => s"$x"
+      case Prim(Left(x))         => s"$x"
+      case Prim(Right(x))        => s"$x"
       case Let(x, t, v, b)       => s"(let $x : $t = $v; $b)"
       case Lam(x, Expl, b)       => s"(\\$x. $b)"
       case Lam(x, Impl, b)       => s"(\\{$x}. $b)"
@@ -63,5 +64,5 @@ object Syntax:
       case PostponedCheck(id)    => s"??$id"
   export Tm.*
 
-  val UnitValue = Prim(PUnitValue)
-  val UnitType = Prim(PUnitType)
+  val UnitValue = Prim(Right(PUnitValue))
+  val UnitType = Prim(Right(PUnitType))
