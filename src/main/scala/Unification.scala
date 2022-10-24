@@ -23,6 +23,7 @@ class Unification(elab: IElaboration) extends IUnification:
   private def invert(sp: Spine)(implicit
       gamma: Lvl
   ): (PRen, Option[Pruning]) =
+    debug(s"invert ${quote(VRigid(HPrim(PUnitType), sp))}")
     def go(
         sp: Spine
     ): (Lvl, Set[Lvl], IntMap[Lvl], Pruning, Boolean) =
@@ -175,7 +176,8 @@ class Unification(elab: IElaboration) extends IUnification:
       m: MetaId,
       res: (PRen, Option[Pruning]),
       v: Val
-  ): Unit =
+  )(implicit k: Lvl): Unit =
+    debug(s"solveWithPRen ?${m} := ${quote(v)}")
     val (pren, pruneNonLinear) = res
     val u = getMetaUnsolved(m)
     val mty = u.ty
@@ -189,7 +191,7 @@ class Unification(elab: IElaboration) extends IUnification:
   private def flexFlex(m: MetaId, sp: Spine, m2: MetaId, sp2: Spine)(implicit
       k: Lvl
   ): Unit =
-    debug(s"flexFlex ?$m ~ ?$m2")
+    debug(s"flexFlex ${quote(VFlex(m, sp))} ~ ${quote(VFlex(m2, sp2))}")
     def go(m: MetaId, sp: Spine, m2: MetaId, sp2: Spine): Unit =
       Try(invert(sp)).toEither match
         case Right(res)          => solveWithPRen(m, res, VFlex(m2, sp2))
@@ -200,7 +202,7 @@ class Unification(elab: IElaboration) extends IUnification:
   private def intersect(m: MetaId, sp: Spine, sp2: Spine)(implicit
       k: Lvl
   ): Unit =
-    debug(s"intersect ?$m")
+    debug(s"intersect ${quote(VFlex(m, sp))} ~ ${quote(VFlex(m, sp2))}")
     def go(sp: Spine, sp2: Spine): Option[Pruning] = (sp, sp2) match
       case (SId, SId) => Some(Nil)
       case (SApp(sp, t, i), SApp(sp2, t2, _)) =>
@@ -234,6 +236,7 @@ class Unification(elab: IElaboration) extends IUnification:
     unify(a.inst(v), b.inst(v))(l + 1)
 
   override def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
+    debug(s"unify ${quote(a)} ~ ${quote(b)}")
     (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
       case (VType, VType) => ()
 

@@ -63,6 +63,7 @@ class Elaboration extends IElaboration:
     go(0)
 
   private def unify(a: VTy, b: VTy)(implicit ctx: Ctx): Unit =
+    debug(s"unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}")
     try unif.get.unify(a, b)(ctx.lvl)
     catch
       case e: UnifyError =>
@@ -249,6 +250,8 @@ class Elaboration extends IElaboration:
   private def shouldPostpone(t: RTm): Boolean = t match
     case RVar(Name("()")) => false
     case RVar(Name("[]")) => false
+    case RVar(_)          => false
+    case RApp(_, _, _)    => false
     case _                => true
 
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =

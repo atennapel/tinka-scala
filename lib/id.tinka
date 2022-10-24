@@ -7,4 +7,28 @@ let (!~) {A : Type} (x y : A) = x ~ y -> Void;
 let idJ {A} (P : {a b : A} -> a ~ b -> Type) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
   = elimId (\{c} q. P {a} {c} q) refl p;
 
+let rewrite {A} (P : A -> Type) {a b : A} (p : a ~ b) (x : P a) : P b
+  = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
+
+let cast {A B : Type} (p : A ~ B) (x : A) : B
+  = rewrite (\y. y) p x;
+
+let sym {A} {a b : A} (p : a ~ b) : b ~ a
+  = idJ (\{x} {y} _. Id {A} y x) Refl p;
+
+let trans {A} {a b c : A} (p : b ~ c) (q : a ~ b) : a ~ c
+  = rewrite (Id1 a) p q;
+
+let ap {A B} {a b : A} (f : A -> B) (p : a ~ b) : f a ~ f b
+  = rewrite {A} (\x. f a ~ f x) {a} {b} p Refl;
+
+let idRefl {A} {a : A} (p : a ~ a) : p ~ Refl
+  = elimId (\{c} q. q ~~ Refl {A} {c}) Refl p;
+
+let idK {A} {a : A} (P : a ~ a -> Type) (p : a ~ a) (h : P Refl) : P p
+  = rewrite P (sym (idRefl p)) h;
+
+let uip {A} {a b : A} (p1 p2 : a ~ b) : p1 ~ p2
+  = (elimId (\{c} p. (q : a ~ c) -> q ~ p) idRefl p2) p1;
+
 export
