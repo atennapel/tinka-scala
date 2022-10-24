@@ -1,9 +1,20 @@
-let Nat = (A : Type) -> A -> (A -> A) -> A;
-let Z : Nat = \A z s. z;
-let S (n : Nat) : Nat = \A z s. s (n A z s);
-let foldNat {A} (n : Nat) (z : A) (s : A -> A) : A = n A z s;
+open #lib/sum;
 
-let (+) (a b : Nat) : Nat = foldNat a b S;
-let (*) (a b : Nat) : Nat = foldNat a Z ((+) b);
+let NatF R = Maybe R;
+let NatIF (R : () -> Type) (_ : ()) : Type = NatF (R []);
 
-export
+let Nat = Fix (\R _. NatF (R [])) [];
+let Z : Nat = Roll {F = NatIF} Nothing;
+let S (n : Nat) : Nat = Roll {F = NatIF} (Just n);
+
+let elimNat (P : Nat -> Type) (z : P Z) (s : (n : Nat) -> P n -> P (S n)) (n : Nat) : P n
+  = elimFix {F = NatIF} P (\ind x. elimSum (\s. P (Roll {F = NatIF} s)) (\_. z) (\m. s m (ind m)) x) n;
+let recNat {R} (n : Nat) (z : R) (s : Nat -> R -> R) : R = elimNat (\_. R) z s n;
+let foldNat {R} (n : Nat) (z : R) (s : R -> R) : R = elimNat (\_. R) z (\_. s) n;
+let caseNat {R} (n : Nat) (z : R) (s : Nat -> R) : R = recNat n z (\m _. s m);
+
+let pred n = caseNat n Z (\m. m);
+let (+) a b = foldNat a b S;
+let (*) a b = foldNat a Z ((+) b);
+
+export (Nat, Z, S, elimNat, recNat, foldNat, caseNat, pred, (+), (*))

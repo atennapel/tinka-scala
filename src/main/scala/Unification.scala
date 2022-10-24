@@ -218,18 +218,25 @@ class Unification(elab: IElaboration) extends IUnification:
       case _                                => ()
 
   private def unifyProj(a: Spine, b: Spine, n: Int)(implicit l: Lvl): Unit =
+    debug(
+      s"unifyProj ${quote(VRigid(HPrim(PUnitType), a))} ~ ${quote(VRigid(HPrim(PUnitType), b))} | ${n}"
+    )
     (a, n) match
       case (a, 0)             => unify(a, b)
       case (SProj(a, Snd), n) => unifyProj(a, b, n - 1)
       case _                  => throw UnifyError(s"spine projection mismatch")
 
-  private def unify(a: Spine, b: Spine)(implicit l: Lvl): Unit = (a, b) match
-    case (SId, SId)                       => return ()
-    case (SApp(s1, a, _), SApp(s2, b, _)) => unify(s1, s2); unify(a, b)
-    case (SProj(s1, p1), SProj(s2, p2)) if p1 == p2 => unify(s1, s2)
-    case (SProj(s1, Fst), SProj(s2, Named(_, n)))   => unifyProj(s1, s2, n)
-    case (SProj(s1, Named(_, n)), SProj(s2, Fst))   => unifyProj(s1, s2, n)
-    case _ => throw UnifyError(s"spine mismatch")
+  private def unify(a: Spine, b: Spine)(implicit l: Lvl): Unit =
+    debug(
+      s"unify ${quote(VRigid(HPrim(PUnitType), a))} ~ ${quote(VRigid(HPrim(PUnitType), b))}"
+    )
+    (a, b) match
+      case (SId, SId)                       => return ()
+      case (SApp(s1, a, _), SApp(s2, b, _)) => unify(s1, s2); unify(a, b)
+      case (SProj(s1, p1), SProj(s2, p2)) if p1 == p2 => unify(s1, s2)
+      case (SProj(s1, Fst), SProj(s2, Named(_, n)))   => unifyProj(s1, s2, n)
+      case (SProj(s1, Named(_, n)), SProj(s2, Fst))   => unifyProj(s2, s1, n)
+      case _ => throw UnifyError(s"spine mismatch")
 
   private def unify(a: Clos, b: Clos)(implicit l: Lvl): Unit =
     val v = VVar(l)

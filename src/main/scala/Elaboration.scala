@@ -105,11 +105,12 @@ class Elaboration extends IElaboration:
   ): (Tm, VTy) =
     def go(tm: Tm, ty: VTy): (Tm, VTy) = force(ty) match
       case VPi(y, Impl, a, b) =>
-        if x == y then (tm, ty)
-        else
-          val m = newMeta(a)
-          val mv = ctx.eval(m)
-          go(App(tm, m, Impl), b.inst(mv))
+        y match
+          case DoBind(yy) if x == yy => (tm, ty)
+          case _ =>
+            val m = newMeta(a)
+            val mv = ctx.eval(m)
+            go(App(tm, m, Impl), b.inst(mv))
       case _ => throw NamedImplicitError(x.toString)
     go(inp._1, inp._2)
 

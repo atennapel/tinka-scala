@@ -1,6 +1,10 @@
 open #lib/combinators;
+
 open #lib/bool;
+
 open #lib/id;
+open #lib/singleton;
+
 open #lib/nat;
 open #lib/list;
 

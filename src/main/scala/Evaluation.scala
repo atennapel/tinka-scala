@@ -32,14 +32,43 @@ object Evaluation:
 
   def vprim(x: PrimElimName, args: List[(Val, Icit)], v: Val): Val =
     (x, args, v) match
-      case (PElimBool, List((p, _), (t, _), (f, _)), VTrue())  => t
+      // elimBool P t f True ~> t
+      case (PElimBool, List((p, _), (t, _), (f, _)), VTrue()) => t
+      // elimBool P t f False ~> f
       case (PElimBool, List((p, _), (t, _), (f, _)), VFalse()) => f
+      // elimId {a} {x} P refl Refl ~> refl
       case (
             PElimId,
             List((a, _), (x, _), (p, _), (refl, _), (y, _)),
             VRefl(_, _)
           ) =>
         refl
+      // elimFix {I} {F} P alg {i} (Roll {I} {F} {i} x) ~> alg (\{i} x. elimFix {I} {F} P alg {i} x) {i} x
+      case (
+            PElimFix,
+            List((ii, _), (f, _), (p, _), (alg, _), _),
+            VRoll(_, _, i, x)
+          ) =>
+        vapp(
+          vapp(
+            vapp(
+              alg,
+              vlamI(
+                "i",
+                i =>
+                  vlamE(
+                    "x",
+                    x => vprim(PElimFix, args.init ++ List((i, Impl)), x)
+                  )
+              ),
+              Expl
+            ),
+            i,
+            Impl
+          ),
+          x,
+          Expl
+        )
       case (_, _, VRigid(hd, sp)) => VRigid(hd, SPrim(x, args, sp))
       case (_, _, VFlex(hd, sp))  => VFlex(hd, SPrim(x, args, sp))
       case (_, _, VUri(hd, sp, v)) =>
@@ -144,6 +173,42 @@ object Evaluation:
                                   (y, Impl)
                                 ),
                                 p
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimFix =>
+      vlamI(
+        "I",
+        I =>
+          vlamI(
+            "F",
+            F =>
+              vlamE(
+                "P",
+                P =>
+                  vlamE(
+                    "alg",
+                    alg =>
+                      vlamI(
+                        "i",
+                        i =>
+                          vlamE(
+                            "x",
+                            x =>
+                              vprim(
+                                PElimFix,
+                                List(
+                                  (I, Impl),
+                                  (F, Impl),
+                                  (P, Expl),
+                                  (alg, Expl),
+                                  (i, Impl)
+                                ),
+                                x
                               )
                           )
                       )

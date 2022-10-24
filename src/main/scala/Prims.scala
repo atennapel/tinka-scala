@@ -95,7 +95,66 @@ object Prims:
                 )
             )
         )
-    )
+    ),
+    /* {I : Type} {F : (I -> Type) -> I -> Type}
+        (P : {i : I} -> Fix {I} F i -> Type) ->
+        (({i: I} (x : Fix {I} {F} i) -> P {i} x) -> {i : I} (x : F (Fix {I} F) i) -> P {i} (Roll {I} {F} {i} x))
+        -> {i : I} (x : Fix {I} F i) -> P {i} x
+     */
+    PElimFix ->
+      vpiI(
+        "I",
+        VType,
+        I =>
+          vpiI(
+            "F",
+            vfun(vfun(I, VType), vfun(I, VType)),
+            F =>
+              vpiE(
+                "P",
+                vpiI("i", I, i => vfun(VFix(I, F, i), VType)),
+                P =>
+                  vfun(
+                    vfun(
+                      vpiI(
+                        "i",
+                        I,
+                        i =>
+                          vpiE(
+                            "x",
+                            VFix(I, F, i),
+                            x => vapp(vapp(P, i, Impl), x, Expl)
+                          )
+                      ),
+                      vpiI(
+                        "i",
+                        I,
+                        i =>
+                          vpiE(
+                            "x",
+                            vapp(
+                              vapp(F, vlamE("i", i => VFix(I, F, i)), Expl),
+                              i,
+                              Expl
+                            ),
+                            x => vapp(vapp(P, i, Impl), VRoll(I, F, i, x), Expl)
+                          )
+                      )
+                    ),
+                    vpiI(
+                      "i",
+                      I,
+                      i =>
+                        vpiE(
+                          "x",
+                          VFix(I, F, i),
+                          x => vapp(vapp(P, i, Impl), x, Expl)
+                        )
+                    )
+                  )
+              )
+          )
+      )
   )
 
   def primType(x: PrimName): Val = primTypes(x)

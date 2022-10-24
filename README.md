@@ -43,7 +43,7 @@ sbt "run examples/nat.tinka"
   - [x] Void
   - [x] Bool
   - [x] Id
-  - [ ] Fix
+  - [x] Fix
   - [ ] Inductive-recursive fix
   - [ ] Number
   - [ ] String

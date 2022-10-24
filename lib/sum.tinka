@@ -1,0 +1,20 @@
+open #lib/bool;
+
+let Sum A B = (tag : Bool) ** (value : if tag then A else B) ** ();
+let Left {A} {B} (x : A) : Sum A B = [True, x];
+let Right {A} {B} (x : B) : Sum A B = [False, x];
+
+let elimSum {A} {B} (P : Sum A B -> Type) (left : (x : A) -> P (Left x)) (right : (x : B) -> P (Right x)) (x : Sum A B) : P x
+  = (if x.tag : (\tag. (value : if tag then A else B) -> P [tag, value]) then left else right) x.value;
+
+let caseSum {A B R} (x : Sum A B) (left : A -> R) (right : B -> R) : R
+  = elimSum (\_. R) left right x;
+
+let sum {A B R} (left : A -> R) (right : B -> R) (x : Sum A B) : R
+  = caseSum x left right;
+
+let Maybe A = Sum () A;
+let Just {A} (x : A) : Maybe A = Right x;
+let Nothing {A} : Maybe A = Left [];
+
+export (Sum, Left, Right, elimSum, caseSum, sum, Maybe, Just, Nothing)

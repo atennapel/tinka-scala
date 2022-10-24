@@ -110,11 +110,13 @@ object Common:
     case PAbsurd
     case PElimBool
     case PElimId
+    case PElimFix
 
     override def toString: String = this match
       case PAbsurd   => "absurd"
       case PElimBool => "elimBool"
       case PElimId   => "elimId"
+      case PElimFix  => "elimFix"
   export PrimElimName.*
 
   object PrimName:
@@ -134,8 +136,9 @@ object Common:
       case "Refl"   => Some(Right(PRefl))
       case "elimId" => Some(Left(PElimId))
 
-      case "Fix"  => Some(Right(PFix))
-      case "Roll" => Some(Right(PRoll))
+      case "Fix"     => Some(Right(PFix))
+      case "Roll"    => Some(Right(PRoll))
+      case "elimFix" => Some(Left(PElimFix))
 
       case _ => None
 
