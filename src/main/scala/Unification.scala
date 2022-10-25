@@ -228,7 +228,7 @@ class Unification(elab: IElaboration) extends IUnification:
 
   private def unify(a: Spine, b: Spine)(implicit l: Lvl): Unit =
     debug(
-      s"unify ${quote(VRigid(HPrim(PUnitType), a))} ~ ${quote(VRigid(HPrim(PUnitType), b))}"
+      s"unifySpine ${quote(VRigid(HPrim(PUnitType), a))} ~ ${quote(VRigid(HPrim(PUnitType), b))}"
     )
     (a, b) match
       case (SId, SId)                       => return ()
@@ -236,6 +236,9 @@ class Unification(elab: IElaboration) extends IUnification:
       case (SProj(s1, p1), SProj(s2, p2)) if p1 == p2 => unify(s1, s2)
       case (SProj(s1, Fst), SProj(s2, Named(_, n)))   => unifyProj(s1, s2, n)
       case (SProj(s1, Named(_, n)), SProj(s2, Fst))   => unifyProj(s2, s1, n)
+      case (SPrim(p1, args1, s1), SPrim(p2, args2, s2)) if p1 == p2 =>
+        unify(s1, s2)
+        args1.zip(args2).foreach { case ((v, _), (w, _)) => unify(v, w) }
       case _ => throw UnifyError(s"spine mismatch")
 
   private def unify(a: Clos, b: Clos)(implicit l: Lvl): Unit =

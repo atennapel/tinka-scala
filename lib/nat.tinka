@@ -3,7 +3,7 @@ open #lib/sum;
 let NatF R = Maybe R;
 let NatIF (R : () -> Type) (_ : ()) : Type = NatF (R []);
 
-let Nat = Fix (\R _. NatF (R [])) [];
+let Nat = Fix NatIF [];
 let Z : Nat = Roll {F = NatIF} Nothing;
 let S (n : Nat) : Nat = Roll {F = NatIF} (Just n);
 

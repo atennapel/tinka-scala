@@ -1,11 +1,19 @@
-let List A = (R : Type) -> R -> (A -> R -> R) -> R;
-let Nil {A} : List A = \R n c. n;
-let (::) {A} (hd : A) (tl : List A) : List A = \R n c. c hd (tl R n c);
-let foldr {A R} (cons : A -> R -> R) (nil : R) (l : List A) : R = l R nil cons;
+open #lib/sum;
+
+let ListF A R = Maybe ((hd : A) ** (tl : R) ** ());
+let ListIF A (R : () -> Type) (_ : ()) : Type = ListF A (R []);
+
+let List A = Fix (ListIF A) [];
+let Nil {A} : List A = Roll {F = ListIF A} Nothing;
+let (::) {A} (hd : A) (tl : List A) : List A = Roll {F = ListIF A} (Just [hd, tl]);
+
+let elimList {A} (P : List A -> Type) (nil : P Nil) (cons : (hd : A) (tl : List A) -> P tl -> P (hd :: tl)) (l : List A) : P l
+  = elimFix {F = ListIF A} P (\ind x. elimSum (\s. P (Roll {F = ListIF A} s)) (\_. nil) (\p. cons p.hd p.tl (ind p.tl)) x) l;
+let foldr {A R} (cons : A -> R -> R) (nil : R) (l : List A) : R = elimList (\_. R) nil (\hd _ tl. cons hd tl) l;
 
 let map {A B} (f : A -> B) (l : List A) : List B = foldr (\hd tl. f hd :: tl) Nil l;
 let (<$>) = map;
 
 let (++) {A} (a b : List A) : List A = foldr (::) b a;
 
-export
+export (List, Nil, (::), elimList, foldr, map, (<$>), (++))

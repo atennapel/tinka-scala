@@ -252,7 +252,7 @@ class Elaboration extends IElaboration:
     case RVar(Name("()")) => false
     case RVar(Name("[]")) => false
     case RVar(_)          => false
-    case RApp(_, _, _)    => false
+    case RApp(_, _, _)    => false // TODO: investigate this heuristic
     case _                => true
 
   private def check(tm: RTm, ty: VTy)(implicit ctx: Ctx): Tm =
