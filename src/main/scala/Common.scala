@@ -5,6 +5,7 @@ object Common:
 
   type Pos = (Int, Int) // (line, col)
 
+  // indeces
   opaque type Ix = Int
   inline def ix0: Ix = 0
 
@@ -14,6 +15,7 @@ object Common:
     inline def >(o: Int | Ix): Boolean = i > o
     inline def +(o: Int): Ix = i + o
 
+  // levels
   opaque type Lvl = Int
   inline def lvl0: Lvl = 0
 
@@ -26,6 +28,7 @@ object Common:
     inline def expose: Int = l
     inline def toIx(implicit k: Lvl): Ix = k - l - 1
 
+  // metas
   opaque type MetaId = Int
 
   inline def metaId(id: Int): MetaId = id
@@ -34,18 +37,21 @@ object Common:
     @targetName("exposeMetaId")
     inline def expose: Int = id
 
-  opaque type CheckId = Int
+  // level metas
+  opaque type LMetaId = Int
 
-  inline def checkId(id: Int): CheckId = id
+  inline def lmetaId(id: Int): LMetaId = id
 
-  extension (id: CheckId)
-    @targetName("exposeCheckId")
+  extension (id: LMetaId)
+    @targetName("exposeLMetaId")
     inline def expose: Int = id
 
+  // names
   case class Name(x: String):
     override def toString: String =
-      if x.head.isLetter || x == "[]" || x == "()" then x else s"($x)"
-    inline def expose: String = x
+      if x.head.isLetter then x else s"($x)"
+
+    def expose: String = x
 
   enum Bind:
     case DontBind
@@ -60,87 +66,15 @@ object Common:
       case DoBind(x) => x
   export Bind.*
 
+  // icits
   enum Icit:
     case Expl
     case Impl
   export Icit.*
 
+  // pruning
   type Pruning = List[Option[Icit]]
 
   opaque type RevPruning = Pruning
   inline def revPruning(p: Pruning): RevPruning = p.reverse
   extension (p: RevPruning) inline def expose: List[Option[Icit]] = p
-
-  // primitives
-  trait PrimName
-  enum PrimConName extends PrimName:
-    case PUnitValue
-    case PUnitType
-
-    case PVoid
-
-    case PBool
-    case PTrue
-    case PFalse
-
-    case PId
-    case PRefl
-
-    case PFix
-    case PRoll
-
-    override def toString: String = this match
-      case PUnitValue => "[]"
-      case PUnitType  => "()"
-
-      case PVoid => "Void"
-
-      case PBool  => "Bool"
-      case PTrue  => "True"
-      case PFalse => "False"
-
-      case PId   => "Id"
-      case PRefl => "Refl"
-
-      case PFix  => "Fix"
-      case PRoll => "Roll"
-
-  export PrimConName.*
-  enum PrimElimName extends PrimName:
-    case PAbsurd
-    case PElimBool
-    case PElimId
-    case PElimFix
-
-    override def toString: String = this match
-      case PAbsurd   => "absurd"
-      case PElimBool => "elimBool"
-      case PElimId   => "elimId"
-      case PElimFix  => "elimFix"
-  export PrimElimName.*
-
-  object PrimName:
-    def apply(x: String): Option[Either[PrimElimName, PrimConName]] = x match
-      case "[]" => Some(Right(PUnitValue))
-      case "()" => Some(Right(PUnitType))
-
-      case "Void"   => Some(Right(PVoid))
-      case "absurd" => Some(Left(PAbsurd))
-
-      case "Bool"     => Some(Right(PBool))
-      case "True"     => Some(Right(PTrue))
-      case "False"    => Some(Right(PFalse))
-      case "elimBool" => Some(Left(PElimBool))
-
-      case "Id"     => Some(Right(PId))
-      case "Refl"   => Some(Right(PRefl))
-      case "elimId" => Some(Left(PElimId))
-
-      case "Fix"     => Some(Right(PFix))
-      case "Roll"    => Some(Right(PRoll))
-      case "elimFix" => Some(Left(PElimFix))
-
-      case _ => None
-
-    def apply(x: Name): Option[Either[PrimElimName, PrimConName]] =
-      PrimName(x.expose)

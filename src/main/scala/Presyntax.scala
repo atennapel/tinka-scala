@@ -17,26 +17,36 @@ object Presyntax:
       case RNamed(x) => s".$x"
   export RProjType.*
 
+  enum RLevel:
+    case RLVar(name: Name)
+    case RLS(lvl: RLevel)
+    case RLZ
+    case RLMax(a: RLevel, b: RLevel)
+    case RLHole
+    case RLPos(pos: Pos, lvl: RLevel)
+
+    override def toString: String = this match
+      case RLVar(x)    => x.toString
+      case RLS(l)      => s"(S $l)"
+      case RLZ         => s"0"
+      case RLMax(a, b) => s"(max $a $b)"
+      case RLHole      => s"_"
+      case RLPos(_, l) => l.toString
+  export RLevel.*
+
   type RTy = RTm
   enum RTm:
-    case RType
+    case RType(lvl: RLevel)
     case RVar(name: Name)
-    case RUri(uri: String)
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
-    case ROpen(
-        tm: RTm,
-        names: Option[List[(Name, Option[Name])]],
-        hiding: List[Name],
-        body: RTm
-    )
-    case RExport(
-        names: Option[List[(Name, Option[Name])]],
-        hiding: List[Name]
-    )
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
     case RPi(bind: Bind, icit: Icit, ty: RTy, body: RTy)
+
+    case RPiLvl(name: Bind, body: RTy)
+    case RAppLvl(fn: RTm, arg: RLevel, info: Option[Name])
+    case RLamLvl(bind: Bind, info: Option[Name], body: RTm)
 
     case RPair(fst: RTm, snd: RTm)
     case RProj(tm: RTm, proj: RProjType)
@@ -45,47 +55,12 @@ object Presyntax:
     case RPos(pos: Pos, tm: RTm)
     case RHole(name: Option[Name])
 
-    def uris: Set[String] = this match
-      case RUri(uri) => Set(uri)
-      case RLet(_, t, v, b) =>
-        t.map(_.uris).getOrElse(Set.empty) ++ v.uris ++ b.uris
-      case ROpen(tm, _, _, b) => tm.uris ++ b.uris
-      case RLam(_, _, t, b)   => t.map(_.uris).getOrElse(Set.empty) ++ b.uris
-      case RApp(fn, arg, _)   => fn.uris ++ arg.uris
-      case RPi(_, _, t, b)    => t.uris ++ b.uris
-      case RPair(fst, snd)    => fst.uris ++ snd.uris
-      case RProj(t, _)        => t.uris
-      case RSigma(_, t, b)    => t.uris ++ b.uris
-      case RPos(_, t)         => t.uris
-      case _                  => Set.empty
-
     override def toString: String = this match
-      case RType                  => "Type"
-      case RVar(x)                => s"$x"
-      case RUri(uri)              => s"#$uri"
-      case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
-      case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
-      case ROpen(t, None, Nil, b) => s"(open $t; $b)"
-      case ROpen(t, None, hiding, b) =>
-        s"(open $t hiding (${hiding.mkString(", ")}); $b)"
-      case ROpen(t, Some(ns), Nil, b) =>
-        s"(open $t (${ns
-            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
-            .mkString(", ")}); $b)"
-      case ROpen(t, Some(ns), hiding, b) =>
-        s"(open $t (${ns
-            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
-            .mkString(", ")}) hiding (${hiding.mkString(", ")}); $b)"
-      case RExport(None, Nil)    => s"export"
-      case RExport(None, hiding) => s"export hiding (${hiding.mkString(", ")})"
-      case RExport(Some(ns), Nil) =>
-        s"(export (${ns
-            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
-            .mkString(", ")}))"
-      case RExport(Some(ns), hiding) =>
-        s"(export (${ns
-            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
-            .mkString(", ")}) hiding (${hiding.mkString(", ")}))"
+      case RType(RLZ)                          => "Type"
+      case RType(lvl)                          => s"Type $lvl"
+      case RVar(x)                             => s"$x"
+      case RLet(x, Some(t), v, b)              => s"(let $x : $t = $v; $b)"
+      case RLet(x, None, v, b)                 => s"(let $x = $v; $b)"
       case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
       case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
       case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"
@@ -97,6 +72,11 @@ object Presyntax:
       case RApp(fn, arg, RArgNamed(y))         => s"($fn {$y = $arg})"
       case RPi(x, Expl, t, b)                  => s"(($x : $t) -> $b)"
       case RPi(x, Impl, t, b)                  => s"({$x : $t} -> $b)"
+      case RPiLvl(x, b)                        => s"(<$x> -> $b)"
+      case RLamLvl(x, None, b)                 => s"(\\<$x>. $b)"
+      case RLamLvl(x, Some(y), b)              => s"(\\<$x = $y>. $b)"
+      case RAppLvl(l, r, None)                 => s"($l <$r>)"
+      case RAppLvl(l, r, Some(x))              => s"($l <$x = $r>)"
       case RPair(fst, snd)                     => s"($fst, $snd)"
       case RProj(tm, proj)                     => s"$tm$proj"
       case RSigma(x, t, b)                     => s"(($x : $t) ** $b)"
