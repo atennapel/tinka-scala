@@ -95,6 +95,11 @@ object Value:
     case EEmpty
     case EVal(env: Env, value: Val)
     case ELevel(env: Env, level: VFinLevel)
+
+    def tail: Env = this match
+      case EVal(env, _)   => env
+      case ELevel(env, _) => env
+      case _              => impossible()
   export Env.*
 
   extension (e: Env)
