@@ -9,9 +9,10 @@ object Common:
   opaque type Ix = Int
   inline def ix0: Ix = 0
 
+  inline def mkIx(i: Int): Ix = i
+
   extension (i: Ix)
     inline def expose: Int = i
-    inline def apply[A](xs: List[A]): A = xs(i)
     inline def >(o: Int | Ix): Boolean = i > o
     inline def +(o: Int): Ix = i + o
 
