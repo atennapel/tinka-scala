@@ -92,6 +92,9 @@ object Syntax:
     case Proj(tm: Tm, proj: ProjType)
     case Sigma(bind: Bind, ty: Ty, u1: Level, body: Ty, u2: Level)
 
+    case UnitType
+    case UnitValue
+
     case Wk(tm: Tm)
 
     case Meta(id: MetaId)
@@ -121,6 +124,8 @@ object Syntax:
       case Pair(fst, snd)          => s"($fst, $snd)"
       case Proj(tm, proj)          => s"$tm$proj"
       case Sigma(x, t, _, b, _)    => s"(($x : $t) ** $b)"
+      case UnitType                => s"()"
+      case UnitValue               => s"[]"
       case Wk(tm)                  => s"(Wk $tm)"
       case Meta(id)                => s"?$id"
       case AppPruning(tm, spine)   => s"?*$tm"

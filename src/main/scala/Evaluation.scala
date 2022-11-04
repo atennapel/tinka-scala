@@ -95,6 +95,9 @@ object Evaluation:
     case Sigma(x, t, u1, b, u2) =>
       VSigma(x, eval(t), eval(u1), Clos(b), eval(u2))
 
+    case UnitType  => VUnitType
+    case UnitValue => VUnitValue
+
     case Wk(tm) => eval(tm)(env.tail)
 
     case Meta(id)           => vmeta(id)
@@ -154,6 +157,8 @@ object Evaluation:
   def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match
       case VType(l)       => Type(quote(l))
+      case VUnitType      => UnitType
+      case VUnitValue     => UnitValue
       case VRigid(hd, sp) => quote(quote(hd), sp, unfold)
       case VFlex(id, sp)  => quote(Meta(id), sp, unfold)
 

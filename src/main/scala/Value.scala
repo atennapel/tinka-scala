@@ -161,6 +161,9 @@ object Value:
 
     case VPair(fst: Val, snd: Val)
     case VSigma(bind: Bind, ty: VTy, u1: VLevel, body: Clos[Val], u2: VLevel)
+
+    case VUnitType
+    case VUnitValue
   export Val.*
 
   private def bind(x: String): Bind =
