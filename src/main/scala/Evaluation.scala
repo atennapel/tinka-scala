@@ -5,27 +5,27 @@ import Metas.*
 
 object Evaluation:
   extension (c: Clos[Val])
-    def apply(v: Val): Val = c match
+    def inst(v: Val): Val = c match
       case CClos(env, tm) => eval(tm)(EVal(env, v))
       case CFun(fn)       => fn(v)
 
   extension (c: Clos[VFinLevel])
-    def apply(v: VFinLevel): Val = c match
+    def inst(v: VFinLevel): Val = c match
       case CClos(env, tm) => eval(tm)(ELevel(env, v))
       case CFun(fn)       => fn(v)
 
   extension (c: ClosLvl)
-    def apply(v: VFinLevel): VLevel = eval(c.tm)(ELevel(c.env, v))
+    def inst(v: VFinLevel): VLevel = eval(c.tm)(ELevel(c.env, v))
 
   // evaluation
   def vapp(fn: Val, arg: Val, icit: Icit): Val = fn match
-    case VLam(_, _, b)  => b(arg)
+    case VLam(_, _, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SApp(sp, arg, icit))
     case VFlex(hd, sp)  => VFlex(hd, SApp(sp, arg, icit))
     case _              => impossible()
 
   def vapp(fn: Val, arg: VFinLevel): Val = fn match
-    case VLamLvl(_, b)  => b(arg)
+    case VLamLvl(_, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SAppLvl(sp, arg))
     case VFlex(hd, sp)  => VFlex(hd, SAppLvl(sp, arg))
     case _              => impossible()
@@ -162,22 +162,22 @@ object Evaluation:
       case VRigid(hd, sp) => quote(quote(hd), sp, unfold)
       case VFlex(id, sp)  => quote(Meta(id), sp, unfold)
 
-      case VLam(x, i, b) => Lam(x, i, quote(b(VVar(l)), unfold)(l + 1))
+      case VLam(x, i, b) => Lam(x, i, quote(b.inst(VVar(l)), unfold)(l + 1))
       case VPi(x, i, t, u1, b, u2) =>
         Pi(
           x,
           i,
           quote(t, unfold),
           quote(u1),
-          quote(b(VVar(l)), unfold)(l + 1),
+          quote(b.inst(VVar(l)), unfold)(l + 1),
           quote(u2)
         )
 
       case VLamLvl(x, body) =>
-        LamLvl(x, quote(body(VFinLevel.vr(l)), unfold)(l + 1))
+        LamLvl(x, quote(body.inst(VFinLevel.vr(l)), unfold)(l + 1))
       case VPiLvl(x, body, u) =>
         val v = VFinLevel.vr(l)
-        PiLvl(x, quote(body(v), unfold)(l + 1), quote(u(v))(l + 1))
+        PiLvl(x, quote(body.inst(v), unfold)(l + 1), quote(u.inst(v))(l + 1))
 
       case VPair(fst, snd) => Pair(quote(fst, unfold), quote(snd, unfold))
       case VSigma(x, t, u1, b, u2) =>
@@ -185,7 +185,7 @@ object Evaluation:
           x,
           quote(t, unfold),
           quote(u1),
-          quote(b(VVar(l)), unfold)(l + 1),
+          quote(b.inst(VVar(l)), unfold)(l + 1),
           quote(u2)
         )
 

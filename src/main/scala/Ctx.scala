@@ -1,7 +1,7 @@
 import Common.*
 import Syntax.*
 import Value.*
-import Evaluation.{eval as eval0, quote as quote0, apply}
+import Evaluation.{eval as eval0, quote as quote0, inst}
 import Pretty.{pretty as pretty0}
 import scala.annotation.tailrec
 
@@ -69,7 +69,7 @@ final case class Ctx(
   def quote(v: VLevel): Level = quote0(v)(lvl)
   def quote(v: VFinLevel): FinLevel = quote0(v)(lvl)
   def close[A](v: Val): Clos[A] = Clos(quote0(v)(lvl + 1))(env)
-  def inst(c: Clos[Val]): Val = c(VVar(lvl))
+  def inst(c: Clos[Val]): Val = c.inst(VVar(lvl))
 
   def pretty(tm: Tm): String = pretty0(tm)(names)
   def pretty(v: Val): String = pretty(quote(v))
