@@ -58,6 +58,8 @@ object Presyntax:
     override def toString: String = this match
       case RType(RLZ)                          => "Type"
       case RType(lvl)                          => s"Type $lvl"
+      case RVar(Name("()"))                    => "()"
+      case RVar(Name("[]"))                    => "[]"
       case RVar(x)                             => s"$x"
       case RLet(x, Some(t), v, b)              => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)                 => s"(let $x = $v; $b)"

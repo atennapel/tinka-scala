@@ -5,7 +5,7 @@ import Evaluation.{eval as eval0, quote as quote0, inst}
 import Pretty.{pretty as pretty0}
 import scala.annotation.tailrec
 
-type Types = List[(Name, Lvl, Option[VTy])]
+type Types = List[(Name, Lvl, Option[(VTy, VLevel)])]
 
 final case class Ctx(
     lvl: Lvl,
@@ -21,7 +21,7 @@ final case class Ctx(
 
   def bind(x: Bind, ty: VTy, lv: VLevel, inserted: Boolean = false): Ctx =
     val newtypes = x match
-      case DoBind(x) if !inserted => (x, lvl, Some(ty)) :: types
+      case DoBind(x) if !inserted => (x, lvl, Some((ty, lv))) :: types
       case _                      => types
     Ctx(
       lvl + 1,
@@ -49,15 +49,15 @@ final case class Ctx(
       x: Name,
       ty: VTy,
       qty: Ty,
-      lv: Level,
+      lv: VLevel,
       value: Val,
       qvalue: Tm
   ): Ctx =
     Ctx(
       lvl + 1,
       EVal(env, value),
-      (x, lvl, Some(ty)) :: types,
-      PDefine(path, x, qty, lv, qvalue),
+      (x, lvl, Some((ty, lv))) :: types,
+      PDefine(path, x, qty, quote0(lv)(lvl), qvalue),
       None :: pruning,
       pos
     )
@@ -72,20 +72,32 @@ final case class Ctx(
   def inst(c: Clos[Val]): Val = c.inst(VVar(lvl))
 
   def pretty(tm: Tm): String = pretty0(tm)(names)
+  def pretty(tm: Level): String = pretty0(tm)(names)
+  def pretty(tm: FinLevel): String = pretty0(tm)(names)
   def pretty(v: Val): String = pretty(quote(v))
+  def pretty(v: VLevel): String = pretty(quote(v))
+  def pretty(v: VFinLevel): String = pretty(quote(v))
 
   def closeTy(b: Ty, lv: Level): Ty = path.closeTy(b, lv)
   def closeVTy(b: VTy, lv: Level): VTy = eval0(closeTy(quote(b), lv))(EEmpty)
   def closeTm(b: Tm): Tm = path.closeTm(b)
   def closeTm(b: Val): Tm = closeTm(quote(b))
 
-  def lookup(x: Name): Option[(Ix, Option[VTy])] =
+  def lookup(x: Name): Option[(Ix, Option[(VTy, VLevel)])] =
     @tailrec
-    def go(ts: Types): Option[(Ix, Option[VTy])] = ts match
+    def go(ts: Types): Option[(Ix, Option[(VTy, VLevel)])] = ts match
       case (y, k, ty) :: _ if y == x => Some((k.toIx(lvl), ty))
       case _ :: ts                   => go(ts)
       case Nil                       => None
     go(types)
+
+  def levelVars: Set[Lvl] =
+    def go(i: Int, p: Path): Set[Lvl] = p match
+      case PBindLevel(p, _)       => go(i + 1, p) + mkLvl(lvl.expose - i - 1)
+      case PBind(p, _, _, _)      => go(i + 1, p)
+      case PDefine(p, _, _, _, _) => go(i + 1, p)
+      case PHere                  => Set.empty
+    go(0, path)
 
   def prettyLocals: String =
     def go(p: Path): List[String] = p match

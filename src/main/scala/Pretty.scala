@@ -14,7 +14,7 @@ object Pretty:
     case LS(l) => levelTryNat(l).map(_ + 1)
     case _     => None
 
-  private def pretty(l: FinLevel)(implicit ns: List[Name]): String =
+  def pretty(l: FinLevel)(implicit ns: List[Name]): String =
     l match
       case LVar(ix) => ns(ix.expose).toString
       case LZ       => "0"
