@@ -2,6 +2,7 @@ import Common.*
 import Syntax.*
 import Value.*
 import Metas.*
+import Debug.debug
 
 object Evaluation:
   extension (c: Clos[Val])
@@ -52,8 +53,8 @@ object Evaluation:
     case Unsolved(_)     => VMeta(id)
 
   def vlmeta(id: LMetaId): VFinLevel = getLMeta(id) match
-    case LSolved(v)      => v
-    case LUnsolved(_, _) => VFinLevel.meta(id)
+    case LSolved(_, v) => v // TODO: will this work?
+    case LUnsolved     => VFinLevel.meta(id)
 
   def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
     (env, pr) match
@@ -64,12 +65,34 @@ object Evaluation:
       case (ELevel(env, _), None :: pr)    => vappPruning(v, pr)(env)
       case _                               => impossible()
 
+  def vlinsertedmetaspine(sp: List[Boolean])(implicit
+      env: Env
+  ): List[VFinLevel] =
+    (env, sp) match
+      case (EEmpty, Nil)                 => Nil
+      case (ELevel(env, t), true :: sp)  => t :: vlinsertedmetaspine(sp)(env)
+      case (ELevel(env, t), false :: sp) => vlinsertedmetaspine(sp)(env)
+      case (EVal(env, t), false :: sp)   => vlinsertedmetaspine(sp)(env)
+      case _                             => impossible()
+
+  def vlspine(sp: List[Boolean])(implicit env: Env): Env =
+    (env, sp) match
+      case (EEmpty, Nil)                 => EEmpty
+      case (ELevel(env, t), true :: sp)  => ELevel(vlspine(sp)(env), t)
+      case (ELevel(env, t), false :: sp) => vlspine(sp)(env)
+      case (EVal(env, t), false :: sp)   => vlspine(sp)(env)
+      case _                             => impossible()
+
   def eval(l: FinLevel)(implicit env: Env): VFinLevel = l match
     case LVar(ix)   => env(ix).swap.toOption.get
     case LZ         => VFinLevel.unit
     case LS(a)      => eval(a) + 1
     case LMax(a, b) => eval(a) max eval(b)
     case LMeta(id)  => vlmeta(id)
+    case LInsertedMeta(id, sp) =>
+      getLMeta(id) match
+        case LUnsolved       => VFinLevelMeta(id, 0, vlinsertedmetaspine(sp))
+        case LSolved(dom, v) => eval(quote(v)(dom))(vlspine(sp))
 
   def eval(l: Level)(implicit env: Env): VLevel = l match
     case LOmega       => VOmega
@@ -111,10 +134,10 @@ object Evaluation:
   // forcing
   def force(l: VFinLevel): VFinLevel =
     l.metas
-      .map { (id, n) =>
+      .map { case (id, (n, sp)) =>
         getLMeta(lmetaId(id)) match
-          case LUnsolved(_, _) => vlmeta(lmetaId(id)) + n
-          case LSolved(v)      => force(v + n)
+          case LUnsolved     => VFinLevel.meta(lmetaId(id), sp) + n
+          case LSolved(_, v) => force(v + n) // TODO: will this work?
       }
       .foldRight(VFinLevel(l.k, l.vars))(_ max _)
 
@@ -145,7 +168,7 @@ object Evaluation:
     val vars = fl.vars.foldLeft(LZ + fl.k) { case (i, (x, n)) =>
       i max (LVar(mkLvl(x).toIx) + n)
     }
-    fl.metas.foldLeft(vars) { case (i, (x, n)) =>
+    fl.metas.foldLeft(vars) { case (i, (x, (n, sp))) =>
       i max (LMeta(lmetaId(x)) + n)
     }
 

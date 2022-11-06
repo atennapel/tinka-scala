@@ -11,7 +11,7 @@ sbt "run examples/nat.tinka"
 
 ## TODO
 - [x] Elaboration
-- [ ] Unification with pruning
+- [x] Unification with pruning
 - [ ] Primitives
   - [ ] Universe lifting operators
   - [ ] Unit

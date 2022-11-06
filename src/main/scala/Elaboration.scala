@@ -25,6 +25,7 @@ object Elaboration:
     catch
       case err: UnifyError =>
         try
+          debug(s"unifying levels failed try types first")
           debug(s"unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}")
           unify0(a, b)(ctx.lvl)
           debug(s"unify ${ctx.pretty(u1)} ~ ${ctx.pretty(u2)}")
@@ -50,9 +51,9 @@ object Elaboration:
       AppPruning(Meta(m), ctx.pruning)
 
   private def newLMeta(implicit ctx: Ctx): FinLevel =
-    val id = freshLMeta(ctx.lvl, ctx.levelVars)
-    debug(s"newLMeta ?l$id ${ctx.levelVars.map(x => s"'$x").mkString(" ")}")
-    LMeta(id)
+    val id = freshLMeta()
+    debug(s"newLMeta ?l$id")
+    LInsertedMeta(id, ctx.levelPruning)
 
   private enum InsertMode { case All; case LvlOnly; case NoLvl }
   import InsertMode.*
@@ -164,7 +165,7 @@ object Elaboration:
       case _ => false
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
-    debug(s"check $tm : ${ctx.pretty(ty)}")
+    if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
     (tm, force(ty)) match
       case (RPos(pos, tm), _) => check(tm, ty, lv)(ctx.enter(pos))
       case (RHole(None), _)   => newMeta(ty, lv)
@@ -214,7 +215,7 @@ object Elaboration:
         etm
 
   private def infer(l: RLevel)(implicit ctx: Ctx): FinLevel =
-    debug(s"infer $l")
+    if !l.isPos then debug(s"infer $l")
     l match
       case RLPos(pos, l) => infer(l)(ctx.enter(pos))
       case RLVar(x) =>
@@ -253,7 +254,7 @@ object Elaboration:
     go(ty, 0, Set.empty)
 
   private def infer(tm: RTm)(implicit ctx: Ctx): (Tm, VTy, VLevel) =
-    debug(s"infer $tm")
+    if !tm.isPos then debug(s"infer $tm")
     tm match
       case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
       case RType(l) =>
@@ -264,8 +265,10 @@ object Elaboration:
       case RVar(Name("[]")) => (UnitValue, VUnitType, VLevel.unit)
       case RVar(x) =>
         ctx.lookup(x) match
-          case Some((ix, Some((vty, lv)))) => (Var(ix), vty, lv)
-          case _                           => throw UndefVarError(x.toString)
+          case Some((ix, Some((vty, lv)))) =>
+            debug(s"var $x : ${ctx.quote(vty)} : ${ctx.quote(lv)}")
+            (Var(ix), vty, lv)
+          case _ => throw UndefVarError(x.toString)
       case RLet(x, oty, v, b) =>
         val (ev, ety, vty, vl) = checkValue(v, oty)
         val (eb, rty, vl1) =
@@ -434,10 +437,23 @@ object Elaboration:
     // resetMetas() TODO: zonking
     holes.clear()
     val (etm, vty, lv) = infer(tm)
+    debug(etm)
     val ety = ctx.quote(vty)
+    debug(ety)
     val el = ctx.quote(lv)
+    debug(el)
     if holes.nonEmpty then
       throw HoleError(
         s"holes found: ${ctx.pretty(etm)} : ${ctx.pretty(ety)}\n\n${prettyHoles}"
+      )
+    val ums = unsolvedMetas()
+    val ulms = unsolvedLMetas()
+    if ums.nonEmpty || ulms.nonEmpty then
+      throw UnsolvedMetasError(
+        s"\n${ctx.pretty(etm)} : ${ctx.pretty(ety)} : ${ctx.pretty(el)}\n${ums
+            .map((id, ty) => s"?$id : ${ctx.pretty(ty)}")
+            .mkString("\n")}\nunsolved universe level metas: ${ulms
+            .map(id => s"?l$id")
+            .mkString(", ")}"
       )
     (etm, ety, el)

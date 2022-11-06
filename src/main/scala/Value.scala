@@ -9,38 +9,43 @@ object Value:
   final case class VFinLevel(
       k: Int,
       vars: IntMap[Int] = IntMap.empty,
-      metas: IntMap[Int] = IntMap.empty
+      metas: IntMap[(Int, List[VFinLevel])] = IntMap.empty
   ):
     def max(o: VFinLevel): VFinLevel =
       VFinLevel(
         k max o.k,
         vars.unionWith(o.vars, (_, a, b) => a max b),
-        metas.unionWith(o.metas, (_, a, b) => a max b)
+        metas.unionWith(
+          o.metas,
+          { case (_, (a, s1), (b, s2)) =>
+            (a max b, if s1 == s2 then s1 else impossible())
+          }
+        )
       )
     def +(o: Int): VFinLevel =
       VFinLevel(
         k + o,
         vars.map((k, v) => k -> (v + o)),
-        metas.map((k, v) => k -> (v + o))
+        metas.map { case (k, (v, sp)) => k -> (v + o, sp) }
       )
     def -(o: Int): Option[VFinLevel] =
       if k < o || vars.exists((_, k) => k < o) ||
-        metas.exists((_, k) => k < o)
+        metas.exists { case (_, (k, _)) => k < o }
       then None
       else
         Some(
           VFinLevel(
             k - o,
             vars.map((key, k) => key -> (k - o)),
-            metas.map((key, k) => key -> (k - o))
+            metas.map { case (key, (k, sp)) => key -> (k - o, sp) }
           )
         )
   object VFinLevel:
     val unit: VFinLevel = VFinLevel(0, IntMap.empty, IntMap.empty)
     def vr(l: Lvl): VFinLevel =
       VFinLevel(0, IntMap.singleton(l.expose, 0), IntMap.empty)
-    def meta(id: LMetaId): VFinLevel =
-      VFinLevel(0, IntMap.empty, IntMap.singleton(id.expose, 0))
+    def meta(id: LMetaId, sp: List[VFinLevel] = Nil): VFinLevel =
+      VFinLevel(0, IntMap.empty, IntMap.singleton(id.expose, (0, sp)))
 
   object VFinLevelVar:
     def apply(m: Lvl, k: Int) =
@@ -52,13 +57,15 @@ object Value:
       case _ => None
 
   object VFinLevelMeta:
-    def apply(m: LMetaId, k: Int) =
-      VFinLevel(0, IntMap.empty, IntMap.singleton(m.expose, k))
-    def unapply(value: VFinLevel): Option[(LMetaId, Int)] = value match
-      case VFinLevel(0, vars, metas) if vars.isEmpty && metas.size == 1 =>
-        val m = metas.keys.head
-        Some((lmetaId(m), metas(m)))
-      case _ => None
+    def apply(m: LMetaId, k: Int, sp: List[VFinLevel]) =
+      VFinLevel(0, IntMap.empty, IntMap.singleton(m.expose, (k, sp)))
+    def unapply(value: VFinLevel): Option[(LMetaId, Int, List[VFinLevel])] =
+      value match
+        case VFinLevel(0, vars, metas) if vars.isEmpty && metas.size == 1 =>
+          val m = metas.keys.head
+          val (k, sp) = metas(m)
+          Some((lmetaId(m), k, sp))
+        case _ => None
 
   object VFinLevelNat:
     def apply(k: Int) =

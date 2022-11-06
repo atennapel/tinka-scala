@@ -38,3 +38,6 @@ object Errors:
   case class IcitMismatchError(msg: String)(implicit val ctx: Ctx)
       extends Exception(s"icit mismatch: $msg")
       with ElabError
+  case class UnsolvedMetasError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"unsolved metas: $msg")
+      with ElabError

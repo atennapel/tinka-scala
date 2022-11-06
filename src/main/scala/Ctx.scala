@@ -13,6 +13,7 @@ final case class Ctx(
     types: Types,
     path: Path,
     pruning: Pruning,
+    levelPruning: List[Boolean],
     pos: Pos
 ):
   def names: List[Name] = path.names
@@ -29,6 +30,7 @@ final case class Ctx(
       newtypes,
       PBind(path, x, quote(ty), quote(lv)),
       Some(Expl) :: pruning,
+      false :: levelPruning,
       pos
     )
 
@@ -42,6 +44,7 @@ final case class Ctx(
       newtypes,
       PBindLevel(path, x),
       Some(Expl) :: pruning,
+      true :: levelPruning,
       pos
     )
 
@@ -59,6 +62,7 @@ final case class Ctx(
       (x, lvl, Some((ty, lv))) :: types,
       PDefine(path, x, qty, quote0(lv)(lvl), qvalue),
       None :: pruning,
+      false :: levelPruning,
       pos
     )
 
@@ -91,14 +95,6 @@ final case class Ctx(
       case Nil                       => None
     go(types)
 
-  def levelVars: Set[Lvl] =
-    def go(i: Int, p: Path): Set[Lvl] = p match
-      case PBindLevel(p, _)       => go(i + 1, p) + mkLvl(lvl.expose - i - 1)
-      case PBind(p, _, _, _)      => go(i + 1, p)
-      case PDefine(p, _, _, _, _) => go(i + 1, p)
-      case PHere                  => Set.empty
-    go(0, path)
-
   def prettyLocals: String =
     def go(p: Path): List[String] = p match
       case PHere              => Nil
@@ -109,7 +105,7 @@ final case class Ctx(
     go(path).mkString("\n")
 
 object Ctx:
-  def empty(pos: Pos = (0, 0)) = Ctx(lvl0, EEmpty, Nil, PHere, Nil, pos)
+  def empty(pos: Pos = (0, 0)) = Ctx(lvl0, EEmpty, Nil, PHere, Nil, Nil, pos)
 
 enum Path:
   case PHere

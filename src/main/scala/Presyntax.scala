@@ -25,6 +25,10 @@ object Presyntax:
     case RLHole
     case RLPos(pos: Pos, lvl: RLevel)
 
+    def isPos: Boolean = this match
+      case RLPos(_, _) => true
+      case _           => false
+
     override def toString: String = this match
       case RLVar(x)    => x.toString
       case RLS(l)      => s"(S $l)"
@@ -54,6 +58,10 @@ object Presyntax:
 
     case RPos(pos: Pos, tm: RTm)
     case RHole(name: Option[Name])
+
+    def isPos: Boolean = this match
+      case RPos(_, _) => true
+      case _          => false
 
     override def toString: String = this match
       case RType(RLZ)                          => "Type"

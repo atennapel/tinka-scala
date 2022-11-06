@@ -8,6 +8,7 @@ object Syntax:
     case LS(lvl: FinLevel)
     case LMax(a: FinLevel, b: FinLevel)
     case LMeta(id: LMetaId)
+    case LInsertedMeta(id: LMetaId, spine: List[Boolean])
 
     private def tryNat: Option[Int] = this match
       case LZ    => Some(0)
@@ -18,8 +19,9 @@ object Syntax:
       case LVar(i) => s"'$i"
       case LZ      => "0"
       case LS(l)   => l.tryNat.map(n => (n + 1).toString).getOrElse(s"(S $l)")
-      case LMax(a, b) => s"(max $a $b)"
-      case LMeta(id)  => s"?l$id"
+      case LMax(a, b)           => s"(max $a $b)"
+      case LMeta(id)            => s"?l$id"
+      case LInsertedMeta(id, _) => s"?*l$id"
 
     def +(o: Int): FinLevel =
       var c: FinLevel = this
@@ -108,25 +110,25 @@ object Syntax:
       go(ix0, pr)
 
     override def toString: String = this match
-      case Type(LFinLevel(LZ))     => s"Type"
-      case Type(lvl)               => s"Type $lvl"
-      case Var(ix)                 => s"'$ix"
-      case Let(x, t, v, b)         => s"(let $x : $t = $v; $b)"
-      case Lam(x, Expl, b)         => s"(\\$x. $b)"
-      case Lam(x, Impl, b)         => s"(\\{$x}. $b)"
-      case App(fn, arg, Expl)      => s"($fn $arg)"
-      case App(fn, arg, Impl)      => s"($fn {$arg})"
-      case AppLvl(l, r)            => s"($l <$r>)"
-      case Pi(x, Expl, t, _, b, _) => s"(($x : $t) -> $b)"
-      case Pi(x, Impl, t, _, b, _) => s"({$x : $t} -> $b)"
-      case PiLvl(x, b, u)          => s"(<$x> -> $b)"
-      case LamLvl(x, b)            => s"(\\<$x>. $b)"
-      case Pair(fst, snd)          => s"($fst, $snd)"
-      case Proj(tm, proj)          => s"$tm$proj"
-      case Sigma(x, t, _, b, _)    => s"(($x : $t) ** $b)"
-      case UnitType                => s"()"
-      case UnitValue               => s"[]"
-      case Wk(tm)                  => s"(Wk $tm)"
-      case Meta(id)                => s"?$id"
-      case AppPruning(tm, spine)   => s"?*$tm"
+      case Type(LFinLevel(LZ))       => s"Type"
+      case Type(lvl)                 => s"Type $lvl"
+      case Var(ix)                   => s"'$ix"
+      case Let(x, t, v, b)           => s"(let $x : $t = $v; $b)"
+      case Lam(x, Expl, b)           => s"(\\$x. $b)"
+      case Lam(x, Impl, b)           => s"(\\{$x}. $b)"
+      case App(fn, arg, Expl)        => s"($fn $arg)"
+      case App(fn, arg, Impl)        => s"($fn {$arg})"
+      case AppLvl(l, r)              => s"($l <$r>)"
+      case Pi(x, Expl, t, u1, b, u2) => s"(($x : $t) ->{$u1}{$u2} $b)"
+      case Pi(x, Impl, t, u1, b, u2) => s"({$x : $t} ->{$u1}{$u2} $b)"
+      case PiLvl(x, b, u)            => s"(<$x> -> $b)"
+      case LamLvl(x, b)              => s"(\\<$x>. $b)"
+      case Pair(fst, snd)            => s"($fst, $snd)"
+      case Proj(tm, proj)            => s"$tm$proj"
+      case Sigma(x, t, _, b, _)      => s"(($x : $t) ** $b)"
+      case UnitType                  => s"()"
+      case UnitValue                 => s"[]"
+      case Wk(tm)                    => s"(Wk $tm)"
+      case Meta(id)                  => s"?$id"
+      case AppPruning(tm, spine)     => s"?*$tm"
   export Tm.*

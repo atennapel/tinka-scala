@@ -20,8 +20,9 @@ object Pretty:
       case LZ       => "0"
       case l @ LS(a) =>
         levelTryNat(l).map(_.toString).getOrElse(s"(S ${pretty(a)})")
-      case LMax(a, b) => s"(max ${pretty(a)} ${pretty(b)})"
-      case LMeta(id)  => s"?l$id"
+      case LMax(a, b)           => s"(max ${pretty(a)} ${pretty(b)})"
+      case LMeta(id)            => s"?l$id"
+      case LInsertedMeta(id, _) => s"?*l$id"
 
   private def prettySigma(tm: Tm)(implicit ns: List[Name]): String = tm match
     case Sigma(DontBind, t, _, b, _) =>
