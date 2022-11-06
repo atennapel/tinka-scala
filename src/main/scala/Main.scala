@@ -11,15 +11,19 @@ import scala.io.Source
 import parsley.io.given
 
 @main def run(filename: String): Unit =
-  setDebug(true)
+  setDebug(false)
   implicit val ctx: Ctx = Ctx.empty()
   try
     val time = System.nanoTime
     val rtm = parser.parseFromFile((new File(filename))).flatMap(_.toTry).get
-    val (etm, ety, elv) = elaborate(rtm)
     val time1 = System.nanoTime - time
     debug(rtm)
-    println(s"time: ${time1 / 1000000}ms (${time1}ns)")
+    println(s"parsing time: ${time1 / 1000000}ms (${time1}ns) ")
+    val time2 = System.nanoTime
+    val (etm, ety, elv) = elaborate(rtm)
+    val time3 = System.nanoTime - time2
+    println(s"elaboration time: ${time3 / 1000000}ms (${time3}ns)")
+    println(s"total time: ${(time1 + time3) / 1000000}ms (${time1 + time3}ns)")
     println("level:")
     println(ctx.pretty(elv))
     println("type:")
@@ -36,3 +40,4 @@ import parsley.io.given
         val lineSrc = Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
         println(lineSrc)
         println(s"${" " * (col - 1)}^")
+      if isDebug then err.printStackTrace()
