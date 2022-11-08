@@ -13,12 +13,13 @@ import scala.util.Try
 object Unification:
   private final case class PRen(
       occ: Option[MetaId],
+      occl: Option[LMetaId],
       dom: Lvl,
       cod: Lvl,
       ren: IntMap[Lvl]
   ):
-    def lift: PRen = PRen(occ, dom + 1, cod + 1, ren + (cod.expose, dom))
-    def skip: PRen = PRen(occ, dom, cod + 1, ren)
+    def lift: PRen = PRen(occ, occl, dom + 1, cod + 1, ren + (cod.expose, dom))
+    def skip: PRen = PRen(occ, occl, dom, cod + 1, ren)
 
   private def invert(sp: Spine)(implicit
       gamma: Lvl
@@ -65,7 +66,7 @@ object Unification:
           }
         case _ => throw UnifyError("non-app in meta spine")
     go(sp).map { (dom, domvars, ren, pr, isLinear) =>
-      (PRen(None, dom, gamma, ren), if isLinear then None else Some(pr))
+      (PRen(None, None, dom, gamma, ren), if isLinear then None else Some(pr))
     }
 
   private def pruneTy(pr: RevPruning, ty: VTy): Ty =
@@ -87,7 +88,7 @@ object Unification:
           val v = VFinLevel.vr(pren.cod)
           PiLvl(x, go(pr, b.inst(v))(pren.lift), rename(u.inst(v))(pren.lift))
         case _ => impossible()
-    implicit val pren: PRen = PRen(None, lvl0, lvl0, IntMap.empty)
+    implicit val pren: PRen = PRen(None, None, lvl0, lvl0, IntMap.empty)
     go(pr.expose, ty)
 
   private def pruneMeta(pr: Pruning, m: MetaId): MetaId =
@@ -154,8 +155,23 @@ object Unification:
     }
 
   private def rename(v: VFinLevel)(implicit pren: PRen): FinLevel =
-    quote(v)(pren.dom)
-  private def rename(v: VLevel)(implicit pren: PRen): Level = quote(v)(pren.dom)
+    val fl = force(v)
+    val vars = fl.vars.foldLeft(LZ + fl.k) { case (i, (x, n)) =>
+      pren.ren.get(x) match
+        case None     => throw UnifyError("escaping variable in level")
+        case Some(x2) => i max (LVar(x2.toIx(pren.dom)) + n)
+    }
+    fl.metas.foldLeft(vars) { case (i, (x, (n, sp))) =>
+      pren.occl.foreach(x2 =>
+        if lmetaId(x) == x2 then
+          throw UnifyError(s"occurs check failed in level ?l$x")
+      )
+      i max (LMeta(lmetaId(x)) + n)
+    }
+  private def rename(v: VLevel)(implicit pren: PRen): Level = v match
+    case VOmega  => LOmega
+    case VOmega1 => LOmega1
+    case VFL(l)  => LFinLevel(rename(l))
   private def rename(v: Val)(implicit pren: PRen): Tm =
     def goSp(t: Tm, sp: Spine)(implicit pren: PRen): Tm = sp match
       case SId            => t
@@ -302,6 +318,10 @@ object Unification:
     val v = VFinLevel.vr(k)
     unify(a.inst(v), b.inst(v))(k + 1)
 
+  private def levelEnv(i: Lvl): Env = i.expose match
+    case 0 => EEmpty
+    case i => ELevel(levelEnv(mkLvl(i - 1)), VFinLevel.vr(mkLvl(i - 1)))
+
   private def solveFinLevel(m: LMetaId, sp: List[VFinLevel], v: VFinLevel)(
       implicit k: Lvl
   ): Unit =
@@ -313,21 +333,11 @@ object Unification:
       case Left(id) => throw UnifyError(s"invert stuck on ?$id")
       case Right((_, Some(_))) =>
         throw UnifyError(s"need to prune in levels (unimplemented)")
-      case Right((pren, _)) => ???
-
-    /*
-    if v.metas.contains(m.expose) then
-      throw UnifyError(s"occurs check failed in ?l$m := ${quote(v)}")
-    if v.vars.keys.map(mkLvl(_)).exists(k => !scope.contains(k)) then
-      throw UnifyError(
-        s"scope check failed in ?l$m ${
-            if scope.nonEmpty then s"${scope.map(x => s"'$x").mkString(" ")} "
-            else ""
-          }:= ${quote(v)}"
-      )
-     */
-    debug(s"solution ?l$m := ${quote(v)(k)}")
-    solveLMeta(m, v)
+      case Right((pren, _)) =>
+        val r = rename(v)(pren)
+        debug(s"solution ?l$m (${pren.dom}) := $r")
+        val vr = eval(r)(levelEnv(pren.dom))
+        solveLMeta(m, pren.dom, vr)
 
   def unify(a: VFinLevel, b: VFinLevel)(implicit l: Lvl): Unit =
     debug(s"unify ${quote(a)} ~ ${quote(b)}")

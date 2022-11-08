@@ -42,7 +42,7 @@ object Metas:
   // universe level metas
   enum LMetaEntry:
     case LUnsolved
-    case LSolved(value: VFinLevel)
+    case LSolved(dom: Lvl, value: VFinLevel)
   export LMetaEntry.*
 
   def freshLMeta(): LMetaId =
@@ -52,13 +52,13 @@ object Metas:
 
   def getLMeta(id: LMetaId): LMetaEntry = lmetas(id.expose)
   def getLMetaSolved(id: LMetaId): LSolved = getLMeta(id) match
-    case LUnsolved      => impossible()
-    case s @ LSolved(_) => s
+    case LUnsolved         => impossible()
+    case s @ LSolved(_, _) => s
   def modifyLMeta(id: LMetaId)(fn: LMetaEntry => LMetaEntry): Unit =
     lmetas(id.expose) = fn(lmetas(id.expose))
 
-  def solveLMeta(id: LMetaId, v: VFinLevel): Unit =
-    lmetas(id.expose) = LSolved(v)
+  def solveLMeta(id: LMetaId, dom: Lvl, v: VFinLevel): Unit =
+    lmetas(id.expose) = LSolved(dom, v)
 
   def unsolvedLMetas(): List[LMetaId] = lmetas.zipWithIndex.collect {
     case (LUnsolved, ix) => lmetaId(ix)
