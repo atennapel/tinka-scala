@@ -22,6 +22,7 @@ sbt "run examples/nat.tinka"
 - [ ] Globals
 - [ ] Importing
 - [ ] Local gluing
+- [ ] Add subtyping coercion to avoid `isNeutral` in elaboration
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output
 - [ ] Erasure

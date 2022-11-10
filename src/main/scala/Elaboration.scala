@@ -166,10 +166,15 @@ object Elaboration:
       case _ => false
 
   private def isNeutral(t: RTm): Boolean = t match
-    case RVar(Name("[]")) => true
-    case RVar(Name("()")) => true
-    case RPair(_, _)      => true
-    case _                => false
+    case RVar(Name("[]"))    => true
+    case RVar(Name("()"))    => true
+    case RVar(Name("True"))  => true
+    case RVar(Name("False")) => true
+    case RVar(Name("Refl"))  => true
+    case RVar(Name("Void"))  => true
+    case RVar(Name("Bool"))  => true
+    case RPair(_, _)         => true
+    case _                   => false
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
