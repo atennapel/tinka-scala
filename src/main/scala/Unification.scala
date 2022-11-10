@@ -178,13 +178,23 @@ object Unification:
       case SApp(sp, a, i) => App(goSp(t, sp), go(a), i)
       case SAppLvl(sp, a) => AppLvl(goSp(t, sp), rename(a))
       case SProj(sp, p)   => Proj(goSp(t, sp), p)
+      case SPrim(sp, x, args) =>
+        App(
+          args.foldLeft(Prim(x))((fn, arg) =>
+            arg.fold(
+              lv => AppLvl(fn, rename(lv)),
+              (a, i) => App(fn, go(a), i)
+            )
+          ),
+          goSp(t, sp),
+          Expl
+        )
     def go(v: Val)(implicit pren: PRen): Tm = force(v, UnfoldMetas) match
-      case VUnitType  => UnitType
-      case VUnitValue => UnitValue
       case VRigid(HVar(x), sp) =>
         pren.ren.get(x.expose) match
           case None     => throw UnifyError("escaping variable")
           case Some(x2) => goSp(Var(x2.toIx(pren.dom)), sp)
+      case VRigid(HPrim(x), sp) => goSp(Prim(x), sp)
       case VFlex(x, sp) =>
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
@@ -302,6 +312,13 @@ object Unification:
       case (SProj(s1, p1), SProj(s2, p2)) if p1 == p2 => unify(s1, s2)
       case (SProj(s1, Fst), SProj(s2, Named(_, n)))   => unifyProj(s1, s2, n)
       case (SProj(s1, Named(_, n)), SProj(s2, Fst))   => unifyProj(s2, s1, n)
+      case (SPrim(a, x, args1), SPrim(b, y, args2)) if x == y =>
+        unify(a, b)
+        args1.zip(args2).foreach {
+          case (Left(l), Left(k))             => unify(l, k)
+          case (Right((v, _)), Right((w, _))) => unify(v, w)
+          case _                              => impossible()
+        }
       case _ => throw UnifyError(s"spine mismatch")
 
   private def unify(a: Clos[Val], b: Clos[Val])(implicit l: Lvl): Unit =
@@ -380,7 +397,6 @@ object Unification:
     debug(s"unify ${quote(a)} ~ ${quote(b)}")
     (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
       case (VType(u1), VType(u2)) => unify(u1, u2)
-      case (VUnitType, VUnitType) => ()
 
       case (VPi(_, i1, t1, u11, b1, u12), VPi(_, i2, t2, u21, b2, u22))
           if i1 == i2 =>
@@ -414,7 +430,7 @@ object Unification:
       case (VFlex(m, sp), v) => solve(m, sp, v)
       case (v, VFlex(m, sp)) => solve(m, sp, v)
 
-      case (VUnitValue, _) => ()
-      case (_, VUnitValue) => ()
+      case (VUnit(), _) => ()
+      case (_, VUnit()) => ()
 
       case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")

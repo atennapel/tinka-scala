@@ -80,6 +80,7 @@ object Syntax:
   enum Tm:
     case Type(lvl: Level)
     case Var(ix: Ix)
+    case Prim(name: PrimName)
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
 
     case Lam(bind: Bind, icit: Icit, body: Tm)
@@ -93,9 +94,6 @@ object Syntax:
     case Pair(fst: Tm, snd: Tm)
     case Proj(tm: Tm, proj: ProjType)
     case Sigma(bind: Bind, ty: Ty, u1: Level, body: Ty, u2: Level)
-
-    case UnitType
-    case UnitValue
 
     case Wk(tm: Tm)
 
@@ -113,6 +111,7 @@ object Syntax:
       case Type(LFinLevel(LZ))       => s"Type"
       case Type(lvl)                 => s"Type $lvl"
       case Var(ix)                   => s"'$ix"
+      case Prim(name)                => s"$name"
       case Let(x, t, v, b)           => s"(let $x : $t = $v; $b)"
       case Lam(x, Expl, b)           => s"(\\$x. $b)"
       case Lam(x, Impl, b)           => s"(\\{$x}. $b)"
@@ -126,8 +125,6 @@ object Syntax:
       case Pair(fst, snd)            => s"($fst, $snd)"
       case Proj(tm, proj)            => s"$tm$proj"
       case Sigma(x, t, _, b, _)      => s"(($x : $t) ** $b)"
-      case UnitType                  => s"()"
-      case UnitValue                 => s"[]"
       case Wk(tm)                    => s"(Wk $tm)"
       case Meta(id)                  => s"?$id"
       case AppPruning(tm, spine)     => s"?*$tm"

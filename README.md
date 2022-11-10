@@ -12,13 +12,14 @@ sbt "run examples/nat.tinka"
 ## TODO
 - [x] Elaboration
 - [x] Unification with pruning
-- [ ] Primitives
-  - [ ] Universe lifting operators
-  - [ ] Unit
-  - [ ] Void
-  - [ ] Bool
-  - [ ] Id
-  - [ ] Descriptions
+- [x] Primitives
+  - [x] Machinery
+  - [x] Universe lifting operators
+  - [x] Unit
+  - [x] Void
+  - [x] Bool
+  - [x] Id
 - [ ] Globals
-- [ ] Local gluing
 - [ ] Importing
+- [ ] Local gluing
+- [ ] Inductive types (descriptions)

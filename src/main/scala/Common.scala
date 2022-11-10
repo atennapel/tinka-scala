@@ -79,3 +79,58 @@ object Common:
   opaque type RevPruning = Pruning
   inline def revPruning(p: Pruning): RevPruning = p.reverse
   extension (p: RevPruning) inline def expose: List[Option[Icit]] = p
+
+  // primitives
+  enum PrimName:
+    case PLift
+    case PLiftTerm
+    case PLower
+
+    case PVoid
+    case PAbsurd
+
+    case PUnitType
+    case PUnit
+
+    case PBool
+    case PTrue
+    case PFalse
+    case PElimBool
+
+    case PId
+    case PRefl
+    case PElimId
+
+    override def toString: String = this match
+      case PUnitType => "()"
+      case PUnit     => "[]"
+      case PLift     => "Lift"
+      case PLiftTerm => "lift"
+      case PLower    => "lower"
+      case PBool     => "Bool"
+      case PTrue     => "True"
+      case PFalse    => "False"
+      case PElimBool => "elimBool"
+      case PVoid     => "Void"
+      case PAbsurd   => "absurd"
+      case PId       => "Id"
+      case PRefl     => "Refl"
+      case PElimId   => "elimId"
+  export PrimName.*
+  object PrimName:
+    def apply(x: Name): Option[PrimName] = x.expose match
+      case "()"       => Some(PUnitType)
+      case "[]"       => Some(PUnit)
+      case "Lift"     => Some(PLift)
+      case "lift"     => Some(PLiftTerm)
+      case "lower"    => Some(PLower)
+      case "Bool"     => Some(PBool)
+      case "True"     => Some(PTrue)
+      case "False"    => Some(PFalse)
+      case "elimBool" => Some(PElimBool)
+      case "Void"     => Some(PVoid)
+      case "absurd"   => Some(PAbsurd)
+      case "Id"       => Some(PId)
+      case "Refl"     => Some(PRefl)
+      case "elimId"   => Some(PElimId)
+      case _          => None

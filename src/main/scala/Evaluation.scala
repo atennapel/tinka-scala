@@ -42,11 +42,38 @@ object Evaluation:
     case VFlex(hd, sp)  => VFlex(hd, SProj(sp, proj))
     case _              => impossible()
 
+  def vprimelim(
+      x: PrimName,
+      args: List[Either[VFinLevel, (Val, Icit)]],
+      v: Val
+  ): Val =
+    (x, v, args) match
+      // lower <k> <l> {A} (lift <k> <l> {A} t) ~> t
+      case (PLower, VLiftTerm(_, _, _, t), _) => t
+
+      // elimBool <l> P t f True ~> t
+      case (PElimBool, VTrue(), List(_, _, Right((t, _)), _)) => t
+      // elimBool <l> P t f False ~> f
+      case (PElimBool, VFalse(), List(_, _, _, Right((f, _)))) => f
+
+      // elimId <k> <l> {A} {x} P refl {y} (Refl <l> {A} {y}) ~> refl
+      case (
+            PElimId,
+            VRefl(_, _, _),
+            List(_, _, _, _, _, Right((refl, _)), _)
+          ) =>
+        refl
+
+      case (_, VRigid(hd, sp), _) => VRigid(hd, SPrim(sp, x, args))
+      case (_, VFlex(hd, sp), _)  => VFlex(hd, SPrim(sp, x, args))
+      case _                      => impossible()
+
   def vspine(v: Val, sp: Spine): Val = sp match
-    case SId             => v
-    case SApp(sp, a, i)  => vapp(vspine(v, sp), a, i)
-    case SAppLvl(sp, a)  => vapp(vspine(v, sp), a)
-    case SProj(sp, proj) => vproj(vspine(v, sp), proj)
+    case SId                => v
+    case SApp(sp, a, i)     => vapp(vspine(v, sp), a, i)
+    case SAppLvl(sp, a)     => vapp(vspine(v, sp), a)
+    case SProj(sp, proj)    => vproj(vspine(v, sp), proj)
+    case SPrim(sp, x, args) => vprimelim(x, args, vspine(v, sp))
 
   def vmeta(id: MetaId): Val = getMeta(id) match
     case Solved(v, _, _) => v
@@ -55,6 +82,136 @@ object Evaluation:
   def vlmeta(id: LMetaId): VFinLevel = getLMeta(id) match
     case LSolved(_, v) => v // TODO: will this work?
     case LUnsolved     => VFinLevel.meta(id)
+
+  private def vliftterm(k: VFinLevel, l: VFinLevel, a: VTy, x: Val): Val =
+    x match
+      case VRigid(hd, SPrim(sp, PLower, args)) => VRigid(hd, sp)
+      case VFlex(hd, SPrim(sp, PLower, args))  => VFlex(hd, sp)
+      case _                                   => VLiftTerm(k, l, a, x)
+
+  private def vprim(x: PrimName) = x match
+    case PLiftTerm =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l => vlamI("A", a => vlam("x", x => vliftterm(k, l, a, x)))
+          )
+      )
+    case PLower =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l =>
+              vlamI(
+                "A",
+                a =>
+                  vlam(
+                    "x",
+                    x =>
+                      vprimelim(
+                        PLower,
+                        List(Left(k), Left(l), Right((a, Impl))),
+                        x
+                      )
+                  )
+              )
+          )
+      )
+    case PAbsurd =>
+      vlamlvl(
+        "l",
+        l =>
+          vlamI(
+            "A",
+            a =>
+              vlam(
+                "v",
+                v => vprimelim(PAbsurd, List(Left(l), Right((a, Impl))), v)
+              )
+          )
+      )
+    case PElimBool =>
+      vlamlvl(
+        "l",
+        l =>
+          vlam(
+            "P",
+            p =>
+              vlam(
+                "t",
+                t =>
+                  vlam(
+                    "f",
+                    f =>
+                      vlam(
+                        "b",
+                        b =>
+                          vprimelim(
+                            PElimBool,
+                            List(
+                              Left(l),
+                              Right((p, Expl)),
+                              Right((t, Expl)),
+                              Right((f, Expl))
+                            ),
+                            b
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimId =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l =>
+              vlamI(
+                "A",
+                a =>
+                  vlamI(
+                    "x",
+                    x =>
+                      vlam(
+                        "P",
+                        p =>
+                          vlam(
+                            "refl",
+                            refl =>
+                              vlamI(
+                                "y",
+                                y =>
+                                  vlam(
+                                    "p",
+                                    pp =>
+                                      vprimelim(
+                                        PElimId,
+                                        List(
+                                          Left(k),
+                                          Left(l),
+                                          Right((a, Impl)),
+                                          Right((x, Impl)),
+                                          Right((p, Expl)),
+                                          Right((refl, Expl)),
+                                          Right((y, Impl))
+                                        ),
+                                        pp
+                                      )
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case _ => VPrim(x)
 
   def vappPruning(v: Val, pr: Pruning)(implicit env: Env): Val =
     (env, pr) match
@@ -102,6 +259,7 @@ object Evaluation:
   def eval(tm: Tm)(implicit env: Env): Val = tm match
     case Type(l)         => VType(eval(l))
     case Var(ix)         => env(ix).toOption.get
+    case Prim(x)         => vprim(x)
     case Let(_, _, v, b) => eval(b)(EVal(env, eval(v)))
 
     case Lam(x, i, b) => VLam(x, i, Clos(b))
@@ -117,9 +275,6 @@ object Evaluation:
     case Proj(tm, proj) => vproj(eval(tm), proj)
     case Sigma(x, t, u1, b, u2) =>
       VSigma(x, eval(t), eval(u1), Clos(b), eval(u2))
-
-    case UnitType  => VUnitType
-    case UnitValue => VUnitValue
 
     case Wk(tm) => eval(tm)(env.tail)
 
@@ -166,9 +321,21 @@ object Evaluation:
       case SApp(fn, arg, i) => App(quote(hd, fn, unfold), quote(arg, unfold), i)
       case SAppLvl(fn, arg) => AppLvl(quote(hd, fn, unfold), quote(arg))
       case SProj(tm, proj)  => Proj(quote(hd, tm, unfold), proj)
+      case SPrim(sp, x, args) =>
+        App(
+          args.foldLeft(Prim(x))((fn, arg) =>
+            arg.fold(
+              lv => AppLvl(fn, quote(lv)),
+              (a, i) => App(fn, quote(a, unfold), i)
+            )
+          ),
+          quote(hd, sp, unfold),
+          Expl
+        )
 
   private def quote(hd: Head)(implicit l: Lvl): Tm = hd match
     case HVar(ix) => Var(ix.toIx)
+    case HPrim(x) => Prim(x)
 
   def quote(l: VFinLevel)(implicit k: Lvl): FinLevel =
     val fl = force(l)
@@ -187,8 +354,6 @@ object Evaluation:
   def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match
       case VType(l)       => Type(quote(l))
-      case VUnitType      => UnitType
-      case VUnitValue     => UnitValue
       case VRigid(hd, sp) => quote(quote(hd), sp, unfold)
       case VFlex(id, sp)  => quote(Meta(id), sp, unfold)
 

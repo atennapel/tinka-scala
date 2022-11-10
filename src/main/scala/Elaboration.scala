@@ -6,6 +6,7 @@ import Evaluation.*
 import Metas.*
 import Errors.*
 import Unification.{unify as unify0}
+import Prims.getPrimType
 import Debug.debug
 
 import scala.annotation.tailrec
@@ -43,7 +44,7 @@ object Elaboration:
 
   // elaboration
   private def newMeta(ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm = ty match
-    case VUnitType => UnitValue
+    case VUnitType() => Prim(PUnit)
     case _ =>
       val closed = eval(ctx.closeTy(ctx.quote(ty), ctx.quote(lv)))(EEmpty)
       val m = freshMeta(closed)
@@ -164,6 +165,12 @@ object Elaboration:
           case _           => false
       case _ => false
 
+  private def isNeutral(t: RTm): Boolean = t match
+    case RVar(Name("[]")) => true
+    case RVar(Name("()")) => true
+    case RPair(_, _)      => true
+    case _                => false
+
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
     (tm, force(ty)) match
@@ -208,6 +215,19 @@ object Elaboration:
         val (ev, ety, vty, vl) = checkValue(v, t)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         Let(x, ety, ev, eb)
+      case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
+        check(RVar(Name("Refl")), ty, lv)
+      case (tm, VLift(k, l, a)) if isNeutral(tm) =>
+        val etm = check(tm, a, VFL(l))
+        App(
+          App(
+            AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
+            ctx.quote(a),
+            Impl
+          ),
+          etm,
+          Expl
+        )
       // switch to infer
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
@@ -261,14 +281,17 @@ object Elaboration:
         val el = infer(l)
         val vl = ctx.eval(el)
         (Type(LFinLevel(el)), VType(VFL(vl + 1)), VFL(vl + 2))
-      case RVar(Name("()")) => (UnitType, VType(VLevel.unit), VLevel.unit.inc)
-      case RVar(Name("[]")) => (UnitValue, VUnitType, VLevel.unit)
       case RVar(x) =>
         ctx.lookup(x) match
           case Some((ix, Some((vty, lv)))) =>
             debug(s"var $x : ${ctx.quote(vty)} : ${ctx.quote(lv)}")
             (Var(ix), vty, lv)
-          case _ => throw UndefVarError(x.toString)
+          case _ =>
+            PrimName(x) match
+              case Some(name) =>
+                val (ty, lv) = getPrimType(name)
+                (Prim(name), ty, lv)
+              case _ => throw UndefVarError(x.toString)
       case RLet(x, oty, v, b) =>
         val (ev, ety, vty, vl) = checkValue(v, oty)
         val (eb, rty, vl1) =

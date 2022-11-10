@@ -2,6 +2,7 @@ import Common.*
 import Presyntax.*
 import Evaluation.*
 import Elaboration.*
+import PrimElaboration.elaboratePrims
 import Debug.*
 import Parser.parser
 import Errors.*
@@ -14,16 +15,22 @@ import parsley.io.given
   setDebug(false)
   implicit val ctx: Ctx = Ctx.empty()
   try
+    val ptime = System.nanoTime
+    elaboratePrims()
+    val ptime1 = System.nanoTime - ptime
+    println(s"prim elaboration time: ${ptime1 / 1000000}ms (${ptime1}ns)")
     val time = System.nanoTime
     val rtm = parser.parseFromFile((new File(filename))).flatMap(_.toTry).get
     val time1 = System.nanoTime - time
     debug(rtm)
-    println(s"parsing time: ${time1 / 1000000}ms (${time1}ns) ")
+    println(s"parsing time: ${time1 / 1000000}ms (${time1}ns)")
     val time2 = System.nanoTime
     val (etm, ety, elv) = elaborate(rtm)
     val time3 = System.nanoTime - time2
     println(s"elaboration time: ${time3 / 1000000}ms (${time3}ns)")
-    println(s"total time: ${(time1 + time3) / 1000000}ms (${time1 + time3}ns)")
+    println(
+      s"total time: ${(ptime1 + time1 + time3) / 1000000}ms (${time1 + time3}ns)"
+    )
     println("level:")
     println(ctx.pretty(elv))
     println("type:")
