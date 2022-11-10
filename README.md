@@ -23,3 +23,7 @@ sbt "run examples/nat.tinka"
 - [ ] Importing
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)
+- [ ] Keep track of inserted terms, hide in output
+- [ ] Erasure
+- [ ] Compilation
+- [ ] REPL

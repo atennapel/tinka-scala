@@ -1,6 +1,0 @@
-open #lib/id;
-
-let Singleton {A} (x : A) = (value : A) ** (proof : value ~ x) ** ();
-let MkSingleton {A} (x : A) : Singleton x = [x, Refl];
-
-export (Singleton, MkSingleton)
