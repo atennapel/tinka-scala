@@ -1,6 +1,8 @@
 let if_ <l> {A : Type l} (b : Bool) (t : A) (f : A) : A = elimBool (\_. A) t f b;
+let if-ind_ <l> (P : Bool -> Type l) (b : Bool) (t : P True) (f : P False) : P b = elimBool P t f b;
 
-let (!) b = if b then False else True;
+let not b = if b then False else True;
+let (!) = not;
 let (&&) a b = if a then b else False;
 let (||) a b = if a then True else b;
 

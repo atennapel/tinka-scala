@@ -175,35 +175,120 @@ object Elaboration:
           case _           => false
       case _ => false
 
-  private def isNotVLift(ty: Val): Boolean = force(ty) match
-    case VLift(_, _, _) => false
-    case VFlex(_, _)    => false
-    case _              => true
-
   private def coe(tm: Tm, ty: VTy, lv: VLevel, tyE: VTy, lvE: VLevel)(implicit
       ctx: Ctx
   ): Tm =
-    debug(s"coe ${ctx.pretty(tm)} : ${ctx.pretty(ty)} : ${ctx
-        .pretty(lv)} to ${ctx.pretty(tyE)} : ${ctx.pretty(lvE)}")
-    (force(ty), force(tyE)) match
-      case (VUnitType(), VId(l, k, a, b, x, y)) =>
-        unify(VFL(l), VFL(k), a, b)
-        unify(x, y)
-        ctx.quote(VRefl(l, a, x))
-      case (ty, VLift(k, l, a)) if isNotVLift(ty) =>
-        unify(lv, VFL(l), ty, a)
-        App(
-          App(
-            AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
-            ctx.quote(a),
-            Impl
-          ),
-          tm,
-          Expl
-        )
-      case _ =>
-        unify(lv, lvE, ty, tyE)
-        tm
+    def pick(x: Bind, y: Bind): Bind = (x, y) match
+      case (DontBind, DontBind) => DoBind(Name("x"))
+      case (DontBind, x)        => x
+      case (x, DontBind)        => x
+      case (_, x)               => x
+    def go(
+        ctx: Ctx,
+        tm: Tm,
+        ty: VTy,
+        lv: VLevel,
+        tyE: VTy,
+        lvE: VLevel
+    ): Option[Tm] =
+      debug(s"coe ${ctx.pretty(tm)} : ${ctx.pretty(ty)} : ${ctx
+          .pretty(lv)} to ${ctx.pretty(tyE)} : ${ctx.pretty(lvE)}")
+      (force(ty), force(tyE)) match
+        case (VPiLvl(x1, b1, u1), VPiLvl(x2, b2, u2)) =>
+          val body = go(
+            ctx.bindLevel(x1),
+            AppLvl(Wk(tm), LVar(ix0)),
+            b1.inst(VFinLevel.vr(ctx.lvl)),
+            u1.inst(VFinLevel.vr(ctx.lvl)),
+            b2.inst(VFinLevel.vr(ctx.lvl)),
+            u2.inst(VFinLevel.vr(ctx.lvl))
+          )
+          body.map(b => LamLvl(x1, b))
+        case (VPi(x1, i1, a1, u11, b1, u12), VPi(x2, i2, a2, u21, b2, u22)) =>
+          if i1 != i2 then unify(ty, tyE)
+          val ctx2 = ctx.bind(x1, a2, u21)
+          go(ctx2, Var(ix0), a2, u21, a1, u11) match
+            case None =>
+              val body = go(
+                ctx2,
+                App(Wk(tm), Var(ix0), i1),
+                ctx.inst(b1),
+                u12,
+                ctx.inst(b2),
+                u22
+              )
+              body.map(b => Lam(x1, i1, b))
+            case Some(coev0) =>
+              val body = go(
+                ctx2,
+                App(Wk(tm), coev0, i1),
+                b1.inst(ctx2.eval(coev0)),
+                u12,
+                ctx.inst(b2),
+                u22
+              )
+              body match
+                case None => Some(Lam(pick(x1, x2), i1, App(Wk(tm), coev0, i1)))
+                case Some(body) => Some(Lam(pick(x1, x2), i1, body))
+        case (VSigma(x1, a1, u11, b1, u12), VSigma(x2, a2, u21, b2, u22)) =>
+          val fst = go(ctx, Proj(tm, Fst), a1, u11, a2, u21)
+          val snd = fst match
+            case None =>
+              go(
+                ctx,
+                Proj(tm, Snd),
+                b1.inst(vproj(ctx.eval(tm), Fst)),
+                u12,
+                b2.inst(vproj(ctx.eval(tm), Fst)),
+                u22
+              )
+            case Some(fst) =>
+              go(
+                ctx,
+                Proj(tm, Snd),
+                b1.inst(vproj(ctx.eval(tm), Fst)),
+                u12,
+                b2.inst(ctx.eval(fst)),
+                u22
+              )
+          (fst, snd) match
+            case (None, None)           => None
+            case (Some(fst), None)      => Some(Pair(fst, Proj(tm, Snd)))
+            case (None, Some(snd))      => Some(Pair(Proj(tm, Fst), snd))
+            case (Some(fst), Some(snd)) => Some(Pair(fst, snd))
+        case (VLift(_, _, _), VLift(_, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (ty, VLift(k, l, a)) =>
+          unify(lv, VFL(l), ty, a)
+          Some(
+            App(
+              App(
+                AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
+                ctx.quote(a),
+                Impl
+              ),
+              tm,
+              Expl
+            )
+          )
+        case (VLift(k, l, a), b) =>
+          unify(VFL(l), lvE, a, b)
+          Some(
+            App(
+              App(
+                AppLvl(AppLvl(Prim(PLower), ctx.quote(k)), ctx.quote(l)),
+                ctx.quote(a),
+                Impl
+              ),
+              tm,
+              Expl
+            )
+          )
+        case _ =>
+          unify(lv, lvE, ty, tyE)
+          None
+    go(ctx, tm, ty, lv, tyE, lvE).getOrElse(tm)
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
@@ -249,6 +334,8 @@ object Elaboration:
         val (ev, ety, vty, vl) = checkValue(v, t)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         Let(x, ety, ev, eb)
+      case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
+        check(RVar(Name("Refl")), ty, lv)
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
         coe(etm, ty2, lv2, ty, lv)
