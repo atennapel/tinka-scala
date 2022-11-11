@@ -37,6 +37,16 @@ object Elaboration:
               s"${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${err.msg}"
             )
 
+  private def unify(a: Val, b: Val)(implicit ctx: Ctx): Unit =
+    try
+      debug(s"unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}")
+      unify0(a, b)(ctx.lvl)
+    catch
+      case err: UnifyError =>
+        throw ElabUnifyError(
+          s"${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${err.msg}"
+        )
+
   // holes
   private val holes: mutable.Map[Name, HoleEntry] = mutable.Map.empty
 
@@ -165,16 +175,35 @@ object Elaboration:
           case _           => false
       case _ => false
 
-  private def isNeutral(t: RTm): Boolean = t match
-    case RVar(Name("[]"))    => true
-    case RVar(Name("()"))    => true
-    case RVar(Name("True"))  => true
-    case RVar(Name("False")) => true
-    case RVar(Name("Refl"))  => true
-    case RVar(Name("Void"))  => true
-    case RVar(Name("Bool"))  => true
-    case RPair(_, _)         => true
-    case _                   => false
+  private def isNotVLift(ty: Val): Boolean = force(ty) match
+    case VLift(_, _, _) => false
+    case VFlex(_, _)    => false
+    case _              => true
+
+  private def coe(tm: Tm, ty: VTy, lv: VLevel, tyE: VTy, lvE: VLevel)(implicit
+      ctx: Ctx
+  ): Tm =
+    debug(s"coe ${ctx.pretty(tm)} : ${ctx.pretty(ty)} : ${ctx
+        .pretty(lv)} to ${ctx.pretty(tyE)} : ${ctx.pretty(lvE)}")
+    (force(ty), force(tyE)) match
+      case (VUnitType(), VId(l, k, a, b, x, y)) =>
+        unify(VFL(l), VFL(k), a, b)
+        unify(x, y)
+        ctx.quote(VRefl(l, a, x))
+      case (ty, VLift(k, l, a)) if isNotVLift(ty) =>
+        unify(lv, VFL(l), ty, a)
+        App(
+          App(
+            AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
+            ctx.quote(a),
+            Impl
+          ),
+          tm,
+          Expl
+        )
+      case _ =>
+        unify(lv, lvE, ty, tyE)
+        tm
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
@@ -220,24 +249,9 @@ object Elaboration:
         val (ev, ety, vty, vl) = checkValue(v, t)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         Let(x, ety, ev, eb)
-      case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
-        check(RVar(Name("Refl")), ty, lv)
-      case (tm, VLift(k, l, a)) if isNeutral(tm) =>
-        val etm = check(tm, a, VFL(l))
-        App(
-          App(
-            AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
-            ctx.quote(a),
-            Impl
-          ),
-          etm,
-          Expl
-        )
-      // switch to infer
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
-        unify(lv2, lv, ty2, ty)
-        etm
+        coe(etm, ty2, lv2, ty, lv)
 
   private def infer(l: RLevel)(implicit ctx: Ctx): FinLevel =
     if !l.isPos then debug(s"infer $l")

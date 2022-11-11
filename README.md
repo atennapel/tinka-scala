@@ -19,10 +19,10 @@ sbt "run examples/nat.tinka"
   - [x] Void
   - [x] Bool
   - [x] Id
+- [x] Add subtyping coercion to avoid `isNeutral` in elaboration
 - [ ] Globals
 - [ ] Importing
 - [ ] Local gluing
-- [ ] Add subtyping coercion to avoid `isNeutral` in elaboration
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output
 - [ ] Erasure

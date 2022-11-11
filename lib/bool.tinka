@@ -14,4 +14,7 @@ let rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a)
 let liftBool b = if b then () else Void;
 let trueNotFalse : True !~ False = \p. rewrite liftBool p [];
 
+let notnotId {b : Bool} : not (not b) ~ b =
+  if b : \b. not (not b) ~ b then Refl else Refl;
+
 []
