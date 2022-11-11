@@ -47,6 +47,16 @@ object Elaboration:
           s"${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${err.msg}"
         )
 
+  private def unify(a: VLevel, b: VLevel)(implicit ctx: Ctx): Unit =
+    try
+      debug(s"unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}")
+      unify0(a, b)(ctx.lvl)
+    catch
+      case err: UnifyError =>
+        throw ElabUnifyError(
+          s"${ctx.pretty(a)} ~ ${ctx.pretty(b)}: ${err.msg}"
+        )
+
   // holes
   private val holes: mutable.Map[Name, HoleEntry] = mutable.Map.empty
 
@@ -256,7 +266,29 @@ object Elaboration:
             case (Some(fst), None)      => Some(Pair(fst, Proj(tm, Snd)))
             case (None, Some(snd))      => Some(Pair(Proj(tm, Fst), snd))
             case (Some(fst), Some(snd)) => Some(Pair(fst, snd))
+        case (VVoid(), VVoid()) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VVoid(), VFlex(_, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VVoid(), ty) =>
+          val l = newLMeta
+          unify(VFL(ctx.eval(l)), lvE)
+          Some(
+            App(
+              App(AppLvl(Prim(PAbsurd), l), ctx.quote(ty), Impl),
+              tm,
+              Expl
+            )
+          )
         case (VLift(_, _, _), VLift(_, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VFlex(_, _), VLift(_, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VLift(_, _, _), VFlex(_, _)) =>
           unify(lv, lvE, ty, tyE)
           None
         case (ty, VLift(k, l, a)) =>
