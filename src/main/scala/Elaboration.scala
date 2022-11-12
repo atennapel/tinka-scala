@@ -7,6 +7,7 @@ import Metas.*
 import Errors.*
 import Unification.{unify as unify0}
 import Prims.getPrimType
+import Globals.getGlobal
 import Debug.debug
 
 import scala.annotation.tailrec
@@ -427,6 +428,10 @@ object Elaboration:
                 val (ty, lv) = getPrimType(name)
                 (Prim(name), ty, lv)
               case _ => throw UndefVarError(x.toString)
+      case RGlobal(uri) =>
+        getGlobal(uri) match
+          case Some(e) => (Global(uri), e.vty, e.vl)
+          case None    => throw UndefUriError(uri.toString)
       case RLet(x, oty, v, b) =>
         val (ev, ety, vty, vl) = checkValue(v, oty)
         val (eb, rty, vl1) =

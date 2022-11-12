@@ -159,6 +159,7 @@ object Value:
     case VType(lvl: VLevel)
     case VRigid(hd: Head, spine: Spine)
     case VFlex(hd: MetaId, spine: Spine)
+    case VGlobal(uri: String, spine: Spine, value: () => Val)
 
     case VLam(bind: Bind, icit: Icit, body: Clos[Val])
     case VPi(

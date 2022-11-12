@@ -1,9 +1,12 @@
 let (~) <l> {A : Type l} (x y : A) = Id {A} {A} x y;
 let (!~) <l> {A : Type l} (x y : A) = x ~ y -> Void;
+
 let idJ <k l> {A : Type l} (P : {a b : A} -> a ~ b -> Type k) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
   = elimId (\{c} q. P {a} {c} q) refl p;
+
 let rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a) : P b
   = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
+
 let cast <l> {A B : Type l} (p : A ~ B) (x : A) : B
   = rewrite <l> (\x. x) p x;
 

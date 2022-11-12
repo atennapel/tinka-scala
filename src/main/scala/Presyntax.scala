@@ -42,6 +42,7 @@ object Presyntax:
   enum RTm:
     case RType(lvl: RLevel)
     case RVar(name: Name)
+    case RGlobal(uri: String)
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
@@ -63,12 +64,30 @@ object Presyntax:
       case RPos(_, _) => true
       case _          => false
 
+    def globals: Set[String] = this match
+      case RGlobal(uri) => Set(uri)
+      case RLet(_, t, v, b) =>
+        t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
+      case RLam(_, _, t, b) =>
+        t.map(_.globals).getOrElse(Set.empty) ++ b.globals
+      case RApp(fn, arg, _) => fn.globals ++ arg.globals
+      case RPi(_, _, t, b)  => t.globals ++ b.globals
+      case RPair(fst, snd)  => fst.globals ++ snd.globals
+      case RProj(t, _)      => t.globals
+      case RSigma(_, t, b)  => t.globals ++ b.globals
+      case RPos(_, t)       => t.globals
+      case RPiLvl(_, b)     => b.globals
+      case RAppLvl(a, _, _) => a.globals
+      case RLamLvl(_, _, b) => b.globals
+      case _                => Set.empty
+
     override def toString: String = this match
       case RType(RLZ)                          => "Type"
       case RType(lvl)                          => s"Type $lvl"
       case RVar(Name("()"))                    => "()"
       case RVar(Name("[]"))                    => "[]"
       case RVar(x)                             => s"$x"
+      case RGlobal(x)                          => s"#$x"
       case RLet(x, Some(t), v, b)              => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)                 => s"(let $x = $v; $b)"
       case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"

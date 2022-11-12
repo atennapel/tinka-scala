@@ -2,6 +2,7 @@ import Common.*
 import Syntax.*
 import Value.*
 import Metas.*
+import Globals.getGlobal
 import Debug.debug
 
 object Evaluation:
@@ -23,13 +24,17 @@ object Evaluation:
     case VLam(_, _, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SApp(sp, arg, icit))
     case VFlex(hd, sp)  => VFlex(hd, SApp(sp, arg, icit))
-    case _              => impossible()
+    case VGlobal(uri, sp, v) =>
+      VGlobal(uri, SApp(sp, arg, icit), () => vapp(v(), arg, icit))
+    case _ => impossible()
 
   def vapp(fn: Val, arg: VFinLevel): Val = fn match
     case VLamLvl(_, b)  => b.inst(arg)
     case VRigid(hd, sp) => VRigid(hd, SAppLvl(sp, arg))
     case VFlex(hd, sp)  => VFlex(hd, SAppLvl(sp, arg))
-    case _              => impossible()
+    case VGlobal(uri, sp, v) =>
+      VGlobal(uri, SAppLvl(sp, arg), () => vapp(v(), arg))
+    case _ => impossible()
 
   def vproj(tm: Val, proj: ProjType): Val = tm match
     case VPair(fst, snd) =>
@@ -40,7 +45,9 @@ object Evaluation:
         case Named(x, i) => vproj(snd, Named(x, i - 1))
     case VRigid(hd, sp) => VRigid(hd, SProj(sp, proj))
     case VFlex(hd, sp)  => VFlex(hd, SProj(sp, proj))
-    case _              => impossible()
+    case VGlobal(uri, sp, v) =>
+      VGlobal(uri, SProj(sp, proj), () => vproj(v(), proj))
+    case _ => impossible()
 
   def vprimelim(
       x: PrimName,
@@ -66,7 +73,9 @@ object Evaluation:
 
       case (_, VRigid(hd, sp), _) => VRigid(hd, SPrim(sp, x, args))
       case (_, VFlex(hd, sp), _)  => VFlex(hd, SPrim(sp, x, args))
-      case _                      => impossible()
+      case (_, VGlobal(uri, sp, v), _) =>
+        VGlobal(uri, SPrim(sp, x, args), () => vprimelim(x, args, v()))
+      case _ => impossible()
 
   def vspine(v: Val, sp: Spine): Val = sp match
     case SId                => v
@@ -87,7 +96,9 @@ object Evaluation:
     x match
       case VRigid(hd, SPrim(sp, PLower, args)) => VRigid(hd, sp)
       case VFlex(hd, SPrim(sp, PLower, args))  => VFlex(hd, sp)
-      case _                                   => VLiftTerm(k, l, a, x)
+      case VGlobal(hd, SPrim(sp, PLower, args), v) =>
+        VGlobal(hd, sp, () => vliftterm(k, l, a, v()))
+      case _ => VLiftTerm(k, l, a, x)
 
   private def vprim(x: PrimName) = x match
     case PLiftTerm =>
@@ -257,9 +268,16 @@ object Evaluation:
     case LFinLevel(l) => VFL(eval(l))
 
   def eval(tm: Tm)(implicit env: Env): Val = tm match
-    case Type(l)         => VType(eval(l))
-    case Var(ix)         => env(ix).toOption.get
-    case Prim(x)         => vprim(x)
+    case Type(l) => VType(eval(l))
+    case Var(ix) => env(ix).toOption.get
+    case Prim(x) => vprim(x)
+    case Global(uri) =>
+      getGlobal(uri) match
+        case None => impossible()
+        case Some(e) =>
+          val value = e.value
+          VGlobal(uri, SId, () => value)
+
     case Let(_, _, v, b) => eval(b)(EVal(env, eval(v)))
 
     case Lam(x, i, b) => VLam(x, i, Clos(b))
@@ -312,7 +330,8 @@ object Evaluation:
       getMeta(id) match
         case Solved(v, _, _) => force(vspine(v, sp))
         case Unsolved(_)     => v
-    case _ => v
+    case VGlobal(_, _, v) if unfold == UnfoldAll => force(v(), UnfoldAll)
+    case _                                       => v
 
   // quoting
   private def quote(hd: Tm, sp: Spine, unfold: Unfold)(implicit l: Lvl): Tm =
@@ -353,9 +372,10 @@ object Evaluation:
 
   def quote(v: Val, unfold: Unfold = UnfoldMetas)(implicit l: Lvl): Tm =
     force(v, unfold) match
-      case VType(l)       => Type(quote(l))
-      case VRigid(hd, sp) => quote(quote(hd), sp, unfold)
-      case VFlex(id, sp)  => quote(Meta(id), sp, unfold)
+      case VType(l)          => Type(quote(l))
+      case VRigid(hd, sp)    => quote(quote(hd), sp, unfold)
+      case VFlex(id, sp)     => quote(Meta(id), sp, unfold)
+      case VGlobal(x, sp, v) => quote(Global(x), sp, unfold)
 
       case VLam(x, i, b) => Lam(x, i, quote(b.inst(VVar(l)), unfold)(l + 1))
       case VPi(x, i, t, u1, b, u2) =>

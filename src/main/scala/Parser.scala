@@ -95,6 +95,7 @@ object Parser:
     private lazy val atom: Parsley[RTm] = positioned(
       ("(" *> (userOp
         .map(RVar.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
+        attempt(uri).map(RGlobal.apply) <|>
         (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
           .map(mkUnitPair) <|>
         holeP <|>

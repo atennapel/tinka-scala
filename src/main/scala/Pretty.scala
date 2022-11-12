@@ -60,6 +60,7 @@ object Pretty:
       ns: List[Name]
   ): String = tm match
     case Var(_)              => pretty(tm)
+    case Global(_)           => pretty(tm)
     case Prim(_)             => pretty(tm)
     case Type(LFinLevel(LZ)) => pretty(tm)
     case Type(_) if app      => pretty(tm)
@@ -89,6 +90,7 @@ object Pretty:
   def pretty(tm: Tm)(implicit ns: List[Name]): String = tm match
     case Var(ix)             => ns(ix.expose).toString
     case Prim(name)          => s"$name"
+    case Global(x)           => s"#$x"
     case Type(LFinLevel(LZ)) => "Type"
     case Type(l)             => s"Type ${pretty(l)}"
 

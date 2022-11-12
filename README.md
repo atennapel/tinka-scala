@@ -24,8 +24,8 @@ sbt "run examples/nat.tinka"
   - [x] Subtyping along pi types
   - [x] Subtyping along sigma types
   - [x] Subtyping along level pi types
-- [ ] Globals
-- [ ] Importing
+- [x] Globals
+- [ ] Importing and exporting
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output

@@ -6,6 +6,8 @@ import PrimElaboration.elaboratePrims
 import Debug.*
 import Parser.parser
 import Errors.*
+import ModuleLoading.*
+import Globals.getGlobal
 
 import java.io.File
 import scala.io.Source
@@ -18,27 +20,25 @@ import parsley.io.given
     val ptime = System.nanoTime
     elaboratePrims()
     val ptime1 = System.nanoTime - ptime
-    println(s"prim elaboration time: ${ptime1 / 1000000}ms (${ptime1}ns)")
+    println(s"primitives time: ${ptime1 / 1000000}ms (${ptime1}ns)")
     val time = System.nanoTime
-    val rtm = parser.parseFromFile((new File(filename))).flatMap(_.toTry).get
+    val uri = load(filename)
     val time1 = System.nanoTime - time
-    debug(rtm)
-    println(s"parsing time: ${time1 / 1000000}ms (${time1}ns)")
-    val time2 = System.nanoTime
-    val (etm, ety, elv) = elaborate(rtm)
-    val time3 = System.nanoTime - time2
-    println(s"elaboration time: ${time3 / 1000000}ms (${time3}ns)")
+    println(s"elaboration time: ${time1 / 1000000}ms (${time1}ns)")
+
+    val entry = getGlobal(uri).get
+    debug(entry.src)
     println(
-      s"total time: ${(ptime1 + time1 + time3) / 1000000}ms (${time1 + time3}ns)"
+      s"total time: ${(ptime1 + time1) / 1000000}ms (${ptime1 + time1}ns)"
     )
     println("level:")
-    println(ctx.pretty(elv))
+    println(ctx.pretty(entry.lv))
     println("type:")
-    println(ctx.pretty(ety))
+    println(ctx.pretty(entry.ty))
     println("elaborated term:")
-    println(ctx.pretty(etm))
+    println(ctx.pretty(entry.tm))
     println("normal form:")
-    println(ctx.pretty(nf(etm)))
+    println(ctx.pretty(nf(entry.tm)))
   catch
     case err: ElabError =>
       println(err.getMessage)

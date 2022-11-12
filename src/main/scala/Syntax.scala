@@ -80,6 +80,7 @@ object Syntax:
   enum Tm:
     case Type(lvl: Level)
     case Var(ix: Ix)
+    case Global(uri: String)
     case Prim(name: PrimName)
     case Let(name: Name, ty: Ty, value: Tm, body: Tm)
 
@@ -111,6 +112,7 @@ object Syntax:
       case Type(LFinLevel(LZ))       => s"Type"
       case Type(lvl)                 => s"Type $lvl"
       case Var(ix)                   => s"'$ix"
+      case Global(x)                 => s"#$x"
       case Prim(name)                => s"$name"
       case Let(x, t, v, b)           => s"(let $x : $t = $v; $b)"
       case Lam(x, Expl, b)           => s"(\\$x. $b)"

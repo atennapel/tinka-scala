@@ -199,8 +199,9 @@ object Unification:
         pren.occ match
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
           case _                 => pruneFlex(x, sp)
-      case VType(l)        => Type(rename(l))
-      case VPair(fst, snd) => Pair(go(fst), go(snd))
+      case VGlobal(x, sp, _) => goSp(Global(x), sp)
+      case VType(l)          => Type(rename(l))
+      case VPair(fst, snd)   => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
         Lam(bind, icit, go(body.inst(VVar(pren.cod)))(pren.lift))
       case VPi(bind, icit, ty, u1, body, u2) =>
@@ -429,6 +430,13 @@ object Unification:
         else flexFlex(m1, sp1, m2, sp2)
       case (VFlex(m, sp), v) => solve(m, sp, v)
       case (v, VFlex(m, sp)) => solve(m, sp, v)
+
+      case (VGlobal(uri1, sp1, v1), VGlobal(uri2, sp2, v2)) if uri1 == uri2 =>
+        try unify(sp1, sp2)
+        catch case _: UnifyError => unify(v1(), v2())
+      case (VGlobal(_, _, v), VGlobal(_, _, w)) => unify(v(), w())
+      case (VGlobal(_, _, v), w)                => unify(v(), w)
+      case (w, VGlobal(_, _, v))                => unify(w, v())
 
       case (VUnit(), _) => ()
       case (_, VUnit()) => ()
