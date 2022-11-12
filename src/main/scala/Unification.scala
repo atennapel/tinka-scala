@@ -384,6 +384,7 @@ object Unification:
             case (Some(as), Some(bs)) => unify(as, bs)
             case _ => throw UnifyError(s"${quote(a)} ~ ${quote(b)}")
         else throw UnifyError(s"${quote(a)} ~ ${quote(b)}")
+      // TODO: add rule for max x ?y ~ x
 
   def unify(a: VLevel, b: VLevel)(implicit l: Lvl): Unit =
     debug(s"unify ${quote(a)} ~ ${quote(b)}")

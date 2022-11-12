@@ -57,7 +57,7 @@ object ModuleLoading:
 
   private def loadUri(uri: String): Unit =
     debug(s"load uri: $uri")
-    implicit val ctx: Ctx = Ctx.empty()
+    implicit val ctx: Ctx = Ctx.empty((0, 0), Some(uri))
     val (etm, ety, lv) = elaborate(urimap(uri).tm)
     addGlobal(
       uri,

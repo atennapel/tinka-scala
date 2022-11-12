@@ -15,7 +15,7 @@ import parsley.io.given
 
 @main def run(filename: String): Unit =
   setDebug(false)
-  implicit val ctx: Ctx = Ctx.empty()
+  implicit val ctx: Ctx = Ctx.empty((0, 0), Some(filename))
   try
     val ptime = System.nanoTime
     elaboratePrims()
@@ -43,9 +43,12 @@ import parsley.io.given
     case err: ElabError =>
       println(err.getMessage)
       val (line, col) = err.pos
-      if line > 0 && col > 0 then
-        // TODO: get filename from error
-        val lineSrc = Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
-        println(lineSrc)
-        println(s"${" " * (col - 1)}^")
+      err.ctx.filename match
+        case None => println(s"at line $line col $col (no filename)")
+        case Some(filename) =>
+          if line > 0 && col > 0 then
+            val lineSrc =
+              Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
+            println(lineSrc)
+            println(s"${" " * (col - 1)}^")
       if isDebug then err.printStackTrace()

@@ -14,7 +14,8 @@ final case class Ctx(
     path: Path,
     pruning: Pruning,
     levelPruning: List[Boolean],
-    pos: Pos
+    pos: Pos,
+    filename: Option[String]
 ):
   def names: List[Name] = path.names
 
@@ -34,7 +35,8 @@ final case class Ctx(
       PBind(path, x, quote(ty), quote(lv)),
       Some(Expl) :: pruning,
       false :: levelPruning,
-      pos
+      pos,
+      filename
     )
 
   def bindLevel(x: Bind, inserted: Boolean = false): Ctx =
@@ -48,7 +50,8 @@ final case class Ctx(
       PBindLevel(path, x),
       Some(Expl) :: pruning,
       true :: levelPruning,
-      pos
+      pos,
+      filename
     )
 
   def define(
@@ -66,7 +69,8 @@ final case class Ctx(
       PDefine(path, x, qty, quote0(lv)(lvl), qvalue),
       None :: pruning,
       false :: levelPruning,
-      pos
+      pos,
+      filename
     )
 
   def eval(tm: Tm): Val = eval0(tm)(env)
@@ -108,7 +112,8 @@ final case class Ctx(
     go(path).mkString("\n")
 
 object Ctx:
-  def empty(pos: Pos = (0, 0)) = Ctx(lvl0, EEmpty, Nil, PHere, Nil, Nil, pos)
+  def empty(pos: Pos, filename: Option[String]) =
+    Ctx(lvl0, EEmpty, Nil, PHere, Nil, Nil, pos, filename)
 
 enum Path:
   case PHere
