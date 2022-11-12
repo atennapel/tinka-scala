@@ -1,3 +1,5 @@
+open #lib/id ((~), (!~), rewrite);
+
 let if_ <l> {A : Type l} (b : Bool) (t : A) (f : A) : A = elimBool (\_. A) t f b;
 let if-ind_ <l> (P : Bool -> Type l) (b : Bool) (t : P True) (f : P False) : P b = elimBool P t f b;
 
@@ -6,17 +8,10 @@ let (!) = not;
 let (&&) a b = if a then b else False;
 let (||) a b = if a then True else b;
 
-let (~) <l> {A : Type l} (x y : A) = Id {A} {A} x y;
-let (!~) <l> {A : Type l} (x y : A) = x ~ y -> Void;
-let idJ <k l> {A : Type l} (P : {a b : A} -> a ~ b -> Type k) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
-  = elimId (\{c} q. P {a} {c} q) refl p;
-let rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a) : P b
-  = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
-
 let liftBool b = if b then () else Void;
 let trueNotFalse : True !~ False = \p. rewrite liftBool p [];
 
 let notnotId {b : Bool} : not (not b) ~ b =
   if b : \b. not (not b) ~ b then Refl else Refl;
 
-[]
+export (if_, if-ind_, not, (!), (&&), (||), liftBool, trueNotFalse, notnotId)

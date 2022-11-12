@@ -130,7 +130,7 @@ object Parser:
     )
 
     lazy val tm: Parsley[RTm] = positioned(
-      attempt(piOrSigma) <|> ifTm <|> let <|> lam <|>
+      attempt(piOrSigma) <|> ifTm <|> let <|> open <|> exportP <|> lam <|>
         precedence[RTm](app)(
           Ops(InfixR)("**" #> ((l, r) => RSigma(DontBind, l, r))),
           Ops(InfixR)("->" #> ((l, r) => RPi(DontBind, Expl, l, r)))
@@ -199,6 +199,22 @@ object Parser:
           )
       }
 
+    private lazy val open: Parsley[RTm] =
+      ("open" *> projAtom <~> option(
+        "(" *> sepEndBy(openPart, ",") <* ")"
+      ) <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      ) <~> ";" *> tm).map { case (((tm, ns), hiding), b) =>
+        ROpen(tm, ns, hiding.getOrElse(Nil), b)
+      }
+    private lazy val openPart: Parsley[(Name, Option[Name])] =
+      identOrOp <~> option("=" *> identOrOp)
+
+    private lazy val exportP: Parsley[RTm] =
+      ("export" *> option("(" *> sepEndBy(openPart, ",") <* ")") <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      )).map { case (ns, hiding) => RExport(ns, hiding.getOrElse(Nil)) }
+
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))
 
@@ -240,7 +256,7 @@ object Parser:
       )
 
     private lazy val appAtom: Parsley[RTm] = positioned(
-      (projAtom <~> many(arg) <~> option(let <|> lam)).map {
+      (projAtom <~> many(arg) <~> option(let <|> open <|> lam)).map {
         case ((fn, args), opt) =>
           (args.flatten ++ opt.map(t => Right((t, RArgIcit(Expl)))))
             .foldLeft(fn) { case (fn, e) =>

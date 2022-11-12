@@ -26,9 +26,18 @@ sbt "run examples/nat.tinka"
   - [x] Subtyping along level pi types
 - [x] Globals
 - [ ] Importing and exporting
+  - [x] open
+  - [x] export
+  - [ ] Signatures
+  - [ ] Modules
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output
 - [ ] Erasure
-- [ ] Compilation
 - [ ] REPL
+- [ ] Core verification
+  - [ ] Ensure lambda, pair, export and modules are wrapped with a let with type
+  - [ ] Core verification
+- [ ] Instance parameters
+- [ ] Compile to ChezScheme
+- [ ] Operator sectioning

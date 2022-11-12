@@ -43,7 +43,18 @@ object Presyntax:
     case RType(lvl: RLevel)
     case RVar(name: Name)
     case RGlobal(uri: String)
+
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
+    case ROpen(
+        tm: RTm,
+        names: Option[List[(Name, Option[Name])]],
+        hiding: List[Name],
+        body: RTm
+    )
+    case RExport(
+        names: Option[List[(Name, Option[Name])]],
+        hiding: List[Name]
+    )
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
@@ -68,6 +79,7 @@ object Presyntax:
       case RGlobal(uri) => Set(uri)
       case RLet(_, t, v, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
+      case ROpen(tm, _, _, b) => tm.globals ++ b.globals
       case RLam(_, _, t, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ b.globals
       case RApp(fn, arg, _) => fn.globals ++ arg.globals
@@ -82,14 +94,35 @@ object Presyntax:
       case _                => Set.empty
 
     override def toString: String = this match
-      case RType(RLZ)                          => "Type"
-      case RType(lvl)                          => s"Type $lvl"
-      case RVar(Name("()"))                    => "()"
-      case RVar(Name("[]"))                    => "[]"
-      case RVar(x)                             => s"$x"
-      case RGlobal(x)                          => s"#$x"
-      case RLet(x, Some(t), v, b)              => s"(let $x : $t = $v; $b)"
-      case RLet(x, None, v, b)                 => s"(let $x = $v; $b)"
+      case RType(RLZ)             => "Type"
+      case RType(lvl)             => s"Type $lvl"
+      case RVar(Name("()"))       => "()"
+      case RVar(Name("[]"))       => "[]"
+      case RVar(x)                => s"$x"
+      case RGlobal(x)             => s"#$x"
+      case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
+      case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
+      case ROpen(t, None, Nil, b) => s"(open $t; $b)"
+      case ROpen(t, None, hiding, b) =>
+        s"(open $t hiding (${hiding.mkString(", ")}); $b)"
+      case ROpen(t, Some(ns), Nil, b) =>
+        s"(open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}); $b)"
+      case ROpen(t, Some(ns), hiding, b) =>
+        s"(open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}) hiding (${hiding.mkString(", ")}); $b)"
+      case RExport(None, Nil)    => s"export"
+      case RExport(None, hiding) => s"export hiding (${hiding.mkString(", ")})"
+      case RExport(Some(ns), Nil) =>
+        s"(export (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}))"
+      case RExport(Some(ns), hiding) =>
+        s"(export (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}) hiding (${hiding.mkString(", ")}))"
       case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
       case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
       case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"

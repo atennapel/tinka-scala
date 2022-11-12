@@ -165,6 +165,122 @@ object Elaboration:
       val (etm, vty, lv) = infer(tm)
       (etm, ctx.quote(vty), vty, lv)
 
+  private def namesFromSigma(ty: Val)(implicit ctx: Ctx): List[Name] =
+    force(ty) match
+      case VSigma(bd @ DoBind(x), ty, u1, b, _) =>
+        x :: namesFromSigma(b.inst(VVar(ctx.lvl)))(ctx.bind(bd, ty, u1))
+      case VSigma(bd, ty, u1, b, _) =>
+        namesFromSigma(b.inst(VVar(ctx.lvl)))(ctx.bind(bd, ty, u1))
+      case _ => Nil
+
+  @tailrec
+  private def findNameInSigma(
+      x: Name,
+      tm: Val,
+      ty: Val,
+      map: Map[Name, Lvl],
+      i: Int = 0,
+      xs: Set[Name] = Set.empty
+  )(implicit ctx: Ctx): (VTy, VLevel, Int) =
+    force(ty) match
+      case VSigma(DoBind(y), ty, u1, _, _) if x == y => (ty, u1, i)
+      case VSigma(y, _, _, c, _) =>
+        val name = y match
+          case DoBind(y) if !xs.contains(y) => Some(y)
+          case _                            => None
+        findNameInSigma(
+          x,
+          tm,
+          c.inst(vproj(tm, Named(name, i))),
+          map,
+          i + 1,
+          name.map(xs + _).getOrElse(xs)
+        )
+      case _ => throw NameNotInSigmaError(x.toString)
+
+  private def inferOpen(
+      rtm: RTm,
+      ns: Option[List[(Name, Option[Name])]],
+      hiding: Set[Name]
+  )(implicit ctx: Ctx): (Ctx, Tm => Tm) =
+    val (tm, ty, lv) = infer(rtm)
+    val vtm = ctx.eval(tm)
+    def go(
+        ctx: Ctx,
+        tm: Tm,
+        ns: List[(Name, Option[Name])],
+        map: Map[Name, Lvl]
+    ): (Ctx, Tm => Tm) = ns match
+      case Nil => (ctx, t => t)
+      case (x, oy) :: rest =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then go(ctx, tm, rest, map)
+        else
+          val (pty, vl, i) = findNameInSigma(y, vtm, ty, map)
+          val value = vproj(vtm, Named(Some(y), i))
+          val (nctx, builder) = go(
+            ctx.define(
+              x,
+              pty,
+              ctx.quote(pty),
+              vl,
+              value,
+              ctx.quote(value)
+            ), // TODO: local gluing
+            Wk(tm),
+            rest,
+            map + (y -> ctx.lvl)
+          )
+          (
+            nctx,
+            b =>
+              Let(
+                x,
+                ctx.quote(pty),
+                Proj(tm, Named(Some(y), i)),
+                builder(b)
+              )
+          )
+    go(ctx, tm, ns.getOrElse(namesFromSigma(ty).map(x => (x, None))), Map.empty)
+
+  private def inferExport(
+      ns: Option[List[(Name, Option[Name])]],
+      hiding: Set[Name]
+  )(implicit ctx: Ctx): (Tm, VTy, VLevel) =
+    def go(ctx: Ctx, ns: List[(Name, Option[Name])]): Tm = ns match
+      case Nil => Prim(PUnit)
+      case (x, oy) :: ns =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then go(ctx, ns)
+        else
+          val (ix, _) = ctx.lookup(y).get
+          Pair(Var(ix), go(ctx, ns))
+    def goTy(ctx: Ctx, ns: List[(Name, Option[Name])]): (Tm, VLevel) = ns match
+      case Nil => (Prim(PUnitType), VLevel.unit)
+      case (x, oy) :: ns =>
+        val y = oy.getOrElse(x)
+        if hiding.contains(y) then
+          val (_, Some(ty, lv)) = ctx.lookup(y).get: @unchecked
+          goTy(ctx.bind(DoBind(y), ty, lv), ns)
+        else
+          val (ix, Some(ty, lv)) = ctx.lookup(y).get: @unchecked
+          val (body, lv2) = goTy(ctx.bind(DoBind(y), ty, lv), ns)
+          (
+            Sigma(
+              DoBind(x),
+              ctx.quote(ty),
+              ctx.quote(lv),
+              body,
+              ctx.quote(lv2)
+            ),
+            lv max lv2
+          )
+    val xs = ns.getOrElse(ctx.names.reverse.map(x => (x, None)))
+    val tm = go(ctx, xs)
+    val (ty, vl) = goTy(ctx, xs)
+    val vty = ctx.eval(ty)
+    (tm, vty, vl)
+
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
       b match
@@ -364,6 +480,9 @@ object Elaboration:
         val (ev, ety, vty, vl) = checkValue(v, t)
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         Let(x, ety, ev, eb)
+      case (ROpen(tm, ns, hiding, b), _) =>
+        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
+        builder(check(b, ty, lv)(nctx))
       case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
         check(RVar(Name("Refl")), ty, lv)
       case _ =>
@@ -437,6 +556,11 @@ object Elaboration:
         val (eb, rty, vl1) =
           infer(b)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         (Let(x, ety, ev, eb), rty, vl1)
+      case ROpen(tm, ns, hiding, b) =>
+        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
+        val (eb, rty, vl) = infer(b)(nctx)
+        (builder(eb), rty, vl)
+      case RExport(ns, hiding) => inferExport(ns, hiding.toSet)
       case RPi(x, i, ty, b) =>
         val (ety, l1) = inferType(ty)
         val (eb, l2) = inferType(b)(ctx.bind(x, ctx.eval(ety), l1))

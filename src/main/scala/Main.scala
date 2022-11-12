@@ -44,6 +44,7 @@ import parsley.io.given
       println(err.getMessage)
       val (line, col) = err.pos
       if line > 0 && col > 0 then
+        // TODO: get filename from error
         val lineSrc = Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
         println(lineSrc)
         println(s"${" " * (col - 1)}^")
