@@ -1,4 +1,5 @@
 import scala.annotation.targetName
+import scala.annotation.tailrec
 
 object Common:
   def impossible(): Nothing = throw new Exception("impossible")
@@ -66,6 +67,13 @@ object Common:
       case DontBind  => Name("_")
       case DoBind(x) => x
   export Bind.*
+
+  @tailrec
+  def fresh(x: Name)(implicit ns: List[Name]): Name =
+    if ns.contains(x) then fresh(Name(s"${x}'"))(ns) else x
+  def fresh(b: Bind)(implicit ns: List[Name]): Bind = b match
+    case DoBind(x) => DoBind(fresh(x))
+    case DontBind  => DontBind
 
   // icits
   enum Icit:

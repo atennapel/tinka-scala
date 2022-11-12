@@ -1,4 +1,4 @@
-import Common.*
+import Common.{fresh as fresh0, *}
 import Syntax.*
 import Value.*
 import Evaluation.{eval as eval0, quote as quote0, inst}
@@ -17,6 +17,9 @@ final case class Ctx(
     pos: Pos
 ):
   def names: List[Name] = path.names
+
+  def fresh(x: Name) = fresh0(x)(names)
+  def fresh(x: Bind) = fresh0(x)(names)
 
   def enter(pos: Pos): Ctx = copy(pos = pos)
 

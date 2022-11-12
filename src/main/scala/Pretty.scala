@@ -1,8 +1,6 @@
 import Common.*
 import Syntax.*
 
-import scala.annotation.tailrec
-
 object Pretty:
   def pretty(l: Level)(implicit ns: List[Name]): String = l match
     case LOmega       => "omega"
@@ -70,7 +68,7 @@ object Pretty:
     case Meta(_)             => pretty(tm)
     case AppPruning(_, _)    => pretty(tm)
     case App(_, _, _) if app => pretty(tm)
-    case Wk(tm)              => prettyParen(tm, app)
+    case Wk(tm)              => prettyParen(tm, app)(ns.tail)
     case _                   => s"(${pretty(tm)})"
 
   private def prettyApp(tm: Tm)(implicit ns: List[Name]): String = tm match
@@ -82,13 +80,6 @@ object Pretty:
   private def flattenPair(tm: Tm): List[Tm] = tm match
     case Pair(fst, snd) => fst :: flattenPair(snd)
     case tm             => List(tm)
-
-  @tailrec
-  private def fresh(x: Name)(implicit ns: List[Name]): Name =
-    if ns.contains(x) then fresh(Name(s"${x}'"))(ns) else x
-  private def fresh(b: Bind)(implicit ns: List[Name]): Bind = b match
-    case DoBind(x) => DoBind(fresh(x))
-    case DontBind  => DontBind
 
   private def prettyLift(x: Bind, tm: Tm)(implicit ns: List[Name]): String =
     pretty(tm)(x.toName :: ns)

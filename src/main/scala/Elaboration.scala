@@ -21,6 +21,7 @@ object Elaboration:
     try
       debug(s"unify ${ctx.pretty(u1)} ~ ${ctx.pretty(u2)}")
       unify0(u1, u2)(ctx.lvl)
+      debug(s"${ctx.quote(a)} ~ ${ctx.quote(b)}")
       debug(s"unify ${ctx.pretty(a)} ~ ${ctx.pretty(b)}")
       unify0(a, b)(ctx.lvl)
     catch
@@ -188,64 +189,61 @@ object Elaboration:
   private def coe(tm: Tm, ty: VTy, lv: VLevel, tyE: VTy, lvE: VLevel)(implicit
       ctx: Ctx
   ): Tm =
-    def pick(x: Bind, y: Bind): Bind = (x, y) match
+    def pick(x: Bind, y: Bind)(implicit ctx: Ctx): Bind = ctx.fresh((x, y) match
       case (DontBind, DontBind) => DoBind(Name("x"))
       case (DontBind, x)        => x
       case (x, DontBind)        => x
       case (_, x)               => x
+    )
     def go(
-        ctx: Ctx,
         tm: Tm,
         ty: VTy,
         lv: VLevel,
         tyE: VTy,
         lvE: VLevel
-    ): Option[Tm] =
+    )(implicit ctx: Ctx): Option[Tm] =
       debug(s"coe ${ctx.pretty(tm)} : ${ctx.pretty(ty)} : ${ctx
           .pretty(lv)} to ${ctx.pretty(tyE)} : ${ctx.pretty(lvE)}")
       (force(ty), force(tyE)) match
         case (VPiLvl(x1, b1, u1), VPiLvl(x2, b2, u2)) =>
           val body = go(
-            ctx.bindLevel(x1),
             AppLvl(Wk(tm), LVar(ix0)),
             b1.inst(VFinLevel.vr(ctx.lvl)),
             u1.inst(VFinLevel.vr(ctx.lvl)),
             b2.inst(VFinLevel.vr(ctx.lvl)),
             u2.inst(VFinLevel.vr(ctx.lvl))
-          )
+          )(ctx.bindLevel(x1))
           body.map(b => LamLvl(x1, b))
         case (VPi(x1, i1, a1, u11, b1, u12), VPi(x2, i2, a2, u21, b2, u22)) =>
           if i1 != i2 then unify(ty, tyE)
-          val ctx2 = ctx.bind(x1, a2, u21)
-          go(ctx2, Var(ix0), a2, u21, a1, u11) match
+          val x = pick(x1, x2)
+          val ctx2 = ctx.bind(x, a2, u21)
+          go(Var(ix0), a2, u21, a1, u11)(ctx2) match
             case None =>
               val body = go(
-                ctx2,
                 App(Wk(tm), Var(ix0), i1),
                 ctx.inst(b1),
                 u12,
                 ctx.inst(b2),
                 u22
-              )
+              )(ctx2)
               body.map(b => Lam(x1, i1, b))
             case Some(coev0) =>
               val body = go(
-                ctx2,
                 App(Wk(tm), coev0, i1),
                 b1.inst(ctx2.eval(coev0)),
                 u12,
                 ctx.inst(b2),
                 u22
-              )
+              )(ctx2)
               body match
-                case None => Some(Lam(pick(x1, x2), i1, App(Wk(tm), coev0, i1)))
-                case Some(body) => Some(Lam(pick(x1, x2), i1, body))
+                case None       => Some(Lam(x, i1, App(Wk(tm), coev0, i1)))
+                case Some(body) => Some(Lam(x, i1, body))
         case (VSigma(x1, a1, u11, b1, u12), VSigma(x2, a2, u21, b2, u22)) =>
-          val fst = go(ctx, Proj(tm, Fst), a1, u11, a2, u21)
+          val fst = go(Proj(tm, Fst), a1, u11, a2, u21)
           val snd = fst match
             case None =>
               go(
-                ctx,
                 Proj(tm, Snd),
                 b1.inst(vproj(ctx.eval(tm), Fst)),
                 u12,
@@ -254,7 +252,6 @@ object Elaboration:
               )
             case Some(fst) =>
               go(
-                ctx,
                 Proj(tm, Snd),
                 b1.inst(vproj(ctx.eval(tm), Fst)),
                 u12,
@@ -320,7 +317,7 @@ object Elaboration:
         case _ =>
           unify(lv, lvE, ty, tyE)
           None
-    go(ctx, tm, ty, lv, tyE, lvE).getOrElse(tm)
+    go(tm, ty, lv, tyE, lvE).getOrElse(tm)
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
