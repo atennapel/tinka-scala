@@ -28,8 +28,14 @@ sbt "run examples/nat.tinka"
 - [ ] Importing and exporting
   - [x] open
   - [x] export
-  - [ ] Signatures
   - [ ] Modules
+    - [x] Basic modules
+    - [ ] Private definitions
+    - [ ] Module type and handle checking elaboration
+    - [ ] Module parameters
+    - [ ] Open export
+    - [ ] Remove export?
+  - [ ] Signatures
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output

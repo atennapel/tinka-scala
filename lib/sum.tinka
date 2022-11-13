@@ -1,30 +1,30 @@
 open #lib/bool (if_, if-ind_);
 
-let Sum <l k> (A : Type l) (B : Type k) : Type (max l k) =
-  (tag : Bool) **
-  (value : if tag then Lift <max l k> A else Lift <max l k> B) **
-  ();
+mod {
+  Sum <l k> (A : Type l) (B : Type k) : Type (max l k) =
+    (tag : Bool) **
+    (value : if tag then Lift <max l k> A else Lift <max l k> B) **
+    ();
 
-let Left <l k> {A : Type l} {B : Type k} (x : A) : Sum A B = [True, x];
-let Right <l k> {A : Type l} {B : Type k} (x : B) : Sum A B = [False, x];
+  Left <l k> {A : Type l} {B : Type k} (x : A) : Sum A B = [True, x];
+  Right <l k> {A : Type l} {B : Type k} (x : B) : Sum A B = [False, x];
 
-let elimSum <r l k> {A : Type l} {B : Type k}
-  (P : Sum A B -> Type r)
-  (left : (x : A) -> P (Left <l> <k> x))
-  (right : (x : B) -> P (Right <l> <k> x))
-  (x : Sum A B) : P x
-  = (if x.tag : (\tag. (value : if tag then Lift <max l k> A else Lift <max l k> B) -> P [tag, value]) then
-      left else right) x.value;
+  elimSum <r l k> {A : Type l} {B : Type k}
+    (P : Sum A B -> Type r)
+    (left : (x : A) -> P (Left <l> <k> x))
+    (right : (x : B) -> P (Right <l> <k> x))
+    (x : Sum A B) : P x
+    = (if x.tag : (\tag. (value : if tag then Lift <max l k> A else Lift <max l k> B) -> P [tag, value]) then
+        left else right) x.value;
 
-let caseSum <l k r> {A : Type l} {B : Type k} {R : Type r} (x : Sum A B) (left : A -> R) (right : B -> R) : R
-  = elimSum (\_. R) left right x;
+  caseSum <l k r> {A : Type l} {B : Type k} {R : Type r} (x : Sum A B) (left : A -> R) (right : B -> R) : R
+    = elimSum (\_. R) left right x;
 
-let sum <l k r> {A : Type l} {B : Type k} {R : Type r} (left : A -> R) (right : B -> R) (x : Sum A B) : R
-  = caseSum <l> <k> <r> x left right;
+  sum <l k r> {A : Type l} {B : Type k} {R : Type r} (left : A -> R) (right : B -> R) (x : Sum A B) : R
+    = caseSum <l> <k> <r> x left right;
 
-let Maybe <l> (A : Type l) = Sum () A;
+  Maybe <l> (A : Type l) = Sum () A;
 
-let Just <l> {A : Type l} (x : A) : Maybe A = Right <0> x;
-let Nothing <l> {A : Type l} : Maybe A = Left [];
-
-export (Sum, Left, Right, elimSum, caseSum, sum, Maybe, Just, Nothing)
+  Just <l> {A : Type l} (x : A) : Maybe A = Right <0> x;
+  Nothing <l> {A : Type l} : Maybe A = Left [];
+}

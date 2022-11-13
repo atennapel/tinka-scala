@@ -1,8 +1,8 @@
-let id <l> {A : Type l} (x : A) : A = x;
-let the <l> (A : Type l) (x : A) : A = x;
-let const <l k> {A : Type l} {B : Type k} (x : A) (y : B) : A = x;
-let flip <l k m> {A : Type l} {B : Type k} {C : Type m} (f : A -> B -> C) (x : B) (y : A) : C = f y x;
-let compose <l k m> {A : Type l} {B : Type k} {C : Type m} (f : B -> C) (g : A -> B) (x: A) : C = f (g x);
-let (<<) = compose;
-
-export
+mod {
+  id <l> {A : Type l} (x : A) : A = x;
+  the <l> (A : Type l) (x : A) : A = x;
+  const <l k> {A : Type l} {B : Type k} (x : A) (y : B) : A = x;
+  flip <l k m> {A : Type l} {B : Type k} {C : Type m} (f : A -> B -> C) (x : B) (y : A) : C = f y x;
+  compose <l k m> {A : Type l} {B : Type k} {C : Type m} (f : B -> C) (g : A -> B) (x: A) : C = f (g x);
+  (<<) = compose;
+}

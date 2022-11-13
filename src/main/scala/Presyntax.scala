@@ -38,6 +38,11 @@ object Presyntax:
       case RLPos(_, l) => l.toString
   export RLevel.*
 
+  case class ModDecl(name: Name, ty: Option[RTy], value: RTm):
+    override def toString: String = ty match
+      case Some(ty) => s"$name : $ty = $value"
+      case None     => s"$name = $value"
+
   type RTy = RTm
   enum RTm:
     case RType(lvl: RLevel)
@@ -55,6 +60,7 @@ object Presyntax:
         names: Option[List[(Name, Option[Name])]],
         hiding: List[Name]
     )
+    case RMod(decls: List[ModDecl])
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
@@ -80,6 +86,10 @@ object Presyntax:
       case RLet(_, t, v, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
       case ROpen(tm, _, _, b) => tm.globals ++ b.globals
+      case RMod(ds) =>
+        ds.foldRight(Set.empty) { case (ModDecl(_, t, v), s) =>
+          s ++ t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+        }
       case RLam(_, _, t, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ b.globals
       case RApp(fn, arg, _) => fn.globals ++ arg.globals
@@ -102,6 +112,7 @@ object Presyntax:
       case RGlobal(x)             => s"#$x"
       case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
+      case RMod(ds)               => s"(mod { ${ds.mkString(";")} })"
       case ROpen(t, None, Nil, b) => s"(open $t; $b)"
       case ROpen(t, None, hiding, b) =>
         s"(open $t hiding (${hiding.mkString(", ")}); $b)"

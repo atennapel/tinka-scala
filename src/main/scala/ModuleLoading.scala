@@ -7,16 +7,22 @@ import Debug.debug
 import scala.io.Source
 import scala.collection.mutable
 import parsley.io.given
-
 import scala.annotation.tailrec
+import java.net.URI
+import java.io.File
 
 object ModuleLoading:
   private type DepMap = mutable.Map[String, Entry]
   private val urimap: DepMap = mutable.Map.empty
 
-  private case class Entry(uri: String, tm: RTm, uris: Set[String]):
+  private case class Entry(
+      uri: String,
+      filename: String,
+      tm: RTm,
+      uris: Set[String]
+  ):
     def hasNoDeps: Boolean = uris.isEmpty
-    def removeDep(x: String): Entry = Entry(uri, tm, uris - x)
+    def removeDep(x: String): Entry = Entry(uri, filename, tm, uris - x)
 
   def reset(): Unit = urimap.clear()
 
@@ -35,13 +41,14 @@ object ModuleLoading:
   private def loadUris(uri: String): Unit =
     if !urimap.contains(uri) then
       debug(s"load uris: $uri")
-      val text = Source.fromURL(transformFilename(uri)).mkString
+      val filename = transformFilename(uri)
+      val text = Source.fromURL(filename).mkString
       val tm = parser
         .parse(text)
         .toTry
         .get
       val uris = tm.globals
-      urimap.put(uri, Entry(uri, tm, uris))
+      urimap.put(uri, Entry(uri, filename, tm, uris))
       uris.filter(!urimap.contains(_)).foreach(loadUris)
       ()
 
@@ -57,13 +64,15 @@ object ModuleLoading:
 
   private def loadUri(uri: String): Unit =
     debug(s"load uri: $uri")
-    implicit val ctx: Ctx = Ctx.empty((0, 0), Some(uri))
-    val (etm, ety, lv) = elaborate(urimap(uri).tm)
+    val entry = urimap(uri)
+    implicit val ctx: Ctx = Ctx.empty((0, 0), Some(entry.filename))
+    val (etm, ety, lv) = elaborate(entry.tm)
     addGlobal(
       uri,
       GlobalEntry(
         uri,
-        urimap(uri).tm,
+        entry.filename,
+        entry.tm,
         etm,
         ety,
         lv,
@@ -88,7 +97,7 @@ object ModuleLoading:
     case Nil if !map.values.forall(_.hasNoDeps) =>
       Left(map.filter((_, v) => !v.hasNoDeps).keys.toList)
     case Nil => Right(l)
-    case Entry(x, _, deps) :: s =>
+    case Entry(x, _, _, deps) :: s =>
       val dependents = map.values.filter(_.uris.contains(x)).map(_.removeDep(x))
       dependents.foreach(e => map += (e.uri -> e))
       toposort(map, x :: l, s ++ dependents.filter(_.hasNoDeps))

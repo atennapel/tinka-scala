@@ -1,17 +1,17 @@
-open #lib/id ((~), (!~), rewrite);
+open #lib/id;
 
-let if_ <l> {A : Type l} (b : Bool) (t : A) (f : A) : A = elimBool (\_. A) t f b;
-let if-ind_ <l> (P : Bool -> Type l) (b : Bool) (t : P True) (f : P False) : P b = elimBool P t f b;
+mod {
+  if_ <l> {A : Type l} (b : Bool) (t : A) (f : A) : A = elimBool (\_. A) t f b;
+  if-ind_ <l> (P : Bool -> Type l) (b : Bool) (t : P True) (f : P False) : P b = elimBool P t f b;
 
-let not b = if b then False else True;
-let (!) = not;
-let (&&) a b = if a then b else False;
-let (||) a b = if a then True else b;
+  not b = if b then False else True;
+  (!) = not;
+  (&&) a b = if a then b else False;
+  (||) a b = if a then True else b;
 
-let liftBool b = if b then () else Void;
-let trueNotFalse : True !~ False = \p. rewrite liftBool p [];
+  liftBool b = if b then () else Void;
+  trueNotFalse : True !~ False = \p. rewrite liftBool p [];
 
-let notnotId {b : Bool} : not (not b) ~ b =
-  if b : \b. not (not b) ~ b then Refl else Refl;
-
-export (if_, if-ind_, not, (!), (&&), (||), liftBool, trueNotFalse, notnotId)
+  notnotId {b : Bool} : not (not b) ~ b =
+    if b : \b. not (not b) ~ b then Refl else Refl;
+}

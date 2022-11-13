@@ -20,8 +20,18 @@ object Parser:
       commentStart = "{-",
       commentEnd = "-}",
       nestedComments = true,
-      keywords =
-        Set("Type", "let", "open", "hiding", "export", "if", "then", "else"),
+      keywords = Set(
+        "Type",
+        "let",
+        "def",
+        "open",
+        "hiding",
+        "export",
+        "mod",
+        "if",
+        "then",
+        "else"
+      ),
       operators = Set("=", ":", ";", "\\", ".", ",", "#", "->", "**", "_"),
       identStart = Predicate(_.isLetter),
       identLetter =
@@ -130,7 +140,9 @@ object Parser:
     )
 
     lazy val tm: Parsley[RTm] = positioned(
-      attempt(piOrSigma) <|> ifTm <|> let <|> open <|> exportP <|> lam <|>
+      attempt(
+        piOrSigma
+      ) <|> ifTm <|> let <|> mod <|> open <|> exportP <|> lam <|>
         precedence[RTm](app)(
           Ops(InfixR)("**" #> ((l, r) => RSigma(DontBind, l, r))),
           Ops(InfixR)("->" #> ((l, r) => RPi(DontBind, Expl, l, r)))
@@ -215,6 +227,19 @@ object Parser:
         "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
       )).map { case (ns, hiding) => RExport(ns, hiding.getOrElse(Nil)) }
 
+    private lazy val mod: Parsley[RTm] =
+      ("mod" *> "{" *> sepEndBy(modDecl, ";") <* "}").map(RMod.apply)
+
+    private lazy val modDecl: Parsley[ModDecl] =
+      (identOrOp <~> many(defParam) <~> option(":" *> tm) <~> "=" *> tm).map {
+        case (((x, ds), ty), b) =>
+          ModDecl(
+            x,
+            ty.map(typeFromParams(ds, _)),
+            lamFromDefParams(ds, b, ty.isEmpty)
+          )
+      }
+
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))
 
@@ -256,7 +281,7 @@ object Parser:
       )
 
     private lazy val appAtom: Parsley[RTm] = positioned(
-      (projAtom <~> many(arg) <~> option(let <|> open <|> lam)).map {
+      (projAtom <~> many(arg) <~> option(let <|> open <|> mod <|> lam)).map {
         case ((fn, args), opt) =>
           (args.flatten ++ opt.map(t => Right((t, RArgIcit(Expl)))))
             .foldLeft(fn) { case (fn, e) =>

@@ -1,34 +1,34 @@
-let (~) <l> {A : Type l} (x y : A) : Type = Id {A} {A} x y;
-let (!~) <l> {A : Type l} (x y : A) : Type = x ~ y -> Void;
+mod {
+  (~) <l> {A : Type l} (x y : A) : Type = Id {A} {A} x y;
+  (!~) <l> {A : Type l} (x y : A) : Type = x ~ y -> Void;
 
-let (~~) <l k> {A : Type l} {B : Type k} (x : A) (y : B) : Type = Id {A} {B} x y;
-let (!~~) <l k> {A : Type l} {B : Type k} (x : A) (y : B) : Type = x ~~ y -> Void;
+  (~~) <l k> {A : Type l} {B : Type k} (x : A) (y : B) : Type = Id {A} {B} x y;
+  (!~~) <l k> {A : Type l} {B : Type k} (x : A) (y : B) : Type = x ~~ y -> Void;
 
-let idJ <k l> {A : Type l} (P : {a b : A} -> a ~ b -> Type k) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
-  = elimId (\{c} q. P {a} {c} q) refl p;
+  idJ <k l> {A : Type l} (P : {a b : A} -> a ~ b -> Type k) (refl : {a} -> P {a} Refl) {a b : A} (p : a ~ b) : P p
+    = elimId (\{c} q. P {a} {c} q) refl p;
 
-let rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a) : P b
-  = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
+  rewrite <k l> {A : Type l} (P : A -> Type k) {a b : A} (p : a ~ b) (x : P a) : P b
+    = idJ (\{a} {b} _. P a -> P b) (\q. q) p x;
 
-let cast <l> {A B : Type l} (p : A ~ B) (x : A) : B
-  = rewrite <l> (\x. x) p x;
+  cast <l> {A B : Type l} (p : A ~ B) (x : A) : B
+    = rewrite <l> (\x. x) p x;
 
-let sym <l> {A : Type l} {a b : A} (p : a ~ b) : b ~ a
-  = idJ (\{x} {y} _. Id {A} y x) Refl p;
+  sym <l> {A : Type l} {a b : A} (p : a ~ b) : b ~ a
+    = idJ (\{x} {y} _. Id {A} y x) Refl p;
 
-let trans <l> {A : Type l} {a b c : A} (p : b ~ c) (q : a ~ b) : a ~ c
-  = rewrite ((~) a) p q;
+  trans <l> {A : Type l} {a b c : A} (p : b ~ c) (q : a ~ b) : a ~ c
+    = rewrite ((~) a) p q;
 
-let ap <l k> {A : Type l} {B : Type k} {a b : A} (f : A -> B) (p : a ~ b) : f a ~ f b
-  = rewrite {A} (\x. f a ~ f x) {a} {b} p Refl;
+  ap <l k> {A : Type l} {B : Type k} {a b : A} (f : A -> B) (p : a ~ b) : f a ~ f b
+    = rewrite {A} (\x. f a ~ f x) {a} {b} p Refl;
 
-let idRefl <l> {A : Type l} {a : A} (p : a ~ a) : p ~ Refl
-  = elimId <l = l> (\{c} q. q ~~ Refl {A} {c}) Refl p;
+  idRefl <l> {A : Type l} {a : A} (p : a ~ a) : p ~ Refl
+    = elimId <l = l> (\{c} q. q ~~ Refl {A} {c}) Refl p;
 
-let idK <k l> {A : Type l} {a : A} (P : a ~ a -> Type k) (p : a ~ a) (h : P Refl) : P p
-  = rewrite P (sym (idRefl p)) h;
+  idK <k l> {A : Type l} {a : A} (P : a ~ a -> Type k) (p : a ~ a) (h : P Refl) : P p
+    = rewrite P (sym (idRefl p)) h;
 
-let uip <l> {A : Type l} {a b : A} (p1 p2 : a ~ b) : p1 ~ p2
-  = (elimId (\{c} p. (q : a ~ c) -> q ~ p) idRefl p2) p1;
-
-export
+  uip <l> {A : Type l} {a b : A} (p1 p2 : a ~ b) : p1 ~ p2
+    = (elimId (\{c} p. (q : a ~ c) -> q ~ p) idRefl p2) p1;
+}

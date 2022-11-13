@@ -10,6 +10,7 @@ object Globals:
 
   case class GlobalEntry(
       uri: String,
+      filename: String,
       src: RTm,
       tm: Tm,
       ty: Ty,

@@ -255,7 +255,7 @@ object Elaboration:
         else
           val (ix, _) = ctx.lookup(y).get
           Pair(Var(ix), go(ctx, ns))
-    def goTy(ctx: Ctx, ns: List[(Name, Option[Name])]): (Tm, VLevel) = ns match
+    def goTy(ctx: Ctx, ns: List[(Name, Option[Name])]): (Ty, VLevel) = ns match
       case Nil => (Prim(PUnitType), VLevel.unit)
       case (x, oy) :: ns =>
         val y = oy.getOrElse(x)
@@ -280,6 +280,27 @@ object Elaboration:
     val (ty, vl) = goTy(ctx, xs)
     val vty = ctx.eval(ty)
     (tm, vty, vl)
+
+  private def inferMod(ds: List[ModDecl])(implicit
+      ctx: Ctx
+  ): (Tm, VTy, VLevel) =
+    def createCtx(
+        ctx: Ctx,
+        ds: List[ModDecl]
+    ): (Ctx, List[Name], Tm => Tm) = ds match
+      case Nil => (ctx, Nil, t => t)
+      case ModDecl(x, oty, v) :: ds =>
+        debug(s"infer mod decl $x${oty.map(t => s" : $t").getOrElse("")} = $v")
+        val (ev, ety, vty, vl) = checkValue(v, oty)(ctx)
+        val (nctx, ns, builder) = createCtx(
+          ctx.define(x, vty, ety, vl, ctx.eval(ev), ev),
+          ds
+        )
+        (nctx, x :: ns, t => Let(x, ety, ev, builder(t)))
+    val (nctx, ns, builder) = createCtx(ctx, ds)
+    val (tm, vt, vl) =
+      inferExport(Some(ns.map(x => (x, None))), Set.empty)(nctx)
+    (builder(tm), vt, vl)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
     case RArgNamed(x) =>
@@ -561,6 +582,7 @@ object Elaboration:
         val (eb, rty, vl) = infer(b)(nctx)
         (builder(eb), rty, vl)
       case RExport(ns, hiding) => inferExport(ns, hiding.toSet)
+      case RMod(ds)            => inferMod(ds)
       case RPi(x, i, ty, b) =>
         val (ety, l1) = inferType(ty)
         val (eb, l2) = inferType(b)(ctx.bind(x, ctx.eval(ety), l1))

@@ -48,7 +48,7 @@ import parsley.io.given
         case Some(filename) =>
           if line > 0 && col > 0 then
             val lineSrc =
-              Source.fromFile(filename, "utf8").getLines.toSeq(line - 1)
+              Source.fromURL(filename).getLines.toSeq(line - 1)
             println(lineSrc)
             println(s"${" " * (col - 1)}^")
       if isDebug then err.printStackTrace()

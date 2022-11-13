@@ -1,6 +1,6 @@
 open #lib/id;
 
-let Sing <l> {A : Type l} (x : A) = (value : A) ** (proof : value ~ x) ** ();
-let MkSing <l> {A : Type l} (x : A) : Sing x = [x, Refl];
-
-export (Sing, MkSing)
+mod {
+  Sing <l> {A : Type l} (x : A) = (value : A) ** (proof : value ~ x) ** ();
+  MkSing <l> {A : Type l} (x : A) : Sing x = [x, Refl];
+}
