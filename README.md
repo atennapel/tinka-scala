@@ -30,11 +30,11 @@ sbt "run examples/nat.tinka"
   - [x] export
   - [ ] Modules
     - [x] Basic modules
-    - [ ] Private definitions
-    - [ ] Module type and handle checking elaboration
+    - [x] Private definitions
     - [ ] Module parameters
     - [ ] Open export
     - [ ] Remove export?
+    - [ ] Module type and handle checking elaboration?
   - [ ] Signatures
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)

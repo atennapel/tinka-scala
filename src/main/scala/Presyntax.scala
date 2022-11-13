@@ -38,10 +38,10 @@ object Presyntax:
       case RLPos(_, l) => l.toString
   export RLevel.*
 
-  case class ModDecl(name: Name, ty: Option[RTy], value: RTm):
+  case class ModDecl(priv: Boolean, name: Name, ty: Option[RTy], value: RTm):
     override def toString: String = ty match
-      case Some(ty) => s"$name : $ty = $value"
-      case None     => s"$name = $value"
+      case Some(ty) => s"${if priv then "private " else ""}$name : $ty = $value"
+      case None     => s"${if priv then "private " else ""}$name = $value"
 
   type RTy = RTm
   enum RTm:
@@ -87,7 +87,7 @@ object Presyntax:
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
       case ROpen(tm, _, _, b) => tm.globals ++ b.globals
       case RMod(ds) =>
-        ds.foldRight(Set.empty) { case (ModDecl(_, t, v), s) =>
+        ds.foldRight(Set.empty) { case (ModDecl(_, _, t, v), s) =>
           s ++ t.map(_.globals).getOrElse(Set.empty) ++ v.globals
         }
       case RLam(_, _, t, b) =>

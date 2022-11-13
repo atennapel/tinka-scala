@@ -28,6 +28,7 @@ object Parser:
         "hiding",
         "export",
         "mod",
+        "private",
         "if",
         "then",
         "else"
@@ -231,13 +232,15 @@ object Parser:
       ("mod" *> "{" *> sepEndBy(modDecl, ";") <* "}").map(RMod.apply)
 
     private lazy val modDecl: Parsley[ModDecl] =
-      (identOrOp <~> many(defParam) <~> option(":" *> tm) <~> "=" *> tm).map {
-        case (((x, ds), ty), b) =>
-          ModDecl(
-            x,
-            ty.map(typeFromParams(ds, _)),
-            lamFromDefParams(ds, b, ty.isEmpty)
-          )
+      (option("private") <~> identOrOp <~> many(defParam) <~> option(
+        ":" *> tm
+      ) <~> "=" *> tm).map { case ((((p, x), ds), ty), b) =>
+        ModDecl(
+          p.isDefined,
+          x,
+          ty.map(typeFromParams(ds, _)),
+          lamFromDefParams(ds, b, ty.isEmpty)
+        )
       }
 
     private lazy val lam: Parsley[RTm] =

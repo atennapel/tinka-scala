@@ -41,3 +41,6 @@ object Errors:
   case class UnsolvedMetasError(msg: String)(implicit val ctx: Ctx)
       extends Exception(s"unsolved metas: $msg")
       with ElabError
+  case class DuplicateModDefError(msg: String)(implicit val ctx: Ctx)
+      extends Exception(s"duplicate mod definition: $msg")
+      with ElabError

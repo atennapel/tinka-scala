@@ -289,14 +289,15 @@ object Elaboration:
         ds: List[ModDecl]
     ): (Ctx, List[Name], Tm => Tm) = ds match
       case Nil => (ctx, Nil, t => t)
-      case ModDecl(x, oty, v) :: ds =>
-        debug(s"infer mod decl $x${oty.map(t => s" : $t").getOrElse("")} = $v")
+      case d @ ModDecl(priv, x, oty, v) :: ds =>
+        debug(s"infer mod decl $d")
         val (ev, ety, vty, vl) = checkValue(v, oty)(ctx)
         val (nctx, ns, builder) = createCtx(
           ctx.define(x, vty, ety, vl, ctx.eval(ev), ev),
           ds
         )
-        (nctx, x :: ns, t => Let(x, ety, ev, builder(t)))
+        if ns.contains(x) then throw DuplicateModDefError(x.toString)
+        (nctx, if priv then ns else x :: ns, t => Let(x, ety, ev, builder(t)))
     val (nctx, ns, builder) = createCtx(ctx, ds)
     val (tm, vt, vl) =
       inferExport(Some(ns.map(x => (x, None))), Set.empty)(nctx)
