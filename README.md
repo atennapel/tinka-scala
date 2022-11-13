@@ -31,7 +31,7 @@ sbt "run examples/nat.tinka"
   - [ ] Modules
     - [x] Basic modules
     - [x] Private definitions
-    - [ ] Module parameters
+    - [x] Module parameters
     - [ ] Open export
     - [ ] Remove export?
     - [ ] Module type and handle checking elaboration?

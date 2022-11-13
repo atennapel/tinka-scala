@@ -36,6 +36,13 @@ object Presyntax:
       case RLMax(a, b) => s"(max $a $b)"
       case RLHole      => s"_"
       case RLPos(_, l) => l.toString
+
+    def freeVars: Set[Name] = this match
+      case RLVar(x)    => Set(x)
+      case RLS(l)      => l.freeVars
+      case RLMax(a, b) => a.freeVars ++ b.freeVars
+      case RLPos(_, l) => l.freeVars
+      case _           => Set.empty
   export RLevel.*
 
   case class ModDecl(priv: Boolean, name: Name, ty: Option[RTy], value: RTm):
@@ -60,7 +67,10 @@ object Presyntax:
         names: Option[List[(Name, Option[Name])]],
         hiding: List[Name]
     )
-    case RMod(decls: List[ModDecl])
+    case RMod(
+        params: List[(Bind, Option[(Icit, Option[RTy])])],
+        decls: List[ModDecl]
+    )
 
     case RLam(bind: Bind, info: RArgInfo, ty: Option[RTy], body: RTm)
     case RApp(fn: RTm, arg: RTm, info: RArgInfo)
@@ -86,10 +96,17 @@ object Presyntax:
       case RLet(_, t, v, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
       case ROpen(tm, _, _, b) => tm.globals ++ b.globals
-      case RMod(ds) =>
-        ds.foldRight(Set.empty) { case (ModDecl(_, _, t, v), s) =>
-          s ++ t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+      case RMod(ps, ds) =>
+        val psg = ps.foldRight[Set[String]](Set.empty[String]) {
+          case ((_, None), s) => s
+          case ((_, Some((_, oty))), s) =>
+            s ++ oty.map(_.globals).getOrElse(Set.empty)
         }
+        val dsg = ds.foldRight[Set[String]](Set.empty) {
+          case (ModDecl(_, _, t, v), s) =>
+            s ++ t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+        }
+        psg ++ dsg
       case RLam(_, _, t, b) =>
         t.map(_.globals).getOrElse(Set.empty) ++ b.globals
       case RApp(fn, arg, _) => fn.globals ++ arg.globals
@@ -103,6 +120,27 @@ object Presyntax:
       case RLamLvl(_, _, b) => b.globals
       case _                => Set.empty
 
+    def freeVars: Set[Name] = this match
+      case RType(lvl) => lvl.freeVars
+      case RVar(x)    => Set(x)
+      case RLet(x, ot, v, b) =>
+        ot
+          .map(_.freeVars)
+          .getOrElse(Set.empty) ++ v.freeVars ++ (b.freeVars - x)
+      case ROpen(t, xs, hs, b) => ???
+      case RLam(x, i, t, b) =>
+        (b.freeVars -- x.toSet) ++ t.map(_.freeVars).getOrElse(Set.empty)
+      case RLamLvl(x, _, b)    => b.freeVars -- x.toSet
+      case RApp(fn, arg, _)    => fn.freeVars ++ arg.freeVars
+      case RPi(x, _, t, b)     => t.freeVars ++ (b.freeVars -- x.toSet)
+      case RPiLvl(x, b)        => b.freeVars -- x.toSet
+      case RAppLvl(l, r, None) => l.freeVars ++ r.freeVars
+      case RPair(fst, snd)     => fst.freeVars ++ snd.freeVars
+      case RProj(tm, proj)     => tm.freeVars
+      case RSigma(x, t, b)     => t.freeVars ++ (b.freeVars -- x.toSet)
+      case RPos(_, tm)         => tm.freeVars
+      case _                   => Set.empty
+
     override def toString: String = this match
       case RType(RLZ)             => "Type"
       case RType(lvl)             => s"Type $lvl"
@@ -112,7 +150,15 @@ object Presyntax:
       case RGlobal(x)             => s"#$x"
       case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
-      case RMod(ds)               => s"(mod { ${ds.mkString(";")} })"
+      case RMod(ps, ds) =>
+        val pss: List[String] = ps.map {
+          case (x, None)                   => s"<$x>"
+          case (x, Some((Expl, None)))     => s"$x"
+          case (x, Some((Expl, Some(ty)))) => s"($x : $ty)"
+          case (x, Some((Impl, None)))     => s"$x"
+          case (x, Some((Impl, Some(ty)))) => s"{$x : $ty}"
+        }
+        s"(mod${if pss.isEmpty then "" else s" ${pss.mkString(" ")}"} { ${ds.mkString("; ")} })"
       case ROpen(t, None, Nil, b) => s"(open $t; $b)"
       case ROpen(t, None, hiding, b) =>
         s"(open $t hiding (${hiding.mkString(", ")}); $b)"

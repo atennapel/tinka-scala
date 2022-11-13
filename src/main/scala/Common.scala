@@ -66,6 +66,10 @@ object Common:
     def toName: Name = this match
       case DontBind  => Name("_")
       case DoBind(x) => x
+
+    def toSet: Set[Name] = this match
+      case DontBind  => Set.empty
+      case DoBind(x) => Set(x)
   export Bind.*
 
   @tailrec

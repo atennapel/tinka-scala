@@ -229,7 +229,14 @@ object Parser:
       )).map { case (ns, hiding) => RExport(ns, hiding.getOrElse(Nil)) }
 
     private lazy val mod: Parsley[RTm] =
-      ("mod" *> "{" *> sepEndBy(modDecl, ";") <* "}").map(RMod.apply)
+      ("mod" *> many(defParam) <~> "{" *> sepEndBy(modDecl, ";") <* "}")
+        .map { case (ps, ds) =>
+          val ps2 = ps.flatMap {
+            case Left(xs)            => xs.map(x => (x, None))
+            case Right((xs, i, oty)) => xs.map(x => (x, Some((i, oty))))
+          }
+          RMod(ps2, ds)
+        }
 
     private lazy val modDecl: Parsley[ModDecl] =
       (option("private") <~> identOrOp <~> many(defParam) <~> option(
