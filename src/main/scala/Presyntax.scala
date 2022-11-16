@@ -120,27 +120,6 @@ object Presyntax:
       case RLamLvl(_, _, b) => b.globals
       case _                => Set.empty
 
-    def freeVars: Set[Name] = this match
-      case RType(lvl) => lvl.freeVars
-      case RVar(x)    => Set(x)
-      case RLet(x, ot, v, b) =>
-        ot
-          .map(_.freeVars)
-          .getOrElse(Set.empty) ++ v.freeVars ++ (b.freeVars - x)
-      case ROpen(t, xs, hs, b) => ???
-      case RLam(x, i, t, b) =>
-        (b.freeVars -- x.toSet) ++ t.map(_.freeVars).getOrElse(Set.empty)
-      case RLamLvl(x, _, b)    => b.freeVars -- x.toSet
-      case RApp(fn, arg, _)    => fn.freeVars ++ arg.freeVars
-      case RPi(x, _, t, b)     => t.freeVars ++ (b.freeVars -- x.toSet)
-      case RPiLvl(x, b)        => b.freeVars -- x.toSet
-      case RAppLvl(l, r, None) => l.freeVars ++ r.freeVars
-      case RPair(fst, snd)     => fst.freeVars ++ snd.freeVars
-      case RProj(tm, proj)     => tm.freeVars
-      case RSigma(x, t, b)     => t.freeVars ++ (b.freeVars -- x.toSet)
-      case RPos(_, tm)         => tm.freeVars
-      case _                   => Set.empty
-
     override def toString: String = this match
       case RType(RLZ)             => "Type"
       case RType(lvl)             => s"Type $lvl"

@@ -292,34 +292,14 @@ object Elaboration:
       case Nil => (ctx, Nil, t => t)
       case d @ ModDecl(priv, x, oty, v) :: ds =>
         debug(s"infer mod decl $d")
-        val (dtm, dty, _) =
-          ps.foldRight[(RTm, RTm, Set[Name])](
-            (
-              v,
-              oty.getOrElse(RHole(None)),
-              v.freeVars ++ oty.map(_.freeVars).getOrElse(Set.empty)
-            )
-          ) {
-            case ((DontBind, None), (b, rty, ns)) =>
-              (RLamLvl(DontBind, None, b), RPiLvl(DontBind, rty), ns)
-            case ((DoBind(x), None), (b, rty, ns)) if ns.contains(x) =>
-              (RLamLvl(DoBind(x), None, b), RPiLvl(DoBind(x), rty), ns - x)
-            case ((DoBind(x), None), (b, rty, ns)) => (b, rty, ns)
-
-            case ((DontBind, Some((i, oty))), (b, rty, ns)) =>
+        val (dtm, dty) =
+          ps.foldRight[(RTm, RTm)]((v, oty.getOrElse(RHole(None)))) {
+            case ((x, None), (b, rty)) => (RLamLvl(x, None, b), RPiLvl(x, rty))
+            case ((x, Some((i, oty))), (b, rty)) =>
               (
-                RLam(DontBind, RArgIcit(i), None, b),
-                RPi(DontBind, i, oty.getOrElse(RHole(None)), rty),
-                ns ++ oty.map(_.freeVars).getOrElse(Set.empty)
+                RLam(x, RArgIcit(i), None, b),
+                RPi(x, i, oty.getOrElse(RHole(None)), rty)
               )
-            case ((DoBind(x), Some((i, oty))), (b, rty, ns))
-                if ns.contains(x) =>
-              (
-                RLam(DoBind(x), RArgIcit(i), None, b),
-                RPi(DoBind(x), i, oty.getOrElse(RHole(None)), rty),
-                (ns - x) ++ oty.map(_.freeVars).getOrElse(Set.empty)
-              )
-            case ((DoBind(x), Some((i, oty))), (b, rty, ns)) => (b, rty, ns)
           }
         val (ev, ety, vty, vl) =
           checkValue(dtm, if ps.isEmpty then oty else Some(dty))(ctx)
