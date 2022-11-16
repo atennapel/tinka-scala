@@ -570,15 +570,15 @@ object Elaboration:
         val vl = ctx.eval(el)
         (Type(LFinLevel(el)), VType(VFL(vl + 1)), VFL(vl + 2))
       case RVar(x) =>
-        ctx.lookup(x) match
-          case Some((ix, Some((vty, lv)))) =>
-            debug(s"var $x : ${ctx.quote(vty)} : ${ctx.quote(lv)}")
-            (Var(ix), vty, lv)
+        PrimName(x) match
+          case Some(name) =>
+            val (ty, lv) = getPrimType(name)
+            (Prim(name), ty, lv)
           case _ =>
-            PrimName(x) match
-              case Some(name) =>
-                val (ty, lv) = getPrimType(name)
-                (Prim(name), ty, lv)
+            ctx.lookup(x) match
+              case Some((ix, Some((vty, lv)))) =>
+                debug(s"var $x : ${ctx.quote(vty)} : ${ctx.quote(lv)}")
+                (Var(ix), vty, lv)
               case _ => throw UndefVarError(x.toString)
       case RGlobal(uri) =>
         getGlobal(uri) match

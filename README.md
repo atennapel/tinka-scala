@@ -12,13 +12,14 @@ sbt "run examples/nat.tinka"
 ## TODO
 - [x] Elaboration
 - [x] Unification with pruning
-- [x] Primitives
+- [ ] Primitives
   - [x] Machinery
   - [x] Universe lifting operators
   - [x] Unit
   - [x] Void
   - [x] Bool
   - [x] Id
+  - [ ] Sing
 - [x] Subtyping coercions
   - [x] Add subtyping coercion to avoid `isNeutral` in elaboration
   - [x] Subtyping along pi types
@@ -32,10 +33,15 @@ sbt "run examples/nat.tinka"
     - [x] Basic modules
     - [x] Private definitions
     - [x] Module parameters
-    - [ ] Open export
-    - [ ] Remove export?
-    - [ ] Module type and handle checking elaboration?
+    - [ ] Open in module
+    - [ ] Open export in module
+    - [ ] Manifest fields
   - [ ] Signatures
+    - [ ] Basic signatures
+    - [ ] Private definitions
+    - [ ] Signature parameters
+    - [ ] Open in signatures
+    - [ ] Open export in signatures
 - [ ] Local gluing
 - [ ] Inductive types (descriptions)
 - [ ] Keep track of inserted terms, hide in output
