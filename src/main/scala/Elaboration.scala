@@ -248,7 +248,15 @@ object Elaboration:
               ),
             x :: ens
           )
-    go(ctx, tm, ns.getOrElse(namesFromSigma(ty).map(x => (x, None))), Map.empty)
+    val x = Name("m")
+    val qty = ctx.quote(ty)
+    val (nctx, builder, ns2) = go(
+      ctx.define(x, ty, qty, lv, vtm, tm),
+      Var(ix0),
+      ns.getOrElse(namesFromSigma(ty).map(x => (x, None))),
+      Map.empty
+    )
+    (nctx, t => Let(x, qty, tm, builder(t)), ns2)
 
   private def inferExport(
       ns: Option[List[(Name, Option[Name])]],
