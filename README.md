@@ -33,9 +33,8 @@ sbt "run examples/nat.tinka"
     - [x] Basic modules
     - [x] Private definitions
     - [x] Module parameters
-    - [ ] Open in module
+    - [x] Open in module
     - [ ] Open export in module
-    - [ ] Manifest fields
   - [ ] Signatures
     - [ ] Basic signatures
     - [ ] Private definitions

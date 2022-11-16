@@ -239,16 +239,23 @@ object Parser:
         }
 
     private lazy val modDecl: Parsley[ModDecl] =
-      (option("private") <~> identOrOp <~> many(defParam) <~> option(
-        ":" *> tm
-      ) <~> "=" *> tm).map { case ((((p, x), ds), ty), b) =>
-        ModDecl(
-          p.isDefined,
-          x,
-          ty.map(typeFromParams(ds, _)),
-          lamFromDefParams(ds, b, ty.isEmpty)
-        )
-      }
+      ("open" *> projAtom <~> option(
+        "(" *> sepEndBy(openPart, ",") <* ")"
+      ) <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      )).map { case ((tm, ns), hiding) =>
+        DOpen(tm, ns, hiding.getOrElse(Nil))
+      } <|>
+        (option("private") <~> identOrOp <~> many(defParam) <~> option(
+          ":" *> tm
+        ) <~> "=" *> tm).map { case ((((p, x), ds), ty), b) =>
+          DLet(
+            p.isDefined,
+            x,
+            ty.map(typeFromParams(ds, _)),
+            lamFromDefParams(ds, b, ty.isEmpty)
+          )
+        }
 
     private lazy val lam: Parsley[RTm] =
       ("\\" *> many(lamParam) <~> "." *> tm).map(lamFromLamParams(_, _))

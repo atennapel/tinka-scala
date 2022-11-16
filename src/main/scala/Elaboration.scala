@@ -290,7 +290,7 @@ object Elaboration:
         ds: List[ModDecl]
     ): (Ctx, List[Name], Tm => Tm) = ds match
       case Nil => (ctx, Nil, t => t)
-      case d @ ModDecl(priv, x, oty, v) :: ds =>
+      case (d @ DLet(priv, x, oty, v)) :: ds =>
         debug(s"infer mod decl $d")
         val (dtm, dty) =
           ps.foldRight[(RTm, RTm)]((v, oty.getOrElse(RHole(None)))) {
@@ -309,6 +309,11 @@ object Elaboration:
         )
         if ns.contains(x) then throw DuplicateModDefError(x.toString)
         (nctx, if priv then ns else x :: ns, t => Let(x, ety, ev, builder(t)))
+      case (d @ DOpen(t, xs, hs)) :: ds =>
+        debug(s"infer open decl $d")
+        val (nctx, builder) = inferOpen(t, xs, hs.toSet)(ctx)
+        val (nctx2, ns, builder2) = createCtx(nctx, ds)
+        (nctx2, ns, t => builder(builder2(t)))
     val (nctx, ns, builder) = createCtx(ctx, ds)
     val (tm, vt, vl) =
       inferExport(Some(ns.map(x => (x, None))), Set.empty)(nctx)

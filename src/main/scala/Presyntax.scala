@@ -45,10 +45,37 @@ object Presyntax:
       case _           => Set.empty
   export RLevel.*
 
-  case class ModDecl(priv: Boolean, name: Name, ty: Option[RTy], value: RTm):
-    override def toString: String = ty match
-      case Some(ty) => s"${if priv then "private " else ""}$name : $ty = $value"
-      case None     => s"${if priv then "private " else ""}$name = $value"
+  enum ModDecl:
+    case DLet(priv: Boolean, name: Name, ty: Option[RTy], value: RTm)
+    case DOpen(
+        tm: RTm,
+        names: Option[List[(Name, Option[Name])]],
+        hiding: List[Name]
+    )
+
+    def globals: Set[String] = this match
+      case DLet(_, _, t, v) =>
+        t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+      case DOpen(t, _, _) => t.globals
+
+    override def toString: String = this match
+      case DLet(priv, name, ty, value) =>
+        ty match
+          case Some(ty) =>
+            s"${if priv then "private " else ""}$name : $ty = $value"
+          case None => s"${if priv then "private " else ""}$name = $value"
+      case DOpen(t, None, Nil) => s"open $t"
+      case DOpen(t, None, hiding) =>
+        s"open $t hiding (${hiding.mkString(", ")})"
+      case DOpen(t, Some(ns), Nil) =>
+        s"open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")})"
+      case DOpen(t, Some(ns), hiding) =>
+        s"open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}) hiding (${hiding.mkString(", ")})"
+  export ModDecl.*
 
   type RTy = RTm
   enum RTm:
@@ -102,9 +129,8 @@ object Presyntax:
           case ((_, Some((_, oty))), s) =>
             s ++ oty.map(_.globals).getOrElse(Set.empty)
         }
-        val dsg = ds.foldRight[Set[String]](Set.empty) {
-          case (ModDecl(_, _, t, v), s) =>
-            s ++ t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+        val dsg = ds.foldRight[Set[String]](Set.empty) { case (d, s) =>
+          s ++ d.globals
         }
         psg ++ dsg
       case RLam(_, _, t, b) =>
