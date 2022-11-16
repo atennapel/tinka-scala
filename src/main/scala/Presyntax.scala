@@ -48,6 +48,7 @@ object Presyntax:
   enum ModDecl:
     case DLet(priv: Boolean, name: Name, ty: Option[RTy], value: RTm)
     case DOpen(
+        exp: Boolean,
         tm: RTm,
         names: Option[List[(Name, Option[Name])]],
         hiding: List[Name]
@@ -56,7 +57,7 @@ object Presyntax:
     def globals: Set[String] = this match
       case DLet(_, _, t, v) =>
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals
-      case DOpen(t, _, _) => t.globals
+      case DOpen(_, t, _, _) => t.globals
 
     override def toString: String = this match
       case DLet(priv, name, ty, value) =>
@@ -64,15 +65,16 @@ object Presyntax:
           case Some(ty) =>
             s"${if priv then "private " else ""}$name : $ty = $value"
           case None => s"${if priv then "private " else ""}$name = $value"
-      case DOpen(t, None, Nil) => s"open $t"
-      case DOpen(t, None, hiding) =>
-        s"open $t hiding (${hiding.mkString(", ")})"
-      case DOpen(t, Some(ns), Nil) =>
-        s"open $t (${ns
+      case DOpen(exp, t, None, Nil) =>
+        s"${if exp then "export " else ""}open $t"
+      case DOpen(exp, t, None, hiding) =>
+        s"${if exp then "export " else ""}open $t hiding (${hiding.mkString(", ")})"
+      case DOpen(exp, t, Some(ns), Nil) =>
+        s"${if exp then "export " else ""}open $t (${ns
             .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
             .mkString(", ")})"
-      case DOpen(t, Some(ns), hiding) =>
-        s"open $t (${ns
+      case DOpen(exp, t, Some(ns), hiding) =>
+        s"${if exp then "export " else ""}open $t (${ns
             .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
             .mkString(", ")}) hiding (${hiding.mkString(", ")})"
   export ModDecl.*

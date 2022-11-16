@@ -29,12 +29,12 @@ sbt "run examples/nat.tinka"
 - [ ] Importing and exporting
   - [x] open
   - [x] export
-  - [ ] Modules
+  - [x] Modules
     - [x] Basic modules
     - [x] Private definitions
     - [x] Module parameters
     - [x] Open in module
-    - [ ] Open export in module
+    - [x] Open export in module
   - [ ] Signatures
     - [ ] Basic signatures
     - [ ] Private definitions

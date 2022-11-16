@@ -202,7 +202,7 @@ object Elaboration:
       rtm: RTm,
       ns: Option[List[(Name, Option[Name])]],
       hiding: Set[Name]
-  )(implicit ctx: Ctx): (Ctx, Tm => Tm) =
+  )(implicit ctx: Ctx): (Ctx, Tm => Tm, List[Name]) =
     val (tm, ty, lv) = infer(rtm)
     val vtm = ctx.eval(tm)
     def go(
@@ -210,15 +210,15 @@ object Elaboration:
         tm: Tm,
         ns: List[(Name, Option[Name])],
         map: Map[Name, Lvl]
-    ): (Ctx, Tm => Tm) = ns match
-      case Nil => (ctx, t => t)
+    ): (Ctx, Tm => Tm, List[Name]) = ns match
+      case Nil => (ctx, t => t, Nil)
       case (x, oy) :: rest =>
         val y = oy.getOrElse(x)
         if hiding.contains(y) then go(ctx, tm, rest, map)
         else
           val (pty, vl, i) = findNameInSigma(y, vtm, ty, map)
           val value = vproj(vtm, Named(Some(y), i))
-          val (nctx, builder) = go(
+          val (nctx, builder, ens) = go(
             ctx.define(
               x,
               pty,
@@ -239,7 +239,8 @@ object Elaboration:
                 ctx.quote(pty),
                 Proj(tm, Named(Some(y), i)),
                 builder(b)
-              )
+              ),
+            x :: ens
           )
     go(ctx, tm, ns.getOrElse(namesFromSigma(ty).map(x => (x, None))), Map.empty)
 
@@ -309,11 +310,11 @@ object Elaboration:
         )
         if ns.contains(x) then throw DuplicateModDefError(x.toString)
         (nctx, if priv then ns else x :: ns, t => Let(x, ety, ev, builder(t)))
-      case (d @ DOpen(t, xs, hs)) :: ds =>
+      case (d @ DOpen(exp, t, xs, hs)) :: ds =>
         debug(s"infer open decl $d")
-        val (nctx, builder) = inferOpen(t, xs, hs.toSet)(ctx)
+        val (nctx, builder, ens) = inferOpen(t, xs, hs.toSet)(ctx)
         val (nctx2, ns, builder2) = createCtx(nctx, ds)
-        (nctx2, ns, t => builder(builder2(t)))
+        (nctx2, ens ++ ns, t => builder(builder2(t)))
     val (nctx, ns, builder) = createCtx(ctx, ds)
     val (tm, vt, vl) =
       inferExport(Some(ns.map(x => (x, None))), Set.empty)(nctx)
@@ -551,7 +552,7 @@ object Elaboration:
         val eb = check(b, ty, lv)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         Let(x, ety, ev, eb)
       case (ROpen(tm, ns, hiding, b), _) =>
-        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
+        val (nctx, builder, _) = inferOpen(tm, ns, hiding.toSet)
         builder(check(b, ty, lv)(nctx))
       case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
         check(RVar(Name("Refl")), ty, lv)
@@ -627,7 +628,7 @@ object Elaboration:
           infer(b)(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev))
         (Let(x, ety, ev, eb), rty, vl1)
       case ROpen(tm, ns, hiding, b) =>
-        val (nctx, builder) = inferOpen(tm, ns, hiding.toSet)
+        val (nctx, builder, _) = inferOpen(tm, ns, hiding.toSet)
         val (eb, rty, vl) = infer(b)(nctx)
         (builder(eb), rty, vl)
       case RExport(ns, hiding) => inferExport(ns, hiding.toSet)

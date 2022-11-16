@@ -239,12 +239,12 @@ object Parser:
         }
 
     private lazy val modDecl: Parsley[ModDecl] =
-      ("open" *> projAtom <~> option(
+      (option("export") <~> "open" *> projAtom <~> option(
         "(" *> sepEndBy(openPart, ",") <* ")"
       ) <~> option(
         "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
-      )).map { case ((tm, ns), hiding) =>
-        DOpen(tm, ns, hiding.getOrElse(Nil))
+      )).map { case (((exp, tm), ns), hiding) =>
+        DOpen(exp.isDefined, tm, ns, hiding.getOrElse(Nil))
       } <|>
         (option("private") <~> identOrOp <~> many(defParam) <~> option(
           ":" *> tm

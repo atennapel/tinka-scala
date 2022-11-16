@@ -1,10 +1,10 @@
-open #lib/combinators;
+mod {
+  export open #lib/combinators;
 
-open #lib/id;
-open #lib/bool;
+  export open #lib/id;
+  export open #lib/bool;
 
-open #lib/singleton;
+  export open #lib/singleton;
 
-open #lib/sum;
-
-export
+  export open #lib/sum;
+}
