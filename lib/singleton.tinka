@@ -1,6 +1,3 @@
-open #lib/id;
-
 mod {
-  Sing <l> {A : Type l} (x : A) = (value : A) ** (proof : value ~ x) ** ();
-  MkSing <l> {A : Type l} (x : A) : Sing x = [x, Refl];
+  sing' <l> {A : Type l} {x : A} : Sing x = x;
 }

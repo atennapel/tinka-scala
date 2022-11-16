@@ -328,3 +328,25 @@ object Value:
           ) =>
         Some((l, a, x))
       case _ => None
+
+  object VSing:
+    def apply(l: VFinLevel, a: Val, x: Val) =
+      VRigid(HPrim(PSing), SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl))
+    def unapply(value: Val): Option[(VFinLevel, Val, Val)] = value match
+      case VRigid(
+            HPrim(PSing),
+            SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl)
+          ) =>
+        Some((l, a, x))
+      case _ => None
+
+  object VSingCon:
+    def apply(l: VFinLevel, a: Val, x: Val) =
+      VRigid(HPrim(PSingCon), SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl))
+    def unapply(value: Val): Option[(VFinLevel, Val, Val)] = value match
+      case VRigid(
+            HPrim(PSingCon),
+            SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl)
+          ) =>
+        Some((l, a, x))
+      case _ => None

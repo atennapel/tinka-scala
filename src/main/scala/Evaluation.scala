@@ -58,6 +58,12 @@ object Evaluation:
       // lower <k> <l> {A} (lift <k> <l> {A} t) ~> t
       case (PLower, VLiftTerm(_, _, _, t), _) => t
 
+      // unsing <l> {A} {x} (sing <l> {A} x) ~> x
+      case (PSingElim, VSingCon(_, _, x), _) => x
+
+      // unsing <l> {A} {x} s ~> x
+      case (PSingElim, _, List(_, _, Right((x, _)))) => x
+
       // elimBool <l> P t f True ~> t
       case (PElimBool, VTrue(), List(_, _, Right((t, _)), _)) => t
       // elimBool <l> P t f False ~> f
@@ -100,6 +106,13 @@ object Evaluation:
         VGlobal(hd, sp, () => vliftterm(k, l, a, v()))
       case _ => VLiftTerm(k, l, a, x)
 
+  private def vsing(l: VFinLevel, a: VTy, x: Val): Val = x match
+    case VRigid(hd, SPrim(sp, PSingElim, args)) => VRigid(hd, sp)
+    case VFlex(hd, SPrim(sp, PSingElim, args))  => VFlex(hd, sp)
+    case VGlobal(hd, SPrim(sp, PSingElim, args), v) =>
+      VGlobal(hd, sp, () => vsing(l, a, v()))
+    case _ => VSingCon(l, a, x)
+
   private def vprim(x: PrimName) = x match
     case PLiftTerm =>
       vlamlvl(
@@ -127,6 +140,30 @@ object Evaluation:
                         PLower,
                         List(Left(k), Left(l), Right((a, Impl))),
                         x
+                      )
+                  )
+              )
+          )
+      )
+    case PSingCon =>
+      vlamlvl("l", l => vlamI("A", a => vlam("x", x => vsing(l, a, x))))
+    case PSingElim =>
+      vlamlvl(
+        "l",
+        l =>
+          vlamI(
+            "A",
+            a =>
+              vlamI(
+                "x",
+                x =>
+                  vlam(
+                    "s",
+                    s =>
+                      vprimelim(
+                        PSingElim,
+                        List(Left(l), Right((a, Impl)), Right((x, Impl))),
+                        s
                       )
                   )
               )

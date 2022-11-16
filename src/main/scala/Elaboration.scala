@@ -429,6 +429,38 @@ object Elaboration:
               Expl
             )
           )
+        case (VSing(_, _, _), VSing(_, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VSing(_, _, _), VFlex(_, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VFlex(_, _), VSing(_, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (ty, VSing(l, a, x)) =>
+          unify(lv, VFL(l), ty, a)
+          unify(ctx.eval(tm), x)
+          Some(
+            App(
+              App(AppLvl(Prim(PSingCon), ctx.quote(l)), ctx.quote(a), Impl),
+              tm,
+              Expl
+            )
+          )
+        case (VSing(l, a, x), ty) =>
+          unify(lv, VFL(l), a, ty)
+          Some(
+            App(
+              App(
+                App(AppLvl(Prim(PSingElim), ctx.quote(l)), ctx.quote(a), Impl),
+                ctx.quote(x),
+                Impl
+              ),
+              tm,
+              Expl
+            )
+          )
         case (VLift(_, _, _), VLift(_, _, _)) =>
           unify(lv, lvE, ty, tyE)
           None

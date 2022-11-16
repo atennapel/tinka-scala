@@ -40,3 +40,7 @@ object Prims:
          {y : A}
          (p : Id <l> <l> {A} {A} x y)
          -> P {y} p"""
+
+    case PSing     => "<l> {A : Type l} -> A -> Type l"
+    case PSingCon  => "<l> {A : Type l} (x : A) -> Sing <l> {A} x"
+    case PSingElim => "<l> {A : Type l} {x : A} -> Sing <l> {A} x -> A"

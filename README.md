@@ -12,14 +12,14 @@ sbt "run examples/nat.tinka"
 ## TODO
 - [x] Elaboration
 - [x] Unification with pruning
-- [ ] Primitives
+- [x] Primitives
   - [x] Machinery
   - [x] Universe lifting operators
   - [x] Unit
   - [x] Void
   - [x] Bool
   - [x] Id
-  - [ ] Sing
+  - [x] Sing
 - [x] Subtyping coercions
   - [x] Add subtyping coercion to avoid `isNeutral` in elaboration
   - [x] Subtyping along pi types

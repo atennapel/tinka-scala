@@ -442,4 +442,10 @@ object Unification:
       case (VUnit(), _) => ()
       case (_, VUnit()) => ()
 
+      case (VSingCon(l, a, x), _) => ()
+      case (_, VSingCon(l, a, x)) => ()
+
+      case (VRefl(_, _, _), _) => ()
+      case (_, VRefl(_, _, _)) => ()
+
       case _ => throw UnifyError(s"cannot unify ${quote(a)} ~ ${quote(b)}")
