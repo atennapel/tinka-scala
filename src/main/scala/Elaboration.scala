@@ -297,6 +297,7 @@ object Elaboration:
         case Nil =>
           (Prim(PUnitType), LFinLevel(LZ), VType(VLevel.unit), VLevel.unit.inc)
         case (d @ SLet(x, oty)) :: ds =>
+          debug(s"infer sig decl $d")
           val dty = ps.foldRight[RTm](oty.getOrElse(RHole(None))) {
             case ((x, None), rty) => RPiLvl(x, rty)
             case ((x, Some((i, oty))), rty) =>
@@ -304,7 +305,8 @@ object Elaboration:
           }
           val (ety, elv, ty, lv) =
             inferType(if ps.isEmpty then oty else Some(dty))(ctx)
-          val (erty, elv2, rty, rlv) = createTy(ctx.bind(DoBind(x), ty, lv), ds)
+          val (erty, elv2, rty, rlv) =
+            createTy(ctx.bind(DoBind(x), ctx.eval(ety), ctx.eval(elv)), ds)
           val lmax = ctx.eval(elv) max ctx.eval(elv2)
           (
             Sigma(DoBind(x), ety, elv, erty, elv2),
@@ -312,6 +314,24 @@ object Elaboration:
             VType(lmax),
             lmax.inc
           )
+        case (d @ SDef(priv, x, oty, v)) :: ds =>
+          debug(s"infer sig decl $d")
+          if !priv then throw CannotInferError(d.toString)
+          val (dtm, dty) =
+            ps.foldRight[(RTm, RTm)]((v, oty.getOrElse(RHole(None)))) {
+              case ((x, None), (b, rty)) =>
+                (RLamLvl(x, None, b), RPiLvl(x, rty))
+              case ((x, Some((i, oty))), (b, rty)) =>
+                (
+                  RLam(x, RArgIcit(i), None, b),
+                  RPi(x, i, oty.getOrElse(RHole(None)), rty)
+                )
+            }
+          val (ev, ety, vty, vl) =
+            checkValue(dtm, if ps.isEmpty then oty else Some(dty))(ctx)
+          val (erty, elv2, rty, rlv) =
+            createTy(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev), ds)
+          (Let(x, ety, ev, erty), elv2, rty, rlv)
     val (ety, _, vty, vl) = createTy(ctx, ds)
     (ety, vty, vl)
 

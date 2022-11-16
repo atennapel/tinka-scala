@@ -47,15 +47,23 @@ object Presyntax:
 
   enum SigDecl:
     case SLet(name: Name, ty: Option[RTy])
+    case SDef(priv: Boolean, name: Name, ty: Option[RTy], value: RTm)
 
     def globals: Set[String] = this match
       case SLet(_, t) => t.map(_.globals).getOrElse(Set.empty)
+      case SDef(_, _, t, v) =>
+        t.map(_.globals).getOrElse(Set.empty) ++ v.globals
 
     override def toString: String = this match
       case SLet(name, ty) =>
         ty match
           case Some(ty) => s"$name : $ty"
           case None     => s"$name"
+      case SDef(priv, name, ty, value) =>
+        ty match
+          case Some(ty) =>
+            s"${if priv then "private " else ""}$name : $ty = $value"
+          case None => s"${if priv then "private " else ""}$name = $value"
   export SigDecl.*
 
   enum ModDecl:
