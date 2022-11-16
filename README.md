@@ -36,9 +36,9 @@ sbt "run examples/nat.tinka"
     - [x] Open in module
     - [x] Open export in module
   - [ ] Signatures
-    - [ ] Basic signatures
+    - [x] Basic signatures
+    - [x] Signature parameters
     - [ ] Private definitions
-    - [ ] Signature parameters
     - [ ] Open in signatures
     - [ ] Open export in signatures
 - [ ] Local gluing

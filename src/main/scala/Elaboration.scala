@@ -153,7 +153,13 @@ object Elaboration:
         unify(lv, VFL(m + 1), u, VType(l))
         (ety, l)
 
-  private def checkValue(tm: RTm, ty: Option[RTm])(implicit
+  private def inferType(ty: Option[RTy])(implicit
+      ctx: Ctx
+  ): (Ty, Level, VTy, VLevel) =
+    val (ety, lv) = inferType(ty.getOrElse(RHole(None)))
+    (ety, ctx.quote(lv), VType(lv), lv.inc)
+
+  private def checkValue(tm: RTm, ty: Option[RTy])(implicit
       ctx: Ctx
   ): (Tm, Ty, VTy, VLevel) = ty match
     case Some(ty) =>
@@ -281,6 +287,33 @@ object Elaboration:
     val (ty, vl) = goTy(ctx, xs)
     val vty = ctx.eval(ty)
     (tm, vty, vl)
+
+  private def inferSig(
+      ps: List[(Bind, Option[(Icit, Option[RTy])])],
+      ds: List[SigDecl]
+  )(implicit ctx: Ctx): (Ty, VTy, VLevel) =
+    def createTy(ctx: Ctx, ds: List[SigDecl]): (Ty, Level, VTy, VLevel) =
+      ds match
+        case Nil =>
+          (Prim(PUnitType), LFinLevel(LZ), VType(VLevel.unit), VLevel.unit.inc)
+        case (d @ SLet(x, oty)) :: ds =>
+          val dty = ps.foldRight[RTm](oty.getOrElse(RHole(None))) {
+            case ((x, None), rty) => RPiLvl(x, rty)
+            case ((x, Some((i, oty))), rty) =>
+              RPi(x, i, oty.getOrElse(RHole(None)), rty)
+          }
+          val (ety, elv, ty, lv) =
+            inferType(if ps.isEmpty then oty else Some(dty))(ctx)
+          val (erty, elv2, rty, rlv) = createTy(ctx.bind(DoBind(x), ty, lv), ds)
+          val lmax = ctx.eval(elv) max ctx.eval(elv2)
+          (
+            Sigma(DoBind(x), ety, elv, erty, elv2),
+            ctx.quote(lmax),
+            VType(lmax),
+            lmax.inc
+          )
+    val (ety, _, vty, vl) = createTy(ctx, ds)
+    (ety, vty, vl)
 
   private def inferMod(
       ps: List[(Bind, Option[(Icit, Option[RTy])])],
@@ -632,6 +665,7 @@ object Elaboration:
         val (eb, rty, vl) = infer(b)(nctx)
         (builder(eb), rty, vl)
       case RExport(ns, hiding) => inferExport(ns, hiding.toSet)
+      case RSig(ps, ds)        => inferSig(ps, ds)
       case RMod(ps, ds)        => inferMod(ps, ds)
       case RPi(x, i, ty, b) =>
         val (ety, l1) = inferType(ty)

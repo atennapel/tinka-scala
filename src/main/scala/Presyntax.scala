@@ -45,6 +45,19 @@ object Presyntax:
       case _           => Set.empty
   export RLevel.*
 
+  enum SigDecl:
+    case SLet(name: Name, ty: Option[RTy])
+
+    def globals: Set[String] = this match
+      case SLet(_, t) => t.map(_.globals).getOrElse(Set.empty)
+
+    override def toString: String = this match
+      case SLet(name, ty) =>
+        ty match
+          case Some(ty) => s"$name : $ty"
+          case None     => s"$name"
+  export SigDecl.*
+
   enum ModDecl:
     case DLet(priv: Boolean, name: Name, ty: Option[RTy], value: RTm)
     case DOpen(
@@ -95,6 +108,10 @@ object Presyntax:
     case RExport(
         names: Option[List[(Name, Option[Name])]],
         hiding: List[Name]
+    )
+    case RSig(
+        params: List[(Bind, Option[(Icit, Option[RTy])])],
+        decls: List[SigDecl]
     )
     case RMod(
         params: List[(Bind, Option[(Icit, Option[RTy])])],
@@ -157,6 +174,15 @@ object Presyntax:
       case RGlobal(x)             => s"#$x"
       case RLet(x, Some(t), v, b) => s"(let $x : $t = $v; $b)"
       case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
+      case RSig(ps, ds) =>
+        val pss: List[String] = ps.map {
+          case (x, None)                   => s"<$x>"
+          case (x, Some((Expl, None)))     => s"$x"
+          case (x, Some((Expl, Some(ty)))) => s"($x : $ty)"
+          case (x, Some((Impl, None)))     => s"$x"
+          case (x, Some((Impl, Some(ty)))) => s"{$x : $ty}"
+        }
+        s"(sig${if pss.isEmpty then "" else s" ${pss.mkString(" ")}"} { ${ds.mkString("; ")} })"
       case RMod(ps, ds) =>
         val pss: List[String] = ps.map {
           case (x, None)                   => s"<$x>"

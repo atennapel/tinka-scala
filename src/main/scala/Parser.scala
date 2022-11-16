@@ -27,6 +27,7 @@ object Parser:
         "open",
         "hiding",
         "export",
+        "sig",
         "mod",
         "private",
         "if",
@@ -143,7 +144,7 @@ object Parser:
     lazy val tm: Parsley[RTm] = positioned(
       attempt(
         piOrSigma
-      ) <|> ifTm <|> let <|> mod <|> open <|> exportP <|> lam <|>
+      ) <|> ifTm <|> let <|> mod <|> sig <|> open <|> exportP <|> lam <|>
         precedence[RTm](app)(
           Ops(InfixR)("**" #> ((l, r) => RSigma(DontBind, l, r))),
           Ops(InfixR)("->" #> ((l, r) => RPi(DontBind, Expl, l, r)))
@@ -228,6 +229,21 @@ object Parser:
         "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
       )).map { case (ns, hiding) => RExport(ns, hiding.getOrElse(Nil)) }
 
+    private lazy val sig: Parsley[RTm] =
+      ("sig" *> many(defParam) <~> "{" *> sepEndBy(sigDecl, ";") <* "}")
+        .map { case (ps, ds) =>
+          val ps2 = ps.flatMap {
+            case Left(xs)            => xs.map(x => (x, None))
+            case Right((xs, i, oty)) => xs.map(x => (x, Some((i, oty))))
+          }
+          RSig(ps2, ds)
+        }
+
+    private lazy val sigDecl: Parsley[SigDecl] =
+      (identOrOp <~> many(defParam) <~> option(":" *> tm)).map {
+        case ((x, ds), ty) => SLet(x, ty.map(typeFromParams(ds, _)))
+      }
+
     private lazy val mod: Parsley[RTm] =
       ("mod" *> many(defParam) <~> "{" *> sepEndBy(modDecl, ";") <* "}")
         .map { case (ps, ds) =>
@@ -298,8 +314,8 @@ object Parser:
       )
 
     private lazy val appAtom: Parsley[RTm] = positioned(
-      (projAtom <~> many(arg) <~> option(let <|> open <|> mod <|> lam)).map {
-        case ((fn, args), opt) =>
+      (projAtom <~> many(arg) <~> option(let <|> open <|> mod <|> sig <|> lam))
+        .map { case ((fn, args), opt) =>
           (args.flatten ++ opt.map(t => Right((t, RArgIcit(Expl)))))
             .foldLeft(fn) { case (fn, e) =>
               e.fold(
@@ -307,7 +323,7 @@ object Parser:
                 (arg, i) => RApp(fn, arg, i)
               )
             }
-      }
+        }
     )
 
     private type Arg = Either[(RLevel, Option[Name]), (RTm, RArgInfo)]
