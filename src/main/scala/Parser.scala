@@ -240,18 +240,25 @@ object Parser:
         }
 
     private lazy val sigDecl: Parsley[SigDecl] =
-      attempt(
-        (option("private") <~> identOrOp <~> many(defParam) <~> option(
-          ":" *> tm
-        ) <~> "=" *> tm).map { case ((((p, x), ds), ty), b) =>
-          SDef(
-            p.isDefined,
-            x,
-            ty.map(typeFromParams(ds, _)),
-            lamFromDefParams(ds, b, ty.isEmpty)
-          )
-        }
-      ) <|>
+      (option("export") <~> "open" *> projAtom <~> option(
+        "(" *> sepEndBy(openPart, ",") <* ")"
+      ) <~> option(
+        "hiding" *> "(" *> sepEndBy(identOrOp, ",") <* ")"
+      )).map { case (((exp, tm), ns), hiding) =>
+        SOpen(exp.isDefined, tm, ns, hiding.getOrElse(Nil))
+      } <|>
+        attempt(
+          (option("private") <~> identOrOp <~> many(defParam) <~> option(
+            ":" *> tm
+          ) <~> "=" *> tm).map { case ((((p, x), ds), ty), b) =>
+            SDef(
+              p.isDefined,
+              x,
+              ty.map(typeFromParams(ds, _)),
+              lamFromDefParams(ds, b, ty.isEmpty)
+            )
+          }
+        ) <|>
         (identOrOp <~> many(defParam) <~> option(":" *> tm)).map {
           case ((x, ds), ty) => SLet(x, ty.map(typeFromParams(ds, _)))
         }

@@ -48,11 +48,18 @@ object Presyntax:
   enum SigDecl:
     case SLet(name: Name, ty: Option[RTy])
     case SDef(priv: Boolean, name: Name, ty: Option[RTy], value: RTm)
+    case SOpen(
+        exp: Boolean,
+        tm: RTm,
+        names: Option[List[(Name, Option[Name])]],
+        hiding: List[Name]
+    )
 
     def globals: Set[String] = this match
       case SLet(_, t) => t.map(_.globals).getOrElse(Set.empty)
       case SDef(_, _, t, v) =>
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals
+      case SOpen(_, t, _, _) => t.globals
 
     override def toString: String = this match
       case SLet(name, ty) =>
@@ -64,6 +71,18 @@ object Presyntax:
           case Some(ty) =>
             s"${if priv then "private " else ""}$name : $ty = $value"
           case None => s"${if priv then "private " else ""}$name = $value"
+      case SOpen(exp, t, None, Nil) =>
+        s"${if exp then "export " else ""}open $t"
+      case SOpen(exp, t, None, hiding) =>
+        s"${if exp then "export " else ""}open $t hiding (${hiding.mkString(", ")})"
+      case SOpen(exp, t, Some(ns), Nil) =>
+        s"${if exp then "export " else ""}open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")})"
+      case SOpen(exp, t, Some(ns), hiding) =>
+        s"${if exp then "export " else ""}open $t (${ns
+            .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
+            .mkString(", ")}) hiding (${hiding.mkString(", ")})"
   export SigDecl.*
 
   enum ModDecl:
@@ -151,6 +170,16 @@ object Presyntax:
         t.map(_.globals).getOrElse(Set.empty) ++ v.globals ++ b.globals
       case ROpen(tm, _, _, b) => tm.globals ++ b.globals
       case RMod(ps, ds) =>
+        val psg = ps.foldRight[Set[String]](Set.empty[String]) {
+          case ((_, None), s) => s
+          case ((_, Some((_, oty))), s) =>
+            s ++ oty.map(_.globals).getOrElse(Set.empty)
+        }
+        val dsg = ds.foldRight[Set[String]](Set.empty) { case (d, s) =>
+          s ++ d.globals
+        }
+        psg ++ dsg
+      case RSig(ps, ds) =>
         val psg = ps.foldRight[Set[String]](Set.empty[String]) {
           case ((_, None), s) => s
           case ((_, Some((_, oty))), s) =>

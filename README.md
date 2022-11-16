@@ -6,7 +6,7 @@ Typechecking algorithm is based on https://github.com/AndrasKovacs/elaboration-z
 Try it out:
 
 ```
-sbt "run examples/nat.tinka"
+sbt "run lib/bool.tinka"
 ```
 
 ## TODO
@@ -26,7 +26,7 @@ sbt "run examples/nat.tinka"
   - [x] Subtyping along sigma types
   - [x] Subtyping along level pi types
 - [x] Globals
-- [ ] Importing and exporting
+- [x] Importing and exporting
   - [x] open
   - [x] export
   - [x] Modules
@@ -35,16 +35,15 @@ sbt "run examples/nat.tinka"
     - [x] Module parameters
     - [x] Open in module
     - [x] Open export in module
-  - [ ] Signatures
+  - [x] Signatures
     - [x] Basic signatures
     - [x] Signature parameters
     - [x] Private definitions
-    - [ ] Open in signatures
-    - [ ] Open export in signatures
-- [ ] Local gluing
+    - [x] Open in signatures
 - [ ] Inductive types (descriptions)
-- [ ] Keep track of inserted terms, hide in output
 - [ ] Erasure
+- [ ] Local gluing
+- [ ] Keep track of inserted terms, hide in output
 - [ ] REPL
 - [ ] Core verification
   - [ ] Ensure lambda, pair, export and modules are wrapped with a let with type
@@ -52,3 +51,6 @@ sbt "run examples/nat.tinka"
 - [ ] Instance parameters
 - [ ] Compile to ChezScheme
 - [ ] Operator sectioning
+- [ ] Module extensions
+  - [ ] Open export in signatures
+  - [ ] Manifest fields

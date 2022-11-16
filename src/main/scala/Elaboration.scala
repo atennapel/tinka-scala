@@ -332,6 +332,12 @@ object Elaboration:
           val (erty, elv2, rty, rlv) =
             createTy(ctx.define(x, vty, ety, vl, ctx.eval(ev), ev), ds)
           (Let(x, ety, ev, erty), elv2, rty, rlv)
+        case (d @ SOpen(exp, t, xs, hs)) :: ds =>
+          debug(s"infer sig decl $d")
+          if exp then throw CannotInferError(d.toString)
+          val (nctx, builder, _) = inferOpen(t, xs, hs.toSet)(ctx)
+          val (erty, elv2, rty, rlv) = createTy(nctx, ds)
+          (builder(erty), elv2, rty, rlv)
     val (ety, _, vty, vl) = createTy(ctx, ds)
     (ety, vty, vl)
 
@@ -367,7 +373,7 @@ object Elaboration:
         debug(s"infer open decl $d")
         val (nctx, builder, ens) = inferOpen(t, xs, hs.toSet)(ctx)
         val (nctx2, ns, builder2) = createCtx(nctx, ds)
-        (nctx2, ens ++ ns, t => builder(builder2(t)))
+        (nctx2, (if exp then ens else Nil) ++ ns, t => builder(builder2(t)))
     val (nctx, ns, builder) = createCtx(ctx, ds)
     val (tm, vt, vl) =
       inferExport(Some(ns.map(x => (x, None))), Set.empty)(nctx)
