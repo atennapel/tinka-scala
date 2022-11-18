@@ -7,8 +7,10 @@ import Presyntax.*
 import scala.collection.mutable.ArrayBuffer
 
 object Metas:
-  private val metas: ArrayBuffer[MetaEntry] = ArrayBuffer.empty
-  private val lmetas: ArrayBuffer[LMetaEntry] = ArrayBuffer.empty
+  private var metas: ArrayBuffer[MetaEntry] = ArrayBuffer.empty
+  private var lmetas: ArrayBuffer[LMetaEntry] = ArrayBuffer.empty
+  private type Frame = (ArrayBuffer[MetaEntry], ArrayBuffer[LMetaEntry])
+  private var frames: ArrayBuffer[Frame] = ArrayBuffer.empty
 
   // metas
   enum MetaEntry:
@@ -67,3 +69,16 @@ object Metas:
   def resetMetas(): Unit =
     lmetas.clear()
     metas.clear()
+    frames.clear()
+
+  def storeMetas(): Unit =
+    frames += ((metas.clone(), lmetas.clone()))
+
+  def restoreMetas(): Unit =
+    val last = frames.remove(frames.size - 1)
+    metas = last._1
+    lmetas = last._2
+
+  def skipMetas(): Unit =
+    frames.remove(frames.size - 1)
+    ()

@@ -111,6 +111,10 @@ final case class Ctx(
         s"$x : ${pretty0(ty)(p.names)} = ${pretty0(v)(p.names)}" :: go(p)
     go(path).mkString("\n")
 
+  def valueAt(k: Lvl): Option[Val] = env(
+    mkIx(lvl.expose - k.expose - 1)
+  ).toOption
+
 object Ctx:
   def empty(pos: Pos, filename: Option[String]) =
     Ctx(lvl0, EEmpty, Nil, PHere, Nil, Nil, pos, filename)

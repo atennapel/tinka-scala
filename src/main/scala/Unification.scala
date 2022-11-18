@@ -251,7 +251,7 @@ object Unification:
     go(ty, lvl0)
 
   private def solve(id: MetaId, sp: Spine, v: Val)(implicit l: Lvl): Unit =
-    debug(s"solve ?$id := ${quote(v)}")
+    debug(s"solve ?$id ${quote(VRigid(HPrim(PUnitType), sp))} := ${quote(v)}")
     invert(sp) match
       case Right(res) => solveWithPRen(id, res, v)
       case Left(m)    => throw UnifyError(s"invert blocked on ?$m")

@@ -40,6 +40,10 @@ sbt "run lib/bool.tinka"
     - [x] Signature parameters
     - [x] Private definitions
     - [x] Open in signatures
+- [ ] Instance parameters
+  - [x] Simple instance search
+  - [ ] Recursive instance search
+  - [ ] Retry on meta solving
 - [ ] Inductive types (descriptions)
 - [ ] Erasure
 - [ ] Local gluing
@@ -48,7 +52,6 @@ sbt "run lib/bool.tinka"
 - [ ] Core verification
   - [ ] Ensure lambda, pair, export and modules are wrapped with a let with type
   - [ ] Core verification
-- [ ] Instance parameters
 - [ ] Compile to ChezScheme
 - [ ] Operator sectioning
 - [ ] Module extensions

@@ -13,6 +13,7 @@ import Debug.debug
 import scala.annotation.tailrec
 import java.io.Closeable
 import scala.collection.mutable
+import scala.util.control.NonLocalReturns.*
 
 object Elaboration:
   // unification
@@ -60,9 +61,68 @@ object Elaboration:
         )
 
   // holes
+  private case class HoleEntry(ctx: Ctx, tm: Tm, ty: VTy, lv: VLevel)
   private val holes: mutable.Map[Name, HoleEntry] = mutable.Map.empty
 
-  private case class HoleEntry(ctx: Ctx, tm: Tm, ty: VTy, lv: VLevel)
+  // instance search
+  private val MAX_INSTANCE_STEPS = 1000
+  private case class InstanceEntry(
+      ctx: Ctx,
+      ty: VTy,
+      lv: VLevel,
+      placeholder: Val
+  )
+  private val instances: mutable.ArrayBuffer[InstanceEntry] =
+    mutable.ArrayBuffer.empty
+  private def addInstance(e: InstanceEntry): Unit =
+    if !tryInstance(e) then instances += e
+
+  private def solveAllInstances(): Unit =
+    debug(s"solveAllInstances")
+    var lastSize = instances.size
+    var cur = instances.filterNot(tryInstance)
+    var i = 1
+    while (lastSize != cur.size && i <= MAX_INSTANCE_STEPS) do
+      lastSize = cur.size
+      cur = instances.filterNot(tryInstance)
+      i += 1
+
+  private def tryInstance(e: InstanceEntry): Boolean = returning {
+    e match
+      case InstanceEntry(ctx_, ty, lv, placeholder) =>
+        implicit val ctx = ctx_
+        force(ty) match
+          case VFlex(_, _) => false
+          case VUnitType() =>
+            unify(placeholder, VUnit())
+            true
+          case _ =>
+            debug(s"tryInstance ${ctx.pretty(ty)} : ${ctx.pretty(lv)}")
+            for ((x, k, oty) <- ctx.types) do
+              oty match
+                case None =>
+                case Some((xty, xlv)) =>
+                  debug(
+                    s"try local $x : ${ctx.pretty(xty)} : ${ctx.pretty(xlv)}"
+                  )
+                  storeMetas()
+                  try
+                    unify0(xlv, lv)(ctx.lvl)
+                    unify0(xty, ty)(ctx.lvl)
+                    debug(s"matched local $x")
+                    val value = ctx.valueAt(k).get
+                    debug(s"set placeholder ${ctx.pretty(placeholder)} to ${ctx
+                        .pretty(value)}")
+                    unify0(placeholder, value)(ctx.lvl)
+                    debug(s"done")
+                    skipMetas()
+                    throwReturn(true)
+                  catch
+                    case e: UnifyError =>
+                      debug(s"local $x does not match: ${e.getMessage}")
+                      restoreMetas()
+            false
+  }
 
   // elaboration
   private def newMeta(ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm = ty match
@@ -70,7 +130,9 @@ object Elaboration:
     case _ =>
       val closed = eval(ctx.closeTy(ctx.quote(ty), ctx.quote(lv)))(EEmpty)
       val m = freshMeta(closed)
-      debug(s"newMeta ?$m : ${ctx.pretty(ty)} : ${ctx.pretty(lv)}")
+      debug(
+        s"newMeta ?$m : ${ctx.pretty(ty)} : ${ctx.pretty(lv)} (${ctx.pruning})"
+      )
       AppPruning(Meta(m), ctx.pruning)
 
   private def newLMeta(implicit ctx: Ctx): FinLevel =
@@ -89,6 +151,7 @@ object Elaboration:
       case Until(j) => i == j
       case _        => false
   import InsertMode.*
+
   private def insertPi(inp: (Tm, VTy, VLevel), mode: InsertMode = All)(implicit
       ctx: Ctx
   ): (Tm, VTy, VLevel) =
@@ -98,6 +161,7 @@ object Elaboration:
           if mode == All || mode == NoLvl || !mode.isUntil(i) =>
         val m = newMeta(a, u1)
         val mv = ctx.eval(m)
+        if i == Inst then addInstance(InstanceEntry(ctx, a, u1, mv))
         go(App(tm, m, Impl(i)), b.inst(mv), u2)
       case VPiLvl(x, b, u) if mode == All || mode.isUntil =>
         val m = newLMeta
@@ -124,6 +188,7 @@ object Elaboration:
           case _ =>
             val m = newMeta(a, u1)
             val mv = ctx.eval(m)
+            if i == Inst then addInstance(InstanceEntry(ctx, a, u1, mv))
             go(App(tm, m, Impl(i)), b.inst(mv), u2)
       case VPiLvl(x, b, u) =>
         val m = newLMeta
@@ -140,6 +205,7 @@ object Elaboration:
       case VPi(y, Impl(i), a, u1, b, u2) =>
         val m = newMeta(a, u1)
         val mv = ctx.eval(m)
+        if i == Inst then addInstance(InstanceEntry(ctx, a, u1, mv))
         go(App(tm, m, Impl(i)), b.inst(mv), u2)
       case VPiLvl(y, b, u) =>
         y match
@@ -882,6 +948,7 @@ object Elaboration:
     // resetMetas() TODO: zonking
     holes.clear()
     val (etm, vty, lv) = infer(tm)
+    solveAllInstances()
     debug(etm)
     val ety = ctx.quote(vty)
     debug(ety)
