@@ -104,6 +104,7 @@ object Unification:
     case OKRenaming
     case OKNonRenaming
     case NeedsPruning
+    case CannotPrune
   import SpinePruneStatus.*
 
   private def pruneFlex(m: MetaId, sp: Spine)(implicit pren: PRen): Tm =
@@ -118,47 +119,54 @@ object Unification:
       case SId => (Nil, OKRenaming)
       case SApp(sp, t, i) =>
         val (sp2, status) = go(sp)
-        force(t) match
-          case VVar(x) =>
-            (pren.ren.get(x.expose), status) match
-              case (Some(x), _) =>
-                ((Some(Right(Var(x.toIx(pren.dom)))), i) :: sp2, status)
-              case (None, OKNonRenaming) =>
-                throw UnifyError("failed to prune")
-              case _ => ((None, i) :: sp2, NeedsPruning)
-          case t =>
-            status match
-              case NeedsPruning => throw UnifyError("failed to prune")
-              case _ => ((Some(Right(rename(t))), i) :: sp2, OKNonRenaming)
+        if status == CannotPrune then (Nil, CannotPrune)
+        else
+          force(t) match
+            case VVar(x) =>
+              (pren.ren.get(x.expose), status) match
+                case (Some(x), _) =>
+                  ((Some(Right(Var(x.toIx(pren.dom)))), i) :: sp2, status)
+                case (None, OKNonRenaming) =>
+                  throw UnifyError("failed to prune")
+                case _ => ((None, i) :: sp2, NeedsPruning)
+            case t =>
+              status match
+                case NeedsPruning => throw UnifyError("failed to prune")
+                case _ => ((Some(Right(rename(t))), i) :: sp2, OKNonRenaming)
       case SAppLvl(sp, t) =>
         val (sp2, status) = go(sp)
-        force(t) match
-          case VFinLevelVar(x, 0) =>
-            (pren.ren.get(x.expose), status) match
-              case (Some(x), _) =>
-                (
-                  (Some(Left(LVar(x.toIx(pren.dom)))), Impl(Unif)) :: sp2,
-                  status
-                )
-              case (None, OKNonRenaming) =>
-                throw UnifyError("failed to prune")
-              case _ => ((None, Impl(Unif)) :: sp2, NeedsPruning)
-          case t =>
-            status match
-              case NeedsPruning => throw UnifyError("failed to prune")
-              case _ =>
-                (
-                  (Some(Left(quote(t)(pren.dom))), Impl(Unif)) :: sp2,
-                  OKNonRenaming
-                )
-      case _ => impossible()
+        if status == CannotPrune then (Nil, CannotPrune)
+        else
+          force(t) match
+            case VFinLevelVar(x, 0) =>
+              (pren.ren.get(x.expose), status) match
+                case (Some(x), _) =>
+                  (
+                    (Some(Left(LVar(x.toIx(pren.dom)))), Impl(Unif)) :: sp2,
+                    status
+                  )
+                case (None, OKNonRenaming) =>
+                  throw UnifyError("failed to prune")
+                case _ => ((None, Impl(Unif)) :: sp2, NeedsPruning)
+            case t =>
+              status match
+                case NeedsPruning => throw UnifyError("failed to prune")
+                case _ =>
+                  (
+                    (Some(Left(quote(t)(pren.dom))), Impl(Unif)) :: sp2,
+                    OKNonRenaming
+                  )
+      case SProj(sp, _)    => (Nil, CannotPrune)
+      case SPrim(sp, _, _) => (Nil, CannotPrune)
     val (sp2, status) = go(sp)
-    val m2 = status match
-      case NeedsPruning => pruneMeta(spineToPruning(sp2), m)
-      case _            => getMetaUnsolved(m); m
-    sp2.foldRight(Meta(m2)) { case ((mu, i), t) =>
-      mu.fold(t)(arg => arg.fold(AppLvl(t, _), App(t, _, i)))
-    }
+    if status == CannotPrune then quote(VFlex(m, sp))(pren.dom)
+    else
+      val m2 = status match
+        case NeedsPruning => pruneMeta(spineToPruning(sp2), m)
+        case _            => getMetaUnsolved(m); m
+      sp2.foldRight(Meta(m2)) { case ((mu, i), t) =>
+        mu.fold(t)(arg => arg.fold(AppLvl(t, _), App(t, _, i)))
+      }
 
   private def rename(v: VFinLevel)(implicit pren: PRen): FinLevel =
     val fl = force(v)

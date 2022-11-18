@@ -75,16 +75,22 @@ object Elaboration:
   private val instances: mutable.ArrayBuffer[InstanceEntry] =
     mutable.ArrayBuffer.empty
   private def addInstance(e: InstanceEntry): Unit =
-    if !tryInstance(e) then instances += e
+    // if !tryInstance(e) then instances += e
+    instances += e
+
+  private def tryInstanceSuffix(e: InstanceEntry): List[InstanceEntry] =
+    val l = instances.size
+    if tryInstance(e) then Nil
+    else instances.slice(l - 1, instances.size - 1).toList
 
   private def solveAllInstances(): Unit =
     debug(s"solveAllInstances")
     var lastSize = instances.size
-    var cur = instances.filterNot(tryInstance)
+    var cur = instances.toList.flatMap(tryInstanceSuffix)
     var i = 1
     while (lastSize != cur.size && i <= MAX_INSTANCE_STEPS) do
       lastSize = cur.size
-      cur = instances.filterNot(tryInstance)
+      cur = instances.toList.flatMap(tryInstanceSuffix)
       i += 1
 
   private def containsMeta(sp: Spine): Boolean = sp match
@@ -97,14 +103,20 @@ object Elaboration:
     case SProj(s, _)    => containsMeta(s)
     case SPrim(s, _, _) => containsMeta(s)
 
+  private def isFlex(v: Val): Boolean = force(v) match
+    case VFlex(_, _)                           => true
+    case VPair(a, b) if isFlex(a) || isFlex(b) => true
+    case _                                     => false
+
   private def tryInstance(e: InstanceEntry): Boolean = returning {
     e match
       case InstanceEntry(ctx_, ty, lv, placeholder) =>
         implicit val ctx = ctx_
         debug(s"tryInstance ${ctx.pretty(ty)} : ${ctx.pretty(lv)}")
-        force(ty, UnfoldMetas) match
-          case VFlex(_, _)                           => false
-          case VGlobal(_, sp, _) if containsMeta(sp) => false
+        force(ty) match
+          case VFlex(_, _) => false
+          case VNewtype(l, k, a, b, x) if isFlex(a) || isFlex(b) || isFlex(x) =>
+            false
           case VUnitType() =>
             unify(placeholder, VUnit())
             true
@@ -595,6 +607,57 @@ object Elaboration:
               Expl
             )
           )
+        case (VNewtype(_, _, _, _, _), VNewtype(_, _, _, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VFlex(_, _), VNewtype(_, _, _, _, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (VNewtype(_, _, _, _, _), VFlex(_, _)) =>
+          unify(lv, lvE, ty, tyE)
+          None
+        case (ty, VNewtype(l, k, a, b, x)) =>
+          unify(lv, VFL(k), ty, vapp(b, x, Expl))
+          Some(
+            App(
+              App(
+                App(
+                  App(
+                    AppLvl(AppLvl(Prim(PPack), ctx.quote(l)), ctx.quote(k)),
+                    ctx.quote(a),
+                    Impl(Unif)
+                  ),
+                  ctx.quote(b),
+                  Impl(Unif)
+                ),
+                ctx.quote(x),
+                Impl(Unif)
+              ),
+              tm,
+              Expl
+            )
+          )
+        case (VNewtype(l, k, a, b, x), ty) =>
+          unify(VFL(k), lvE, vapp(b, x, Expl), ty)
+          Some(
+            App(
+              App(
+                App(
+                  App(
+                    AppLvl(AppLvl(Prim(PUnpack), ctx.quote(l)), ctx.quote(k)),
+                    ctx.quote(a),
+                    Impl(Unif)
+                  ),
+                  ctx.quote(b),
+                  Impl(Unif)
+                ),
+                ctx.quote(x),
+                Impl(Unif)
+              ),
+              tm,
+              Expl
+            )
+          )
         case (VSing(_, _, _), VSing(_, _, _)) =>
           unify(lv, lvE, ty, tyE)
           None
@@ -724,6 +787,28 @@ object Elaboration:
         builder(check(b, ty, lv)(nctx))
       case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
         check(RVar(Name("Refl")), ty, lv)
+      case (
+            RApp(RVar(Name("pack")), t, RArgIcit(Expl)),
+            VNewtype(l, k, a, b, x)
+          ) =>
+        val tm = check(t, vapp(b, x, Expl), VFL(k))
+        App(
+          App(
+            App(
+              App(
+                AppLvl(AppLvl(Prim(PPack), ctx.quote(l)), ctx.quote(k)),
+                ctx.quote(a),
+                Impl(Unif)
+              ),
+              ctx.quote(b),
+              Impl(Unif)
+            ),
+            ctx.quote(x),
+            Impl(Unif)
+          ),
+          tm,
+          Expl
+        )
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
         coe(etm, ty2, lv2, ty, lv)

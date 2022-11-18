@@ -20,6 +20,7 @@ sbt "run lib/bool.tinka"
   - [x] Bool
   - [x] Id
   - [x] Sing
+  - [x] Newtype
 - [x] Subtyping coercions
   - [x] Add subtyping coercion to avoid `isNeutral` in elaboration
   - [x] Subtyping along pi types

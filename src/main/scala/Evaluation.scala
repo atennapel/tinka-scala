@@ -64,6 +64,9 @@ object Evaluation:
       // unsing <l> {A} {x} s ~> x
       case (PSingElim, _, List(_, _, Right((x, _)))) => x
 
+      // unpack <l k> {A} {B} {x} (pack <l k> {A} {B} {x} t) ~> t
+      case (PUnpack, VPack(_, _, _, _, _, t), _) => t
+
       // elimBool <l> P t f True ~> t
       case (PElimBool, VTrue(), List(_, _, Right((t, _)), _)) => t
       // elimBool <l> P t f False ~> f
@@ -112,6 +115,20 @@ object Evaluation:
     case VGlobal(hd, SPrim(sp, PSingElim, args), v) =>
       VGlobal(hd, sp, () => vsing(l, a, v()))
     case _ => VSingCon(l, a, x)
+
+  private def vpack(
+      l: VFinLevel,
+      k: VFinLevel,
+      a: VTy,
+      b: VTy,
+      x: Val,
+      t: Val
+  ): Val = t match
+    case VRigid(hd, SPrim(sp, PUnpack, args)) => VRigid(hd, sp)
+    case VFlex(hd, SPrim(sp, PUnpack, args))  => VFlex(hd, sp)
+    case VGlobal(hd, SPrim(sp, PUnpack, args), v) =>
+      VGlobal(hd, sp, () => vpack(l, k, a, b, x, v()))
+    case _ => VPack(l, k, a, b, x, t)
 
   private def vprim(x: PrimName) = x match
     case PLiftTerm =>
@@ -168,6 +185,60 @@ object Evaluation:
                           Right((x, Impl(Unif)))
                         ),
                         s
+                      )
+                  )
+              )
+          )
+      )
+    case PPack =>
+      vlamlvl(
+        "l",
+        l =>
+          vlamlvl(
+            "k",
+            k =>
+              vlamI(
+                "A",
+                a =>
+                  vlamI(
+                    "B",
+                    b =>
+                      vlamI("x", x => vlam("t", t => vpack(l, k, a, b, x, t)))
+                  )
+              )
+          )
+      )
+    case PUnpack =>
+      vlamlvl(
+        "l",
+        l =>
+          vlamlvl(
+            "k",
+            k =>
+              vlamI(
+                "A",
+                a =>
+                  vlamI(
+                    "B",
+                    b =>
+                      vlamI(
+                        "x",
+                        x =>
+                          vlam(
+                            "n",
+                            n =>
+                              vprimelim(
+                                PUnpack,
+                                List(
+                                  Left(l),
+                                  Left(k),
+                                  Right((a, Impl(Unif))),
+                                  Right((b, Impl(Unif))),
+                                  Right((x, Impl(Unif)))
+                                ),
+                                n
+                              )
+                          )
                       )
                   )
               )

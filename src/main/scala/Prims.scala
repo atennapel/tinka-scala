@@ -44,3 +44,10 @@ object Prims:
     case PSing     => "<l> {A : Type l} -> A -> Type l"
     case PSingCon  => "<l> {A : Type l} (x : A) -> Sing <l> {A} x"
     case PSingElim => "<l> {A : Type l} {x : A} -> Sing <l> {A} x -> A"
+
+    case PNewtype =>
+      "<l k> {A : Type l} (B : A -> Type k) -> A -> Type k"
+    case PPack =>
+      "<l k> {A : Type l} {B : A -> Type k} {x : A} -> B x -> Newtype {A} B x"
+    case PUnpack =>
+      "<l k> {A : Type l} {B : A -> Type k} {x : A} -> Newtype {A} B x -> B x"

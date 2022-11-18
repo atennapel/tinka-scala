@@ -361,3 +361,67 @@ object Value:
           ) =>
         Some((l, a, x))
       case _ => None
+
+  object VNewtype:
+    def apply(l: VFinLevel, k: VFinLevel, a: Val, b: Val, x: Val) =
+      VRigid(
+        HPrim(PNewtype),
+        SApp(
+          SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)), b, Expl),
+          x,
+          Expl
+        )
+      )
+    def unapply(value: Val): Option[(VFinLevel, VFinLevel, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PNewtype),
+              SApp(
+                SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)), b, Expl),
+                x,
+                Expl
+              )
+            ) =>
+          Some((l, k, a, b, x))
+        case _ => None
+
+  object VPack:
+    def apply(l: VFinLevel, k: VFinLevel, a: Val, b: Val, x: Val, t: Val) =
+      VRigid(
+        HPrim(PPack),
+        SApp(
+          SApp(
+            SApp(
+              SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)),
+              b,
+              Impl(Unif)
+            ),
+            x,
+            Impl(Unif)
+          ),
+          t,
+          Expl
+        )
+      )
+    def unapply(
+        value: Val
+    ): Option[(VFinLevel, VFinLevel, Val, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PPack),
+              SApp(
+                SApp(
+                  SApp(
+                    SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)),
+                    b,
+                    Impl(Unif)
+                  ),
+                  x,
+                  Impl(Unif)
+                ),
+                t,
+                Expl
+              )
+            ) =>
+          Some((l, k, a, b, x, t))
+        case _ => None
