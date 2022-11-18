@@ -172,8 +172,11 @@ object Parser:
 
     private lazy val piSigmaParam: Parsley[PiSigmaParam] =
       ("<" *> some(bind) <* ">").map(Left.apply) <|>
+        attempt("{{" *> some(bind) <~> option(":" *> tm) <* "}}").map(
+          (xs, ty) => Right((xs, Impl(Inst), ty))
+        ) <|>
         ("{" *> some(bind) <~> option(":" *> tm) <* "}").map((xs, ty) =>
-          Right((xs, Impl, ty))
+          Right((xs, Impl(Unif), ty))
         ) <|>
         attempt("(" *> some(bind) <~> ":" *> tm <* ")").map((xs, ty) =>
           Right((xs, Expl, Some(ty)))
@@ -302,8 +305,11 @@ object Parser:
         Left((xs, Some(i)))
       ) <|>
         attempt(
+          "{{" *> some(bind) <~> option(":" *> tm) <~> "=" *> identOrOp <* "}}"
+        ).map { case ((xs, ty), y) => Right((xs, RArgNamed(y, Inst), ty)) } <|>
+        attempt(
           "{" *> some(bind) <~> option(":" *> tm) <~> "=" *> identOrOp <* "}"
-        ).map { case ((xs, ty), y) => Right((xs, RArgNamed(y), ty)) } <|>
+        ).map { case ((xs, ty), y) => Right((xs, RArgNamed(y, Unif), ty)) } <|>
         attempt(piSigmaParam).map {
           case Right((xs, i, ty)) =>
             Right((xs, RArgIcit(i), ty))
@@ -350,11 +356,19 @@ object Parser:
     private lazy val arg: Parsley[List[Arg]] =
       attempt("<" *> some(identOrOp) <~> "=" *> level <* ">").map((xs, l) =>
         xs.map(x => Left((l, Some(x))))
-      ) <|> ("<" *> level <* ">").map(l => List(Left((l, None))))
-        <|> attempt("{" *> some(identOrOp) <~> "=" *> tm <* "}").map((xs, t) =>
-          xs.map(x => Right((t, RArgNamed(x))))
-        ) <|> ("{" *> tm <* "}").map(t => List(Right((t, RArgIcit(Impl)))))
-        <|> projAtom.map(t => List(Right((t, RArgIcit(Expl)))))
+      ) <|>
+        ("<" *> level <* ">").map(l => List(Left((l, None)))) <|>
+        attempt("{{" *> some(identOrOp) <~> "=" *> tm <* "}}").map((xs, t) =>
+          xs.map(x => Right((t, RArgNamed(x, Inst))))
+        ) <|>
+        attempt("{{" *> tm <* "}}").map(t =>
+          List(Right((t, RArgIcit(Impl(Inst)))))
+        ) <|>
+        attempt("{" *> some(identOrOp) <~> "=" *> tm <* "}").map((xs, t) =>
+          xs.map(x => Right((t, RArgNamed(x, Unif))))
+        ) <|>
+        ("{" *> tm <* "}").map(t => List(Right((t, RArgIcit(Impl(Unif)))))) <|>
+        projAtom.map(t => List(Right((t, RArgIcit(Expl)))))
 
     private lazy val projAtom: Parsley[RTm] =
       positioned(

@@ -2,7 +2,7 @@ import Common.*
 
 object Presyntax:
   enum RArgInfo:
-    case RArgNamed(name: Name)
+    case RArgNamed(name: Name, impl: ImplMode)
     case RArgIcit(icit: Icit)
   export RArgInfo.*
 
@@ -213,20 +213,24 @@ object Presyntax:
       case RLet(x, None, v, b)    => s"(let $x = $v; $b)"
       case RSig(ps, ds) =>
         val pss: List[String] = ps.map {
-          case (x, None)                   => s"<$x>"
-          case (x, Some((Expl, None)))     => s"$x"
-          case (x, Some((Expl, Some(ty)))) => s"($x : $ty)"
-          case (x, Some((Impl, None)))     => s"$x"
-          case (x, Some((Impl, Some(ty)))) => s"{$x : $ty}"
+          case (x, None)                         => s"<$x>"
+          case (x, Some((Expl, None)))           => s"$x"
+          case (x, Some((Expl, Some(ty))))       => s"($x : $ty)"
+          case (x, Some((Impl(Unif), None)))     => s"{$x}"
+          case (x, Some((Impl(Unif), Some(ty)))) => s"{$x : $ty}"
+          case (x, Some((Impl(Inst), None)))     => s"{{$x}}"
+          case (x, Some((Impl(Inst), Some(ty)))) => s"{{$x : $ty}}"
         }
         s"(sig${if pss.isEmpty then "" else s" ${pss.mkString(" ")}"} { ${ds.mkString("; ")} })"
       case RMod(ps, ds) =>
         val pss: List[String] = ps.map {
-          case (x, None)                   => s"<$x>"
-          case (x, Some((Expl, None)))     => s"$x"
-          case (x, Some((Expl, Some(ty)))) => s"($x : $ty)"
-          case (x, Some((Impl, None)))     => s"$x"
-          case (x, Some((Impl, Some(ty)))) => s"{$x : $ty}"
+          case (x, None)                         => s"<$x>"
+          case (x, Some((Expl, None)))           => s"$x"
+          case (x, Some((Expl, Some(ty))))       => s"($x : $ty)"
+          case (x, Some((Impl(Unif), None)))     => s"{$x}"
+          case (x, Some((Impl(Unif), Some(ty)))) => s"{$x : $ty}"
+          case (x, Some((Impl(Inst), None)))     => s"{{$x}}"
+          case (x, Some((Impl(Inst), Some(ty)))) => s"{{$x : $ty}}"
         }
         s"(mod${if pss.isEmpty then "" else s" ${pss.mkString(" ")}"} { ${ds.mkString("; ")} })"
       case ROpen(t, None, Nil, b) => s"(open $t; $b)"
@@ -250,25 +254,33 @@ object Presyntax:
         s"(export (${ns
             .map((x, oy) => s"$x${oy.map(y => s" = $y").getOrElse("")}")
             .mkString(", ")}) hiding (${hiding.mkString(", ")}))"
-      case RLam(x, RArgIcit(Expl), Some(t), b) => s"(\\($x : $t). $b)"
-      case RLam(x, RArgIcit(Expl), None, b)    => s"(\\$x. $b)"
-      case RLam(x, RArgIcit(Impl), Some(t), b) => s"(\\{$x : $t}. $b)"
-      case RLam(x, RArgIcit(Impl), None, b)    => s"(\\{$x}. $b)"
-      case RLam(x, RArgNamed(y), Some(t), b)   => s"(\\{$x : $t = $y}. $b)"
-      case RLam(x, RArgNamed(y), None, b)      => s"(\\{$x = $y}. $b)"
-      case RApp(fn, arg, RArgIcit(Expl))       => s"($fn $arg)"
-      case RApp(fn, arg, RArgIcit(Impl))       => s"($fn {$arg})"
-      case RApp(fn, arg, RArgNamed(y))         => s"($fn {$y = $arg})"
-      case RPi(x, Expl, t, b)                  => s"(($x : $t) -> $b)"
-      case RPi(x, Impl, t, b)                  => s"({$x : $t} -> $b)"
-      case RPiLvl(x, b)                        => s"(<$x> -> $b)"
-      case RLamLvl(x, None, b)                 => s"(\\<$x>. $b)"
-      case RLamLvl(x, Some(y), b)              => s"(\\<$x = $y>. $b)"
-      case RAppLvl(l, r, None)                 => s"($l <$r>)"
-      case RAppLvl(l, r, Some(x))              => s"($l <$x = $r>)"
-      case RPair(fst, snd)                     => s"($fst, $snd)"
-      case RProj(tm, proj)                     => s"$tm$proj"
-      case RSigma(x, t, b)                     => s"(($x : $t) ** $b)"
-      case RPos(_, tm)                         => tm.toString
-      case RHole(x)                            => s"_${x.getOrElse("")}"
+      case RLam(x, RArgIcit(Expl), Some(t), b)       => s"(\\($x : $t). $b)"
+      case RLam(x, RArgIcit(Expl), None, b)          => s"(\\$x. $b)"
+      case RLam(x, RArgIcit(Impl(Unif)), Some(t), b) => s"(\\{$x : $t}. $b)"
+      case RLam(x, RArgIcit(Impl(Unif)), None, b)    => s"(\\{$x}. $b)"
+      case RLam(x, RArgIcit(Impl(Inst)), Some(t), b) => s"(\\{{$x : $t}}. $b)"
+      case RLam(x, RArgIcit(Impl(Inst)), None, b)    => s"(\\{{$x}}. $b)"
+      case RLam(x, RArgNamed(y, Unif), Some(t), b) => s"(\\{$x : $t = $y}. $b)"
+      case RLam(x, RArgNamed(y, Unif), None, b)    => s"(\\{$x = $y}. $b)"
+      case RLam(x, RArgNamed(y, Inst), Some(t), b) =>
+        s"(\\{{$x : $t = $y}}. $b)"
+      case RLam(x, RArgNamed(y, Inst), None, b) => s"(\\{{$x = $y}}. $b)"
+      case RApp(fn, arg, RArgIcit(Expl))        => s"($fn $arg)"
+      case RApp(fn, arg, RArgIcit(Impl(Unif)))  => s"($fn {$arg})"
+      case RApp(fn, arg, RArgIcit(Impl(Inst)))  => s"($fn {{$arg}})"
+      case RApp(fn, arg, RArgNamed(y, Unif))    => s"($fn {$y = $arg})"
+      case RApp(fn, arg, RArgNamed(y, Inst))    => s"($fn {{$y = $arg}})"
+      case RPi(x, Expl, t, b)                   => s"(($x : $t) -> $b)"
+      case RPi(x, Impl(Unif), t, b)             => s"({$x : $t} -> $b)"
+      case RPi(x, Impl(Inst), t, b)             => s"({{$x : $t}} -> $b)"
+      case RPiLvl(x, b)                         => s"(<$x> -> $b)"
+      case RLamLvl(x, None, b)                  => s"(\\<$x>. $b)"
+      case RLamLvl(x, Some(y), b)               => s"(\\<$x = $y>. $b)"
+      case RAppLvl(l, r, None)                  => s"($l <$r>)"
+      case RAppLvl(l, r, Some(x))               => s"($l <$x = $r>)"
+      case RPair(fst, snd)                      => s"($fst, $snd)"
+      case RProj(tm, proj)                      => s"$tm$proj"
+      case RSigma(x, t, b)                      => s"(($x : $t) ** $b)"
+      case RPos(_, tm)                          => tm.toString
+      case RHole(x)                             => s"_${x.getOrElse("")}"
   export RTm.*

@@ -78,18 +78,28 @@ object Elaboration:
     debug(s"newLMeta ?l$id")
     LInsertedMeta(id, ctx.levelPruning)
 
-  private enum InsertMode { case All; case LvlOnly; case NoLvl }
+  private enum InsertMode:
+    case All
+    case Until(i: ImplMode)
+    case NoLvl
+    def isUntil: Boolean = this match
+      case Until(_) => true
+      case _        => false
+    def isUntil(i: ImplMode): Boolean = this match
+      case Until(j) => i == j
+      case _        => false
   import InsertMode.*
   private def insertPi(inp: (Tm, VTy, VLevel), mode: InsertMode = All)(implicit
       ctx: Ctx
   ): (Tm, VTy, VLevel) =
     @tailrec
     def go(tm: Tm, ty: VTy, lv: VLevel): (Tm, VTy, VLevel) = force(ty) match
-      case VPi(x, Impl, a, u1, b, u2) if mode == All || mode == NoLvl =>
+      case VPi(x, Impl(i), a, u1, b, u2)
+          if mode == All || mode == NoLvl || !mode.isUntil(i) =>
         val m = newMeta(a, u1)
         val mv = ctx.eval(m)
-        go(App(tm, m, Impl), b.inst(mv), u2)
-      case VPiLvl(x, b, u) if mode == All || mode == LvlOnly =>
+        go(App(tm, m, Impl(i)), b.inst(mv), u2)
+      case VPiLvl(x, b, u) if mode == All || mode.isUntil =>
         val m = newLMeta
         val mv = ctx.eval(m)
         go(AppLvl(tm, m), b.inst(mv), u.inst(mv))
@@ -100,21 +110,21 @@ object Elaboration:
       ctx: Ctx
   ): (Tm, VTy, VLevel) =
     inp._1 match
-      case Lam(_, Impl, _) => inp
-      case LamLvl(_, _)    => inp
-      case _               => insertPi(inp)
+      case Lam(_, Impl(_), _) => inp
+      case LamLvl(_, _)       => inp
+      case _                  => insertPi(inp)
 
-  private def insertUntilName(x: Name, inp: (Tm, VTy, VLevel))(implicit
-      ctx: Ctx
+  private def insertUntilName(x: Name, impl: ImplMode, inp: (Tm, VTy, VLevel))(
+      implicit ctx: Ctx
   ): (Tm, VTy, VLevel) =
     def go(tm: Tm, ty: VTy, lv: VLevel): (Tm, VTy, VLevel) = force(ty) match
-      case VPi(y, Impl, a, u1, b, u2) =>
+      case VPi(y, Impl(i), a, u1, b, u2) =>
         y match
-          case DoBind(yy) if x == yy => (tm, ty, lv)
+          case DoBind(yy) if x == yy && i == impl => (tm, ty, lv)
           case _ =>
             val m = newMeta(a, u1)
             val mv = ctx.eval(m)
-            go(App(tm, m, Impl), b.inst(mv), u2)
+            go(App(tm, m, Impl(i)), b.inst(mv), u2)
       case VPiLvl(x, b, u) =>
         val m = newLMeta
         val mv = ctx.eval(m)
@@ -127,10 +137,10 @@ object Elaboration:
       ctx: Ctx
   ): (Tm, VTy, VLevel) =
     def go(tm: Tm, ty: VTy, lv: VLevel): (Tm, VTy, VLevel) = force(ty) match
-      case VPi(y, Impl, a, u1, b, u2) =>
+      case VPi(y, Impl(i), a, u1, b, u2) =>
         val m = newMeta(a, u1)
         val mv = ctx.eval(m)
-        go(App(tm, m, Impl), b.inst(mv), u2)
+        go(App(tm, m, Impl(i)), b.inst(mv), u2)
       case VPiLvl(y, b, u) =>
         y match
           case DoBind(yy) if x == yy => (tm, ty, lv)
@@ -388,10 +398,10 @@ object Elaboration:
     (builder(tm), vt, vl)
 
   private def icitMatch(i1: RArgInfo, b: Bind, i2: Icit): Boolean = i1 match
-    case RArgNamed(x) =>
-      b match
-        case DoBind(y) => x == y && i2 == Impl
-        case DontBind  => false
+    case RArgNamed(x, impl) =>
+      (b, i2) match
+        case (DoBind(y), Impl(i2)) => x == y && i2 == impl
+        case _                     => false
     case RArgIcit(i) => i == i2
 
   private def lvlNameMatch(ox: Option[Name], b: Bind): Boolean = ox match
@@ -497,7 +507,7 @@ object Elaboration:
           unify(VFL(ctx.eval(l)), lvE)
           Some(
             App(
-              App(AppLvl(Prim(PAbsurd), l), ctx.quote(ty), Impl),
+              App(AppLvl(Prim(PAbsurd), l), ctx.quote(ty), Impl(Unif)),
               tm,
               Expl
             )
@@ -516,7 +526,11 @@ object Elaboration:
           unify(ctx.eval(tm), x)
           Some(
             App(
-              App(AppLvl(Prim(PSingCon), ctx.quote(l)), ctx.quote(a), Impl),
+              App(
+                AppLvl(Prim(PSingCon), ctx.quote(l)),
+                ctx.quote(a),
+                Impl(Unif)
+              ),
               tm,
               Expl
             )
@@ -526,9 +540,13 @@ object Elaboration:
           Some(
             App(
               App(
-                App(AppLvl(Prim(PSingElim), ctx.quote(l)), ctx.quote(a), Impl),
+                App(
+                  AppLvl(Prim(PSingElim), ctx.quote(l)),
+                  ctx.quote(a),
+                  Impl(Unif)
+                ),
                 ctx.quote(x),
-                Impl
+                Impl(Unif)
               ),
               tm,
               Expl
@@ -550,7 +568,7 @@ object Elaboration:
               App(
                 AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
                 ctx.quote(a),
-                Impl
+                Impl(Unif)
               ),
               tm,
               Expl
@@ -563,7 +581,7 @@ object Elaboration:
               App(
                 AppLvl(AppLvl(Prim(PLower), ctx.quote(k)), ctx.quote(l)),
                 ctx.quote(a),
-                Impl
+                Impl(Unif)
               ),
               tm,
               Expl
@@ -595,7 +613,7 @@ object Elaboration:
         val v = VFinLevel.vr(ctx.lvl)
         val eb = check(b, rty.inst(v), u.inst(v))(ctx.bindLevel(x))
         LamLvl(x, eb)
-      case (RVar(x), VPi(_, Impl, _, _, _, _)) if hasMetaType(x) =>
+      case (RVar(x), VPi(_, Impl(_), _, _, _, _)) if hasMetaType(x) =>
         val Some((ix, Some((varty, lv1)))) = ctx.lookup(x): @unchecked
         unify(lv1, lv, varty, ty)
         Var(ix)
@@ -603,9 +621,9 @@ object Elaboration:
         val Some((ix, Some((varty, lv1)))) = ctx.lookup(x): @unchecked
         unify(lv1, lv, varty, ty)
         Var(ix)
-      case (tm, VPi(x, Impl, pty, u1, rty, u2)) =>
+      case (tm, VPi(x, Impl(i), pty, u1, rty, u2)) =>
         val etm = check(tm, ctx.inst(rty), u2)(ctx.bind(x, pty, u1, true))
-        Lam(x, Impl, etm)
+        Lam(x, Impl(i), etm)
       case (tm, VPiLvl(x, rty, u)) =>
         val v = VFinLevel.vr(ctx.lvl)
         val etm = check(tm, rty.inst(v), u.inst(v))(ctx.bindLevel(x, true))
@@ -716,12 +734,12 @@ object Elaboration:
         (PiLvl(x, eb, quote(l)(ctx.lvl + 1)), VType(VOmega), VOmega1)
       case RApp(f, a, i) =>
         val (icit, ef, fty, flv) = i match
-          case RArgNamed(x) =>
-            val (ef, fty, flv) = insertUntilName(x, infer(f))
-            (Impl, ef, fty, flv)
-          case RArgIcit(Impl) =>
-            val (ef, fty, lv) = insertPi(infer(f), LvlOnly)
-            (Impl, ef, fty, lv)
+          case RArgNamed(x, i) =>
+            val (ef, fty, flv) = insertUntilName(x, i, infer(f))
+            (Impl(i), ef, fty, flv)
+          case RArgIcit(Impl(i)) =>
+            val (ef, fty, lv) = insertPi(infer(f), Until(i))
+            (Impl(i), ef, fty, lv)
           case RArgIcit(Expl) =>
             val (ef, fty, lv) = insertPi(infer(f))
             (Expl, ef, fty, lv)
@@ -876,11 +894,13 @@ object Elaboration:
     val ums = unsolvedMetas()
     val ulms = unsolvedLMetas()
     if ums.nonEmpty || ulms.nonEmpty then
+      val unsolveduniverselevels =
+        s"\nunsolved universe level metas: ${ulms.map(id => s"?l$id").mkString(", ")}"
       throw UnsolvedMetasError(
         s"\n${ctx.pretty(etm)} : ${ctx.pretty(ety)} : ${ctx.pretty(el)}\n${ums
             .map((id, ty) => s"?$id : ${ctx.pretty(ty)}")
-            .mkString("\n")}\nunsolved universe level metas: ${ulms
-            .map(id => s"?l$id")
-            .mkString(", ")}"
+            .mkString("\n")}${
+            if ulms.isEmpty then "" else unsolveduniverselevels
+          }"
       )
     (etm, ety, el)

@@ -80,9 +80,14 @@ object Common:
     case DontBind  => DontBind
 
   // icits
+  enum ImplMode:
+    case Unif
+    case Inst
+  export ImplMode.*
+
   enum Icit:
     case Expl
-    case Impl
+    case Impl(impl: ImplMode)
   export Icit.*
 
   // pruning

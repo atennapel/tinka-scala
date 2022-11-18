@@ -58,7 +58,7 @@ object Unification:
                     dom + 1,
                     domvars + x,
                     ren + (x.expose, dom),
-                    Some(Impl) :: pr,
+                    Some(Impl(Unif)) :: pr,
                     isLinear
                   )
                 )
@@ -136,15 +136,21 @@ object Unification:
           case VFinLevelVar(x, 0) =>
             (pren.ren.get(x.expose), status) match
               case (Some(x), _) =>
-                ((Some(Left(LVar(x.toIx(pren.dom)))), Impl) :: sp2, status)
+                (
+                  (Some(Left(LVar(x.toIx(pren.dom)))), Impl(Unif)) :: sp2,
+                  status
+                )
               case (None, OKNonRenaming) =>
                 throw UnifyError("failed to prune")
-              case _ => ((None, Impl) :: sp2, NeedsPruning)
+              case _ => ((None, Impl(Unif)) :: sp2, NeedsPruning)
           case t =>
             status match
               case NeedsPruning => throw UnifyError("failed to prune")
               case _ =>
-                ((Some(Left(quote(t)(pren.dom))), Impl) :: sp2, OKNonRenaming)
+                (
+                  (Some(Left(quote(t)(pren.dom))), Impl(Unif)) :: sp2,
+                  OKNonRenaming
+                )
       case _ => impossible()
     val (sp2, status) = go(sp)
     val m2 = status match
@@ -278,7 +284,9 @@ object Unification:
       case (SAppLvl(sp, t), SAppLvl(sp2, t2)) =>
         (force(t), force(t2)) match
           case (VFinLevelVar(x, 0), VFinLevelVar(x2, 0)) =>
-            go(sp, sp2).map(pr => (if x == x2 then Some(Impl) else None) :: pr)
+            go(sp, sp2).map(pr =>
+              (if x == x2 then Some(Impl(Unif)) else None) :: pr
+            )
           case _ => None
       case (SProj(_, _), SProj(_, _)) => None
       case _                          => impossible()

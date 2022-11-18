@@ -184,12 +184,12 @@ object Value:
   def vpiE(x: String, ty: Val, u1: VLevel, u2: VLevel, fn: Val => Val): Val =
     VPi(bind(x), Expl, ty, u1, CFun(fn), u2)
   def vpiI(x: String, ty: Val, u1: VLevel, u2: VLevel, fn: Val => Val): Val =
-    VPi(bind(x), Impl, ty, u1, CFun(fn), u2)
+    VPi(bind(x), Impl(Unif), ty, u1, CFun(fn), u2)
   def vfun(ty: Val, u1: VLevel, u2: VLevel, rt: Val): Val =
     VPi(DontBind, Expl, ty, u1, CFun(_ => rt), u2)
   def vlam(x: String, fn: Val => Val): Val = VLam(bind(x), Expl, CFun(fn))
   def vlamI(x: String, fn: Val => Val): Val =
-    VLam(bind(x), Impl, CFun(fn))
+    VLam(bind(x), Impl(Unif), CFun(fn))
   def vlamlvl(x: String, body: VFinLevel => Val): Val =
     VLamLvl(bind(x), CFun(body))
   def vsigma(x: String, ty: Val, u1: VLevel, u2: VLevel, fn: Val => Val): Val =
@@ -262,13 +262,13 @@ object Value:
     def apply(k: VFinLevel, l: VFinLevel, a: Val, t: Val) =
       VRigid(
         HPrim(PLiftTerm),
-        SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl), t, Expl)
+        SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl(Unif)), t, Expl)
       )
     def unapply(value: Val): Option[(VFinLevel, VFinLevel, Val, Val)] =
       value match
         case VRigid(
               HPrim(PLiftTerm),
-              SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl), t, Expl)
+              SApp(SApp(SAppLvl(SAppLvl(SId, k), l), a, Impl(Unif)), t, Expl)
             ) =>
           Some((k, l, a, t))
         case _ => None
@@ -279,7 +279,11 @@ object Value:
         HPrim(PId),
         SApp(
           SApp(
-            SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl), b, Impl),
+            SApp(
+              SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)),
+              b,
+              Impl(Unif)
+            ),
             x,
             Expl
           ),
@@ -294,7 +298,11 @@ object Value:
             HPrim(PId),
             SApp(
               SApp(
-                SApp(SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl), b, Impl),
+                SApp(
+                  SApp(SAppLvl(SAppLvl(SId, l), k), a, Impl(Unif)),
+                  b,
+                  Impl(Unif)
+                ),
                 x,
                 Expl
               ),
@@ -310,7 +318,7 @@ object Value:
       VRigid(
         HPrim(PRefl),
         SApp(
-          SApp(SAppLvl(SId, l), a, Impl),
+          SApp(SAppLvl(SId, l), a, Impl(Unif)),
           x,
           Expl
         )
@@ -321,7 +329,7 @@ object Value:
       case VRigid(
             HPrim(PRefl),
             SApp(
-              SApp(SAppLvl(SId, l), a, Impl),
+              SApp(SAppLvl(SId, l), a, Impl(Unif)),
               x,
               Expl
             )
@@ -331,22 +339,25 @@ object Value:
 
   object VSing:
     def apply(l: VFinLevel, a: Val, x: Val) =
-      VRigid(HPrim(PSing), SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl))
+      VRigid(HPrim(PSing), SApp(SApp(SAppLvl(SId, l), a, Impl(Unif)), x, Expl))
     def unapply(value: Val): Option[(VFinLevel, Val, Val)] = value match
       case VRigid(
             HPrim(PSing),
-            SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl)
+            SApp(SApp(SAppLvl(SId, l), a, Impl(Unif)), x, Expl)
           ) =>
         Some((l, a, x))
       case _ => None
 
   object VSingCon:
     def apply(l: VFinLevel, a: Val, x: Val) =
-      VRigid(HPrim(PSingCon), SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl))
+      VRigid(
+        HPrim(PSingCon),
+        SApp(SApp(SAppLvl(SId, l), a, Impl(Unif)), x, Expl)
+      )
     def unapply(value: Val): Option[(VFinLevel, Val, Val)] = value match
       case VRigid(
             HPrim(PSingCon),
-            SApp(SApp(SAppLvl(SId, l), a, Impl), x, Expl)
+            SApp(SApp(SAppLvl(SId, l), a, Impl(Unif)), x, Expl)
           ) =>
         Some((l, a, x))
       case _ => None

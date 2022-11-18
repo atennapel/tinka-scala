@@ -138,7 +138,7 @@ object Evaluation:
                     x =>
                       vprimelim(
                         PLower,
-                        List(Left(k), Left(l), Right((a, Impl))),
+                        List(Left(k), Left(l), Right((a, Impl(Unif)))),
                         x
                       )
                   )
@@ -162,7 +162,11 @@ object Evaluation:
                     s =>
                       vprimelim(
                         PSingElim,
-                        List(Left(l), Right((a, Impl)), Right((x, Impl))),
+                        List(
+                          Left(l),
+                          Right((a, Impl(Unif))),
+                          Right((x, Impl(Unif)))
+                        ),
                         s
                       )
                   )
@@ -178,7 +182,8 @@ object Evaluation:
             a =>
               vlam(
                 "v",
-                v => vprimelim(PAbsurd, List(Left(l), Right((a, Impl))), v)
+                v =>
+                  vprimelim(PAbsurd, List(Left(l), Right((a, Impl(Unif)))), v)
               )
           )
       )
@@ -243,11 +248,11 @@ object Evaluation:
                                         List(
                                           Left(k),
                                           Left(l),
-                                          Right((a, Impl)),
-                                          Right((x, Impl)),
+                                          Right((a, Impl(Unif))),
+                                          Right((x, Impl(Unif))),
                                           Right((p, Expl)),
                                           Right((refl, Expl)),
-                                          Right((y, Impl))
+                                          Right((y, Impl(Unif)))
                                         ),
                                         pp
                                       )
