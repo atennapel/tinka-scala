@@ -55,6 +55,8 @@ object Common:
 
     def expose: String = x
 
+    def isInstance: Boolean = x.startsWith("instance") && x.size > 8
+
   enum Bind:
     case DontBind
     case DoBind(name: Name)
@@ -70,6 +72,10 @@ object Common:
     def toSet: Set[Name] = this match
       case DontBind  => Set.empty
       case DoBind(x) => Set(x)
+
+    def isInstance: Boolean = this match
+      case DoBind(x) => x.isInstance
+      case _         => false
   export Bind.*
 
   @tailrec

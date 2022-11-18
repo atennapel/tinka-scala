@@ -87,30 +87,47 @@ object Elaboration:
       cur = instances.filterNot(tryInstance)
       i += 1
 
+  private def containsMeta(sp: Spine): Boolean = sp match
+    case SId => false
+    case SApp(s, arg, _) =>
+      force(arg) match
+        case VFlex(_, _) => true
+        case _           => containsMeta(s)
+    case SAppLvl(s, _)  => containsMeta(s)
+    case SProj(s, _)    => containsMeta(s)
+    case SPrim(s, _, _) => containsMeta(s)
+
   private def tryInstance(e: InstanceEntry): Boolean = returning {
     e match
       case InstanceEntry(ctx_, ty, lv, placeholder) =>
         implicit val ctx = ctx_
-        force(ty) match
-          case VFlex(_, _) => false
+        debug(s"tryInstance ${ctx.pretty(ty)} : ${ctx.pretty(lv)}")
+        force(ty, UnfoldMetas) match
+          case VFlex(_, _)                           => false
+          case VGlobal(_, sp, _) if containsMeta(sp) => false
           case VUnitType() =>
             unify(placeholder, VUnit())
             true
           case _ =>
-            debug(s"tryInstance ${ctx.pretty(ty)} : ${ctx.pretty(lv)}")
-            for ((x, k, oty) <- ctx.types) do
+            debug(
+              s"tryInstance do not skip ${ctx.pretty(ty)} : ${ctx.pretty(lv)}"
+            )
+            for ((x, k, oty) <- ctx.types.filter((x, _, _) => x.isInstance)) do
               oty match
                 case None =>
                 case Some((xty, xlv)) =>
+                  debug(s"try local $x")
+                  val (tm, xty2, xlv2) =
+                    insertPi((Var(k.toIx(ctx.lvl)), xty, xlv))
                   debug(
-                    s"try local $x : ${ctx.pretty(xty)} : ${ctx.pretty(xlv)}"
+                    s"try local $x : ${ctx.pretty(xty2)} : ${ctx.pretty(xlv2)}"
                   )
                   storeMetas()
                   try
-                    unify0(xlv, lv)(ctx.lvl)
-                    unify0(xty, ty)(ctx.lvl)
+                    unify0(xlv2, lv)(ctx.lvl)
+                    unify0(xty2, ty)(ctx.lvl)
                     debug(s"matched local $x")
-                    val value = ctx.valueAt(k).get
+                    val value = ctx.eval(tm)
                     debug(s"set placeholder ${ctx.pretty(placeholder)} to ${ctx
                         .pretty(value)}")
                     unify0(placeholder, value)(ctx.lvl)

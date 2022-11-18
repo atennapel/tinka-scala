@@ -42,7 +42,7 @@ sbt "run lib/bool.tinka"
     - [x] Open in signatures
 - [ ] Instance parameters
   - [x] Simple instance search
-  - [ ] Recursive instance search
+  - [x] Recursive instance search
   - [ ] Retry on meta solving
 - [ ] Inductive types (descriptions)
 - [ ] Erasure

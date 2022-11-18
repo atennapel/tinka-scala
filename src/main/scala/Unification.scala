@@ -417,20 +417,8 @@ object Unification:
         unifyClosLvl(b1, b2); unify(u1, u2)
 
       case (VLam(_, _, b1), VLam(_, _, b2)) => unify(b1, b2)
-      case (VLam(_, i, b), v) =>
-        val w = VVar(l); unify(b.inst(w), vapp(v, w, i))(l + 1)
-      case (v, VLam(_, i, b)) =>
-        val w = VVar(l); unify(vapp(v, w, i), b.inst(w))(l + 1)
-
       case (VLamLvl(_, b1), VLamLvl(_, b2)) => unifyClosLvl(b1, b2)
-      case (VLamLvl(_, b), w) =>
-        val v = VFinLevel.vr(l); unify(b.inst(v), vapp(w, v))(l + 1)
-      case (w, VLamLvl(_, b)) =>
-        val v = VFinLevel.vr(l); unify(vapp(w, v), b.inst(v))(l + 1)
-
-      case (VPair(a1, b1), VPair(a2, b2)) => unify(a1, a2); unify(b1, b2)
-      case (VPair(a, b), v) => unify(a, vproj(v, Fst)); unify(b, vproj(v, Snd))
-      case (v, VPair(a, b)) => unify(vproj(v, Fst), a); unify(vproj(v, Snd), b)
+      case (VPair(a1, b1), VPair(a2, b2))   => unify(a1, a2); unify(b1, b2)
 
       case (VRigid(h1, s1), VRigid(h2, s2)) if h1 == h2 => unify(s1, s2)
 
@@ -439,6 +427,19 @@ object Unification:
         else flexFlex(m1, sp1, m2, sp2)
       case (VFlex(m, sp), v) => solve(m, sp, v)
       case (v, VFlex(m, sp)) => solve(m, sp, v)
+
+      case (VLam(_, i, b), v) =>
+        val w = VVar(l); unify(b.inst(w), vapp(v, w, i))(l + 1)
+      case (v, VLam(_, i, b)) =>
+        val w = VVar(l); unify(vapp(v, w, i), b.inst(w))(l + 1)
+
+      case (VLamLvl(_, b), w) =>
+        val v = VFinLevel.vr(l); unify(b.inst(v), vapp(w, v))(l + 1)
+      case (w, VLamLvl(_, b)) =>
+        val v = VFinLevel.vr(l); unify(vapp(w, v), b.inst(v))(l + 1)
+
+      case (VPair(a, b), v) => unify(a, vproj(v, Fst)); unify(b, vproj(v, Snd))
+      case (v, VPair(a, b)) => unify(vproj(v, Fst), a); unify(vproj(v, Snd), b)
 
       case (VGlobal(uri1, sp1, v1), VGlobal(uri2, sp2, v2)) if uri1 == uri2 =>
         try unify(sp1, sp2)

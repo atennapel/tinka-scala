@@ -14,7 +14,7 @@ import scala.io.Source
 import parsley.io.given
 
 @main def run(filename: String): Unit =
-  setDebug(false)
+  setDebug(true)
   implicit val ctx: Ctx = Ctx.empty((0, 0), Some(filename))
   try
     val ptime = System.nanoTime
