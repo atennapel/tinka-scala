@@ -1,0 +1,11 @@
+open #lib/enum (case);
+
+mod {
+  Void2 = Tag ENil;
+
+  elimVoid <k> (P : Void2 -> Type k) (x : Void2) : P x =
+    case x P;
+  
+  absurd <k> {A : Type k} (x : Void2) : A =
+    elimVoid (\_. A) x; 
+}

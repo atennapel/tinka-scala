@@ -1,0 +1,13 @@
+mod {
+  private Case <k> {e : Enum} : Tag e -> Type (S k) =
+    elimEnum (\e. Tag e -> Type (S k))
+      (\t. (P : Tag ENil -> Type k) -> P t)
+      (\hd tl ind t. (P : Tag (ECons hd tl) -> Type k) -> P TZ -> ((y : _) -> P (TS y)) -> P t)
+      e;
+
+  case <k> {e : Enum} (t : Tag e) : Case <k> t =
+    elimTag (Case <k>)
+      (\{l} {e'} P z s. z)
+      (\{l} {e'} t' _ P z s. s t')
+      t;
+}

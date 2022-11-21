@@ -54,7 +54,7 @@ object Evaluation:
       args: List[Either[VFinLevel, (Val, Icit)]],
       v: Val
   ): Val =
-    (x, v, args) match
+    (x, force(v), args) match
       // lower <k> <l> {A} (lift <k> <l> {A} t) ~> t
       case (PLower, VLiftTerm(_, _, _, t), _) => t
 

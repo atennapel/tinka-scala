@@ -327,7 +327,7 @@ object Value:
         SApp(
           SApp(SAppLvl(SId, l), a, Impl(Unif)),
           x,
-          Expl
+          Impl(Unif)
         )
       )
     def unapply(
@@ -338,7 +338,7 @@ object Value:
             SApp(
               SApp(SAppLvl(SId, l), a, Impl(Unif)),
               x,
-              Expl
+              Impl(Unif)
             )
           ) =>
         Some((l, a, x))
@@ -472,12 +472,12 @@ object Value:
   object VTS:
     def apply(l: Val, e: Val, t: Val) =
       VRigid(
-        HPrim(PTZ),
+        HPrim(PTS),
         SApp(SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif)), t, Expl)
       )
     def unapply(value: Val): Option[(Val, Val, Val)] = value match
       case VRigid(
-            HPrim(PTZ),
+            HPrim(PTS),
             SApp(SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif)), t, Expl)
           ) =>
         Some((l, e, t))

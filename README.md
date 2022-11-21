@@ -46,6 +46,11 @@ sbt "run lib/bool.tinka"
   - [x] Labels
   - [x] Enums
   - [x] Tags
+  - [ ] Syntax for enums
+  - [ ] Syntax for n-ary tag elimination
+  - [ ] Replace Bool with Tag
+  - [ ] Check if Void and Unit can be replaced by Tag
+  - [ ] Display labels instead of Tag inhabitants if possible
   - [ ] Descriptions
 - [ ] Instance parameters
   - [x] Simple instance search
