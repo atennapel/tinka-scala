@@ -1,4 +1,4 @@
-open #lib/enum (case);
+open #lib/enum (dcase);
 open #lib/void (Void, elimVoid);
 open #lib/id;
 
@@ -7,10 +7,8 @@ mod {
   True : Bool = 'True;
   False : Bool = 'False;
 
-  private elimBoolFalse <k> (P : '[False] -> Type k) (f : P 'False) (x : '[False]) : P x =
-    case x P f (elimVoid (\y. P (TS y)));
   elimBool <k> (P : Bool -> Type k) (t : P True) (f : P False) (b : Bool) : P b
-    = case b P t (elimBoolFalse (\y. P (TS y)) f);
+    = dcase P b [t, f];
 
   if_ <l> {A : Type l} (b : Bool) (t : A) (f : A) : A = elimBool (\_. A) t f b;
   if-ind_ <l> (P : Bool -> Type l) (b : Bool) (t : P True) (f : P False) : P b = elimBool P t f b;

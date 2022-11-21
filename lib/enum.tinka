@@ -1,13 +1,25 @@
 mod {
-  private Case <k> {e : Enum} : Tag e -> Type (S k) =
-    elimEnum (\e. Tag e -> Type (S k))
-      (\t. (P : Tag ENil -> Type k) -> P t)
-      (\hd tl ind t. (P : Tag (ECons hd tl) -> Type k) -> P TZ -> ((y : _) -> P (TS y)) -> P t)
-      e;
+  caseEnum <k> {A : Type k} (e : Enum) (nil : A) (cons : Label -> Enum -> A) : A =
+    elimEnum (\_. A) nil (\hd tl _. cons hd tl) e;
+  
+  recEnum <k> {A : Type k} (e : Enum) (nil : A) (cons : Label -> Enum -> A -> A) : A =
+    elimEnum (\_. A) nil (\hd tl ind. cons hd tl ind) e;
 
-  case <k> {e : Enum} (t : Tag e) : Case <k> t =
-    elimTag (Case <k>)
-      (\{l} {e'} P z s. z)
-      (\{l} {e'} t' _ P z s. s t')
-      t;
+  private caseF <k> (E : Enum) : (P : Tag E -> Type k) -> Type k =
+    elimEnum (\E. (P : Tag E -> Type k) -> Type k)
+      (\P. Lift <k> ())
+      (\_ _ ind P. P TZ ** ind (\x. P (TS x)))
+      E;
+
+  private dcase0 <k> {E : Enum} (x : Tag E) : (P : Tag E -> Type k) -> (p : caseF E P) -> P x =
+    elimTag (\{E} x. (P : Tag E -> Type k) -> (p : caseF E P) -> P x)
+      (\P b. b.1)
+      (\_ ind P b. ind (\x. P (TS x)) b.2)
+      x;
+
+  dcase <k> {E : Enum} (P : Tag E -> Type k) (x : Tag E) (p : caseF E P) : P x =
+    dcase0 x P p;
+
+  case <k> {A : Type k} {E : Enum} (x : Tag E) (p : caseF E (\_. A)) : A =
+    dcase (\_. A) x p;
 }

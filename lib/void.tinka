@@ -1,10 +1,10 @@
-open #lib/enum (case);
+open #lib/enum (dcase);
 
 mod {
   Void = '[];
 
   elimVoid <k> (P : Void -> Type k) (x : Void) : P x =
-    case x P;
+    dcase P x [];
   
   absurd <k> {A : Type k} (x : Void) : A =
     elimVoid (\_. A) x; 
