@@ -80,6 +80,16 @@ object Evaluation:
           ) =>
         refl
 
+      // elimEnum <k> P nil cons ENil ~> nil
+      case (PElimEnum, VENil(), List(_, _, Right((nil, _)), _)) => nil
+      // elimEnum <k> P nil cons (ECons hd tl) ~> cons hd tl (\e. elimEnum <k> P nil cons e)
+      case (PElimEnum, VECons(hd, tl), List(_, _, _, Right((cons, _)))) =>
+        vapp(
+          vapp(vapp(cons, hd, Expl), tl, Expl),
+          vlam("e", e => vprimelim(PElimEnum, args, e)),
+          Expl
+        )
+
       case (_, VRigid(hd, sp), _) => VRigid(hd, SPrim(sp, x, args))
       case (_, VFlex(hd, sp), _)  => VFlex(hd, SPrim(sp, x, args))
       case (_, VGlobal(uri, sp, v), _) =>
@@ -329,6 +339,37 @@ object Evaluation:
                                       )
                                   )
                               )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimEnum =>
+      vlamlvl(
+        "k",
+        k =>
+          vlam(
+            "P",
+            p =>
+              vlam(
+                "nil",
+                nil =>
+                  vlam(
+                    "cons",
+                    cons =>
+                      vlam(
+                        "e",
+                        e =>
+                          vprimelim(
+                            PElimEnum,
+                            List(
+                              Left(k),
+                              Right((p, Expl)),
+                              Right((nil, Expl)),
+                              Right((cons, Expl))
+                            ),
+                            e
                           )
                       )
                   )

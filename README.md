@@ -44,7 +44,7 @@ sbt "run lib/bool.tinka"
 - [x] Zonking
 - [ ] Inductive types (descriptions)
   - [x] Labels
-  - [ ] Enums
+  - [x] Enums
   - [ ] Tags
   - [ ] Descriptions
 - [ ] Instance parameters

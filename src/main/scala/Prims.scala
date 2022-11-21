@@ -53,3 +53,9 @@ object Prims:
       "<l k> {A : Type l} {B : A -> Type k} {x : A} -> Newtype {A} B x -> B x"
 
     case PLabel => "Type"
+
+    case PEnum  => "Type"
+    case PENil  => "Enum"
+    case PECons => "Label -> Enum -> Enum"
+    case PElimEnum =>
+      "<k> (P : Enum -> Type k) -> (nil : P ENil) -> (cons : (hd : Label) -> (tl : Enum) -> P tl -> P (ECons hd tl)) -> (e : Enum) -> P e"

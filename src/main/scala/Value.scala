@@ -432,3 +432,23 @@ object Value:
             ) =>
           Some((l, k, a, b, x, t))
         case _ => None
+
+  object VEnum:
+    def apply() = VRigid(HPrim(PEnum), SId)
+    def unapply(value: Val): Boolean = value match
+      case VRigid(HPrim(PEnum), SId) => true
+      case _                         => false
+
+  object VENil:
+    def apply() = VRigid(HPrim(PENil), SId)
+    def unapply(value: Val): Boolean = value match
+      case VRigid(HPrim(PENil), SId) => true
+      case _                         => false
+
+  object VECons:
+    def apply(hd: Val, tl: Val) =
+      VRigid(HPrim(PECons), SApp(SApp(SId, hd, Expl), tl, Expl))
+    def unapply(value: Val): Option[(Val, Val)] = value match
+      case VRigid(HPrim(PECons), SApp(SApp(SId, hd, Expl), tl, Expl)) =>
+        Some((hd, tl))
+      case _ => None
