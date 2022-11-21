@@ -41,7 +41,7 @@ sbt "run lib/bool.tinka"
     - [x] Signature parameters
     - [x] Private definitions
     - [x] Open in signatures
-- [ ] Zonking
+- [x] Zonking
 - [ ] Inductive types (descriptions)
   - [x] Labels
   - [ ] Enums

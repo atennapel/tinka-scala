@@ -372,8 +372,13 @@ object Evaluation:
     case LMeta(id)  => vlmeta(id)
     case LInsertedMeta(id, sp) =>
       getLMeta(id) match
-        case LUnsolved       => VFinLevelMeta(id, 0, vlinsertedmetaspine(sp))
-        case LSolved(dom, v) => eval(quote(v)(dom))(vlspine(sp))
+        case LUnsolved => VFinLevelMeta(id, 0, vlinsertedmetaspine(sp))
+        case LSolved(dom, v) =>
+          try eval(quote(v)(dom))(vlspine(sp))
+          catch
+            case e =>
+              println(s"===$env $sp===")
+              throw e
 
   def eval(l: Level)(implicit env: Env): VLevel = l match
     case LOmega       => VOmega
@@ -518,6 +523,12 @@ object Evaluation:
           quote(b.inst(VVar(l)), unfold)(l + 1),
           quote(u2)
         )
+
+  def nf(t: FinLevel)(implicit l: Lvl, env: Env): FinLevel =
+    quote(eval(t))
+
+  def nf(t: Level)(implicit l: Lvl, env: Env): Level =
+    quote(eval(t))
 
   def nf(tm: Tm)(implicit l: Lvl = lvl0, env: Env = EEmpty): Tm =
     quote(eval(tm), UnfoldAll)

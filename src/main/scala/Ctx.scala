@@ -3,6 +3,7 @@ import Syntax.*
 import Value.*
 import Evaluation.{eval as eval0, quote as quote0, inst}
 import Pretty.{pretty as pretty0}
+import Zonking.{zonk as zonk0}
 import scala.annotation.tailrec
 
 type Types = List[(Name, Lvl, Option[(VTy, VLevel)])]
@@ -82,9 +83,13 @@ final case class Ctx(
   def close[A](v: Val): Clos[A] = Clos(quote0(v)(lvl + 1))(env)
   def inst(c: Clos[Val]): Val = c.inst(VVar(lvl))
 
-  def pretty(tm: Tm): String = pretty0(tm)(names)
-  def pretty(tm: Level): String = pretty0(tm)(names)
-  def pretty(tm: FinLevel): String = pretty0(tm)(names)
+  def zonk(t: Tm): Tm = zonk0(t)(lvl, env)
+  def zonk(t: Level): Level = zonk0(t)(lvl, env)
+  def zonk(t: FinLevel): FinLevel = zonk0(t)(lvl, env)
+
+  def pretty(tm: Tm): String = pretty0(zonk(tm))(names)
+  def pretty(tm: Level): String = pretty0(zonk(tm))(names)
+  def pretty(tm: FinLevel): String = pretty0(zonk(tm))(names)
   def pretty(v: Val): String = pretty(quote(v))
   def pretty(v: VLevel): String = pretty(quote(v))
   def pretty(v: VFinLevel): String = pretty(quote(v))

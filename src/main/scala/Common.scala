@@ -26,6 +26,7 @@ object Common:
   extension (l: Lvl)
     @targetName("addLvl")
     inline def +(o: Int): Lvl = l + o
+    inline def -(o: Int): Lvl = l - o
     @targetName("exposeLvl")
     inline def expose: Int = l
     inline def toIx(implicit k: Lvl): Ix = k - l - 1

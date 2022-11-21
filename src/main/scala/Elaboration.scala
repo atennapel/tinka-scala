@@ -1048,10 +1048,11 @@ object Elaboration:
       .mkString("\n\n")
 
   def elaborate(tm: RTm)(implicit ctx: Ctx): (Tm, Ty, Level) =
-    // resetMetas() TODO: zonking
+    resetMetas()
     holes.clear()
-    val (etm, vty, lv) = infer(tm)
+    val (etm_, vty, lv) = infer(tm)
     solveAllInstances()
+    val etm = ctx.zonk(etm_)
     debug(etm)
     val ety = ctx.quote(vty)
     debug(ety)
