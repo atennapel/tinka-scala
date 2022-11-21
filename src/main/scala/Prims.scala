@@ -59,3 +59,12 @@ object Prims:
     case PECons => "Label -> Enum -> Enum"
     case PElimEnum =>
       "<k> (P : Enum -> Type k) -> (nil : P ENil) -> (cons : (hd : Label) -> (tl : Enum) -> P tl -> P (ECons hd tl)) -> (e : Enum) -> P e"
+
+    case PTag => "Enum -> Type"
+    case PTZ  => "{l : Label} {e : Enum} -> Tag (ECons l e)"
+    case PTS  => "{l : Label} {e : Enum} -> Tag e -> Tag (ECons l e)"
+    case PElimTag =>
+      """<k> (P : {e : Enum} -> (t : Tag e) -> Type k) ->
+         (z : {l : Label} {e : Enum} -> P {ECons l e} (TZ {l} {e})) ->
+         (s : {l : Label} {e : Enum} (t : Tag e) -> P {e} t -> P {ECons l e} (TS {l} {e} t)) ->
+         {e : Enum} -> (t : Tag e) -> P {e} t"""

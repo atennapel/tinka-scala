@@ -809,6 +809,19 @@ object Elaboration:
           tm,
           Expl
         )
+      case (RLabelLit(l), VTag(VECons(VLabelLit(k), e))) if l == k =>
+        App(App(Prim(PTZ), LabelLit(l), Impl(Unif)), ctx.quote(e), Impl(Unif))
+      case (RLabelLit(l), VTag(VECons(VLabelLit(k), e))) if l != k =>
+        val etm = check(tm, VTag(e), lv)
+        App(
+          App(
+            App(Prim(PTS), LabelLit(k), Impl(Unif)),
+            ctx.quote(e),
+            Impl(Unif)
+          ),
+          etm,
+          Expl
+        )
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
         coe(etm, ty2, lv2, ty, lv)

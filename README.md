@@ -45,7 +45,7 @@ sbt "run lib/bool.tinka"
 - [ ] Inductive types (descriptions)
   - [x] Labels
   - [x] Enums
-  - [ ] Tags
+  - [x] Tags
   - [ ] Descriptions
 - [ ] Instance parameters
   - [x] Simple instance search

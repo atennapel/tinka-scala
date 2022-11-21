@@ -82,11 +82,22 @@ object Evaluation:
 
       // elimEnum <k> P nil cons ENil ~> nil
       case (PElimEnum, VENil(), List(_, _, Right((nil, _)), _)) => nil
-      // elimEnum <k> P nil cons (ECons hd tl) ~> cons hd tl (\e. elimEnum <k> P nil cons e)
+      // elimEnum <k> P nil cons (ECons hd tl) ~> cons hd tl (elimEnum <k> P nil cons tl)
       case (PElimEnum, VECons(hd, tl), List(_, _, _, Right((cons, _)))) =>
         vapp(
           vapp(vapp(cons, hd, Expl), tl, Expl),
-          vlam("e", e => vprimelim(PElimEnum, args, e)),
+          vprimelim(PElimEnum, args, tl),
+          Expl
+        )
+
+      // elimTag <k> P z s {_} (TZ {l} {e}) ~> z {l} {e}
+      case (PElimTag, VTZ(l, e), List(_, _, Right((z, _)), _, _)) =>
+        vapp(vapp(z, l, Impl(Unif)), e, Impl(Unif))
+      // elimTag <k> P z s {_} (TS {l} {e} t) ~> s {l} {e} t (elimTag <k> P z s {e} t)
+      case (PElimTag, VTS(l, e, t), List(_, _, _, Right((s, _)), _)) =>
+        vapp(
+          vapp(vapp(vapp(s, l, Impl(Unif)), e, Impl(Unif)), t, Expl),
+          vprimelim(PElimTag, args.init ++ List(Right((e, Impl(Unif)))), t),
           Expl
         )
 
@@ -370,6 +381,42 @@ object Evaluation:
                               Right((cons, Expl))
                             ),
                             e
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimTag =>
+      vlamlvl(
+        "k",
+        k =>
+          vlam(
+            "P",
+            p =>
+              vlam(
+                "z",
+                z =>
+                  vlam(
+                    "s",
+                    s =>
+                      vlamI(
+                        "e",
+                        e =>
+                          vlam(
+                            "t",
+                            t =>
+                              vprimelim(
+                                PElimTag,
+                                List(
+                                  Left(k),
+                                  Right((p, Expl)),
+                                  Right((z, Expl)),
+                                  Right((s, Expl)),
+                                  Right((e, Impl(Unif)))
+                                ),
+                                t
+                              )
                           )
                       )
                   )

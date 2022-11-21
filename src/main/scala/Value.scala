@@ -452,3 +452,33 @@ object Value:
       case VRigid(HPrim(PECons), SApp(SApp(SId, hd, Expl), tl, Expl)) =>
         Some((hd, tl))
       case _ => None
+
+  object VTag:
+    def apply(e: Val) =
+      VRigid(HPrim(PTag), SApp(SId, e, Expl))
+    def unapply(value: Val): Option[Val] = value match
+      case VRigid(HPrim(PTag), SApp(SId, e, Expl)) =>
+        Some(e)
+      case _ => None
+
+  object VTZ:
+    def apply(l: Val, e: Val) =
+      VRigid(HPrim(PTZ), SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif)))
+    def unapply(value: Val): Option[(Val, Val)] = value match
+      case VRigid(HPrim(PTZ), SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif))) =>
+        Some((l, e))
+      case _ => None
+
+  object VTS:
+    def apply(l: Val, e: Val, t: Val) =
+      VRigid(
+        HPrim(PTZ),
+        SApp(SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif)), t, Expl)
+      )
+    def unapply(value: Val): Option[(Val, Val, Val)] = value match
+      case VRigid(
+            HPrim(PTZ),
+            SApp(SApp(SApp(SId, l, Impl(Unif)), e, Impl(Unif)), t, Expl)
+          ) =>
+        Some((l, e, t))
+      case _ => None
