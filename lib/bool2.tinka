@@ -2,16 +2,10 @@ open #lib/enum (case);
 open #lib/void (elimVoid);
 
 mod {
-  private UnitE = ECons 'False ENil;
-  private Unit2 = Tag UnitE;
-  private unit2 : Unit2 = 'False;
-  private elimUnit2 <k> (P : Unit2 -> Type k) (f : P unit2) (x : Unit2) : P x =
-    case x P f (elimVoid (\y. P (TS y)));
-
-  Bool2 = Tag (ECons 'True (ECons 'False ENil));
+  Bool2 = '[True, False];
   True2 : Bool2 = 'True;
   False2 : Bool2 = 'False;
 
   elimBool2 <k> (P : Bool2 -> Type k) (t : P True2) (f : P False2) (b : Bool2) : P b
-    = case b P t (elimUnit2 (\y. P (TS y)) f);
+    = case b P t (\x. case x (\y. P (TS y)) f (elimVoid (\y. P (TS y))));
 }

@@ -1,7 +1,7 @@
 open #lib/enum (case);
 
 mod {
-  Void2 = Tag ENil;
+  Void2 = '[];
 
   elimVoid <k> (P : Void2 -> Type k) (x : Void2) : P x =
     case x P;

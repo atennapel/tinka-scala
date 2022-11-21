@@ -104,9 +104,25 @@ object Parser:
     private lazy val holeP: Parsley[RTm] =
       ("_" *> option(ident)).map(x => x.fold(hole)(x => RHole(Some(x))))
 
+    private val enil: RTm = RVar(Name("ENil"))
+    private val econsC: RTm = RVar(Name("ECons"))
+    private def econs(hd: RTm, tl: RTm): RTm =
+      RApp(RApp(econsC, hd, RArgIcit(Expl)), tl, RArgIcit(Expl))
+    private val tag: RTm = RVar(Name("Tag"))
+
     private lazy val atom: Parsley[RTm] = positioned(
-      ("(" *> (userOp
-        .map(RVar.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
+      attempt("'" *> "(" *> sepEndBy(identOrOp, ",") <* ")").map(ns =>
+        ns.foldRight[RTm](enil)((x, r) => econs(RLabelLit(x), r))
+      ) <|>
+        attempt("'" *> "[" *> sepEndBy(identOrOp, ",") <* "]").map(ns =>
+          RApp(
+            tag,
+            ns.foldRight[RTm](enil)((x, r) => econs(RLabelLit(x), r)),
+            RArgIcit(Expl)
+          )
+        ) <|>
+        ("(" *> (userOp
+          .map(RVar.apply) <|> sepEndBy(tm, ",").map(mkPair)) <* ")") <|>
         attempt(uri).map(RGlobal.apply) <|>
         (option("#").map(_.isDefined) <~> "[" *> sepEndBy(tm, ",") <* "]")
           .map(mkUnitPair) <|>
