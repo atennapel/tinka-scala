@@ -11,14 +11,14 @@ mod {
       (\_ _ ind P. P TZ ** ind (\x. P (TS x)))
       E;
 
-  private dcase0 <k> {E : Enum} (x : Tag E) : (P : Tag E -> Type k) -> (p : caseF E P) -> P x =
+  switch <k> {E : Enum} (x : Tag E) : (P : Tag E -> Type k) -> (p : caseF E P) -> P x =
     elimTag (\{E} x. (P : Tag E -> Type k) -> (p : caseF E P) -> P x)
       (\P b. b.1)
       (\_ ind P b. ind (\x. P (TS x)) b.2)
       x;
 
   dcase <k> {E : Enum} (P : Tag E -> Type k) (x : Tag E) (p : caseF E P) : P x =
-    dcase0 x P p;
+    switch x P p;
 
   case <k> {A : Type k} {E : Enum} (x : Tag E) (p : caseF E (\_. A)) : A =
     dcase (\_. A) x p;
