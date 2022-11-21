@@ -41,11 +41,16 @@ sbt "run lib/bool.tinka"
     - [x] Signature parameters
     - [x] Private definitions
     - [x] Open in signatures
+- [ ] Zonking
+- [ ] Inductive types (descriptions)
+  - [x] Labels
+  - [ ] Enums
+  - [ ] Tags
+  - [ ] Descriptions
 - [ ] Instance parameters
   - [x] Simple instance search
-  - [x] Recursive instance search
+  - [ ] Recursive instance search
   - [ ] Retry on meta solving
-- [ ] Inductive types (descriptions)
 - [ ] Erasure
 - [ ] Local gluing
 - [ ] Keep track of inserted terms, hide in output

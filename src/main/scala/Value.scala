@@ -160,6 +160,7 @@ object Value:
     case VRigid(hd: Head, spine: Spine)
     case VFlex(hd: MetaId, spine: Spine)
     case VGlobal(uri: String, spine: Spine, value: () => Val)
+    case VLabelLit(name: Name)
 
     case VLam(bind: Bind, icit: Icit, body: Clos[Val])
     case VPi(
@@ -213,6 +214,12 @@ object Value:
     def unapply(value: Val): Option[(PrimName, Spine)] = value match
       case VRigid(HPrim(x), spine) => Some((x, spine))
       case _                       => None
+
+  object VLabel:
+    def apply() = VRigid(HPrim(PLabel), SId)
+    def unapply(value: Val): Boolean = value match
+      case VRigid(HPrim(PLabel), SId) => true
+      case _                          => false
 
   object VUnitType:
     def apply() = VRigid(HPrim(PUnitType), SId)

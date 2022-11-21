@@ -214,6 +214,7 @@ object Unification:
           case Some(y) if x == y => throw UnifyError(s"occurs check failed ?$x")
           case _                 => pruneFlex(x, sp)
       case VGlobal(x, sp, _) => goSp(Global(x), sp)
+      case VLabelLit(x)      => LabelLit(x)
       case VType(l)          => Type(rename(l))
       case VPair(fst, snd)   => Pair(go(fst), go(snd))
       case VLam(bind, icit, body) =>
@@ -414,7 +415,8 @@ object Unification:
   def unify(a: Val, b: Val)(implicit l: Lvl): Unit =
     debug(s"unify ${quote(a)} ~ ${quote(b)}")
     (force(a, UnfoldMetas), force(b, UnfoldMetas)) match
-      case (VType(u1), VType(u2)) => unify(u1, u2)
+      case (VType(u1), VType(u2))                 => unify(u1, u2)
+      case (VLabelLit(x), VLabelLit(y)) if x == y => ()
 
       case (VPi(_, i1, t1, u11, b1, u12), VPi(_, i2, t2, u21, b2, u22))
           if i1 == i2 =>

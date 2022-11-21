@@ -390,6 +390,7 @@ object Evaluation:
         case Some(e) =>
           val value = e.value
           VGlobal(uri, SId, () => value)
+    case LabelLit(x) => VLabelLit(x)
 
     case Let(_, _, v, b) => eval(b)(EVal(env, eval(v)))
 
@@ -489,6 +490,7 @@ object Evaluation:
       case VRigid(hd, sp)    => quote(quote(hd), sp, unfold)
       case VFlex(id, sp)     => quote(Meta(id), sp, unfold)
       case VGlobal(x, sp, v) => quote(Global(x), sp, unfold)
+      case VLabelLit(x)      => LabelLit(x)
 
       case VLam(x, i, b) => Lam(x, i, quote(b.inst(VVar(l)), unfold)(l + 1))
       case VPi(x, i, t, u1, b, u2) =>

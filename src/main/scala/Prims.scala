@@ -51,3 +51,5 @@ object Prims:
       "<l k> {A : Type l} {B : A -> Type k} {x : A} -> B x -> Newtype {A} B x"
     case PUnpack =>
       "<l k> {A : Type l} {B : A -> Type k} {x : A} -> Newtype {A} B x -> B x"
+
+    case PLabel => "Type"

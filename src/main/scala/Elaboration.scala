@@ -856,6 +856,7 @@ object Elaboration:
     if !tm.isPos then debug(s"infer $tm")
     tm match
       case RPos(pos, tm) => infer(tm)(ctx.enter(pos))
+      case RLabelLit(x)  => (LabelLit(x), VLabel(), VLevel.unit)
       case RType(l) =>
         val el = infer(l)
         val vl = ctx.eval(el)

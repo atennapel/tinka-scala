@@ -112,8 +112,10 @@ object Parser:
           .map(mkUnitPair) <|>
         holeP <|>
         attempt("Type" *> levelAtom).map(RType.apply) <|>
-        "Type" #> RType(RLZ) <|> nat
-        <|> ident.map(RVar.apply)
+        "Type" #> RType(RLZ) <|> nat <|>
+        attempt("'" *> ident).map(RLabelLit.apply) <|>
+        "'" *> userOp.map(RLabelLit.apply) <|>
+        ident.map(RVar.apply)
     )
 
     private val unittype = RVar(Name("()"))

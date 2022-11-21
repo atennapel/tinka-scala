@@ -69,6 +69,7 @@ object Pretty:
     case Var(_)              => pretty(tm)
     case Global(_)           => pretty(tm)
     case Prim(_)             => pretty(tm)
+    case LabelLit(_)         => pretty(tm)
     case Type(LFinLevel(LZ)) => pretty(tm)
     case Type(_) if app      => pretty(tm)
     case Pair(_, _)          => pretty(tm)
@@ -99,6 +100,7 @@ object Pretty:
     case Var(ix)             => ns(ix.expose).toString
     case Prim(name)          => s"$name"
     case Global(x)           => s"#$x"
+    case LabelLit(x)         => s"'$x"
     case Type(LFinLevel(LZ)) => "Type"
     case Type(l)             => s"Type ${pretty(l)}"
 

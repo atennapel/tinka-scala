@@ -124,6 +124,7 @@ object Presyntax:
     case RType(lvl: RLevel)
     case RVar(name: Name)
     case RGlobal(uri: String)
+    case RLabelLit(name: Name)
 
     case RLet(name: Name, ty: Option[RTy], value: RTm, body: RTm)
     case ROpen(
@@ -205,6 +206,7 @@ object Presyntax:
     override def toString: String = this match
       case RType(RLZ)             => "Type"
       case RType(lvl)             => s"Type $lvl"
+      case RLabelLit(x)           => s"'$x"
       case RVar(Name("()"))       => "()"
       case RVar(Name("[]"))       => "[]"
       case RVar(x)                => s"$x"
