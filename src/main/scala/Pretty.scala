@@ -66,19 +66,20 @@ object Pretty:
   private def prettyParen(tm: Tm, app: Boolean = false)(implicit
       ns: List[Name]
   ): String = tm match
-    case Var(_)              => pretty(tm)
-    case Global(_)           => pretty(tm)
-    case Prim(_)             => pretty(tm)
-    case LabelLit(_)         => pretty(tm)
-    case Type(LFinLevel(LZ)) => pretty(tm)
-    case Type(_) if app      => pretty(tm)
-    case Pair(_, _)          => pretty(tm)
-    case Proj(_, _)          => pretty(tm)
-    case Meta(_)             => pretty(tm)
-    case AppPruning(_, _)    => pretty(tm)
-    case App(_, _, _) if app => pretty(tm)
-    case Wk(tm)              => prettyParen(tm, app)(ns.tail)
-    case _                   => s"(${pretty(tm)})"
+    case Var(_)                                 => pretty(tm)
+    case Global(_)                              => pretty(tm)
+    case Prim(_)                                => pretty(tm)
+    case LabelLit(_)                            => pretty(tm)
+    case Type(LFinLevel(LZ))                    => pretty(tm)
+    case Type(_) if app                         => pretty(tm)
+    case Pair(_, _)                             => pretty(tm)
+    case Proj(_, _)                             => pretty(tm)
+    case Meta(_)                                => pretty(tm)
+    case AppPruning(_, _)                       => pretty(tm)
+    case App(_, _, _) if app                    => pretty(tm)
+    case App(_, _, _) if tryLabel(tm).isDefined => pretty(tm)
+    case Wk(tm)                                 => prettyParen(tm, app)(ns.tail)
+    case _                                      => s"(${pretty(tm)})"
 
   private def prettyApp(tm: Tm)(implicit ns: List[Name]): String = tm match
     case App(fn, arg, Expl)       => s"${prettyApp(fn)} ${prettyParen(arg)}"
@@ -96,6 +97,11 @@ object Pretty:
   private def prettyLift(x: Name, tm: Tm)(implicit ns: List[Name]): String =
     pretty(tm)(x :: ns)
 
+  private def tryLabel(t: Tm): Option[Name] = t match
+    case App(App(App(Prim(PTS), _, _), _, _), rest, _) => tryLabel(rest)
+    case App(App(Prim(PTZ), LabelLit(l), _), _, _)     => Some(l)
+    case _                                             => None
+
   def pretty(tm: Tm)(implicit ns: List[Name]): String = tm match
     case Var(ix)             => ns(ix.expose).toString
     case Prim(name)          => s"$name"
@@ -108,10 +114,11 @@ object Pretty:
       val x = fresh(x0)
       s"let $x : ${pretty(t)} = ${pretty(v)}; ${prettyLift(x, b)}"
 
-    case App(_, _, _)         => prettyApp(tm)
-    case AppLvl(_, _)         => prettyApp(tm)
-    case Lam(_, _, _)         => prettyLam(tm)
-    case LamLvl(_, _)         => prettyLam(tm)
+    case App(_, _, _) => tryLabel(tm).map(x => s"'$x").getOrElse(prettyApp(tm))
+    case AppLvl(_, _) => prettyApp(tm)
+    case Lam(_, _, _) => prettyLam(tm)
+    case LamLvl(_, _) => prettyLam(tm)
+
     case Pi(_, _, _, _, _, _) => prettyPi(tm)
     case PiLvl(_, _, _)       => prettyPi(tm)
     case Sigma(_, _, _, _, _) => prettySigma(tm)

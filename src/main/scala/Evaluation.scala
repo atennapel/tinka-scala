@@ -117,7 +117,7 @@ object Evaluation:
     case LSolved(_, v) => v // TODO: will this work?
     case LUnsolved     => VFinLevel.meta(id)
 
-  private def vliftterm(k: VFinLevel, l: VFinLevel, a: VTy, x: Val): Val =
+  def vliftterm(k: VFinLevel, l: VFinLevel, a: VTy, x: Val): Val =
     x match
       case VRigid(hd, SPrim(sp, PLower, args)) => VRigid(hd, sp)
       case VFlex(hd, SPrim(sp, PLower, args))  => VFlex(hd, sp)

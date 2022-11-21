@@ -165,6 +165,11 @@ object Presyntax:
       case RPos(_, _) => true
       case _          => false
 
+    def isPairOrUnit: Boolean = this match
+      case RPair(_, _)      => true
+      case RVar(Name("[]")) => true
+      case _                => false
+
     def globals: Set[String] = this match
       case RGlobal(uri) => Set(uri)
       case RLet(_, t, v, b) =>

@@ -722,6 +722,65 @@ object Elaboration:
           None
     go(tm, ty, lv, tyE, lvE).getOrElse(tm)
 
+  private def vcaseF(k: VFinLevel, e: Val): Val =
+    vprimelim(
+      PElimEnum,
+      List(
+        Left(k),
+        Right(
+          (
+            vlam(
+              "E",
+              e =>
+                vpiE(
+                  "P",
+                  vfun(VTag(e), VLevel.unit, VFL(k).inc, VType(VFL(k))),
+                  VFL(k).inc,
+                  VFL(k).inc,
+                  _ => VType(VFL(k))
+                )
+            ),
+            Expl
+          )
+        ),
+        Right((vlam("_", _ => VLift(k, VFinLevel.unit, VUnitType())), Expl)),
+        Right(
+          (
+            vlam(
+              "l",
+              l =>
+                vlam(
+                  "e",
+                  e =>
+                    vlam(
+                      "ind",
+                      ind =>
+                        vlam(
+                          "P",
+                          p =>
+                            vsigma(
+                              "_",
+                              vapp(p, VTZ(l, e), Expl),
+                              VFL(k),
+                              VFL(k),
+                              _ =>
+                                vapp(
+                                  ind,
+                                  vlam("x", x => vapp(p, VTS(l, e, x), Expl)),
+                                  Expl
+                                )
+                            )
+                        )
+                    )
+                )
+            ),
+            Expl
+          )
+        )
+      ),
+      e
+    )
+
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
     (tm, force(ty)) match
