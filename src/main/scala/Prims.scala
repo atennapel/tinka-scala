@@ -13,17 +13,8 @@ object Prims:
   def getPrimType(x: PrimName): (VTy, VLevel) = primTypes(x)
 
   def primTypeScript(x: PrimName): String = x match
-    case PVoid   => "Type"
-    case PAbsurd => "<l> {A : Type l} -> Void -> A"
-
     case PUnitType => "Type"
     case PUnit     => "()"
-
-    case PBool  => "Type"
-    case PTrue  => "Bool"
-    case PFalse => "Bool"
-    case PElimBool =>
-      "<l> (P : Bool -> Type l) -> P True -> P False -> (b : Bool) -> P b"
 
     case PLift     => "<k l> -> Type l -> Type (max l k)"
     case PLiftTerm => "<k l> {A : Type l} -> A -> Lift <k> <l> A"

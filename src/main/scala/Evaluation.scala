@@ -67,11 +67,6 @@ object Evaluation:
       // unpack <l k> {A} {B} {x} (pack <l k> {A} {B} {x} t) ~> t
       case (PUnpack, VPack(_, _, _, _, _, t), _) => t
 
-      // elimBool <l> P t f True ~> t
-      case (PElimBool, VTrue(), List(_, _, Right((t, _)), _)) => t
-      // elimBool <l> P t f False ~> f
-      case (PElimBool, VFalse(), List(_, _, _, Right((f, _)))) => f
-
       // elimId <k> <l> {A} {x} P refl {y} (Refl <l> {A} {y}) ~> refl
       case (
             PElimId,
@@ -259,51 +254,6 @@ object Evaluation:
                                 ),
                                 n
                               )
-                          )
-                      )
-                  )
-              )
-          )
-      )
-    case PAbsurd =>
-      vlamlvl(
-        "l",
-        l =>
-          vlamI(
-            "A",
-            a =>
-              vlam(
-                "v",
-                v =>
-                  vprimelim(PAbsurd, List(Left(l), Right((a, Impl(Unif)))), v)
-              )
-          )
-      )
-    case PElimBool =>
-      vlamlvl(
-        "l",
-        l =>
-          vlam(
-            "P",
-            p =>
-              vlam(
-                "t",
-                t =>
-                  vlam(
-                    "f",
-                    f =>
-                      vlam(
-                        "b",
-                        b =>
-                          vprimelim(
-                            PElimBool,
-                            List(
-                              Left(l),
-                              Right((p, Expl)),
-                              Right((t, Expl)),
-                              Right((f, Expl))
-                            ),
-                            b
                           )
                       )
                   )

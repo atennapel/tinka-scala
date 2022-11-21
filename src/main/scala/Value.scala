@@ -233,30 +233,6 @@ object Value:
       case VRigid(HPrim(PUnit), SId) => true
       case _                         => false
 
-  object VVoid:
-    def apply() = VRigid(HPrim(PVoid), SId)
-    def unapply(value: Val): Boolean = value match
-      case VRigid(HPrim(PVoid), SId) => true
-      case _                         => false
-
-  object VBool:
-    def apply() = VRigid(HPrim(PBool), SId)
-    def unapply(value: Val): Boolean = value match
-      case VRigid(HPrim(PBool), SId) => true
-      case _                         => false
-
-  object VTrue:
-    def apply() = VRigid(HPrim(PTrue), SId)
-    def unapply(value: Val): Boolean = value match
-      case VRigid(HPrim(PTrue), SId) => true
-      case _                         => false
-
-  object VFalse:
-    def apply() = VRigid(HPrim(PFalse), SId)
-    def unapply(value: Val): Boolean = value match
-      case VRigid(HPrim(PFalse), SId) => true
-      case _                          => false
-
   object VLift:
     def apply(k: VFinLevel, l: VFinLevel, a: Val) =
       VRigid(HPrim(PLift), SApp(SAppLvl(SAppLvl(SId, k), l), a, Expl))

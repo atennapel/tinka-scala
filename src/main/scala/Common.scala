@@ -110,16 +110,8 @@ object Common:
     case PLiftTerm
     case PLower
 
-    case PVoid
-    case PAbsurd
-
     case PUnitType
     case PUnit
-
-    case PBool
-    case PTrue
-    case PFalse
-    case PElimBool
 
     case PId
     case PRefl
@@ -151,12 +143,6 @@ object Common:
       case PLift     => "Lift"
       case PLiftTerm => "lift"
       case PLower    => "lower"
-      case PBool     => "Bool"
-      case PTrue     => "True"
-      case PFalse    => "False"
-      case PElimBool => "elimBool"
-      case PVoid     => "Void"
-      case PAbsurd   => "absurd"
       case PId       => "Id"
       case PRefl     => "Refl"
       case PElimId   => "elimId"
@@ -183,12 +169,6 @@ object Common:
       case "Lift"     => Some(PLift)
       case "lift"     => Some(PLiftTerm)
       case "lower"    => Some(PLower)
-      case "Bool"     => Some(PBool)
-      case "True"     => Some(PTrue)
-      case "False"    => Some(PFalse)
-      case "elimBool" => Some(PElimBool)
-      case "Void"     => Some(PVoid)
-      case "absurd"   => Some(PAbsurd)
       case "Id"       => Some(PId)
       case "Refl"     => Some(PRefl)
       case "elimId"   => Some(PElimId)

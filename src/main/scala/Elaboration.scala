@@ -591,22 +591,6 @@ object Elaboration:
             case (Some(fst), None)      => Some(Pair(fst, Proj(tm, Snd)))
             case (None, Some(snd))      => Some(Pair(Proj(tm, Fst), snd))
             case (Some(fst), Some(snd)) => Some(Pair(fst, snd))
-        case (VVoid(), VVoid()) =>
-          unify(lv, lvE, ty, tyE)
-          None
-        case (VVoid(), VFlex(_, _)) =>
-          unify(lv, lvE, ty, tyE)
-          None
-        case (VVoid(), ty) =>
-          val l = newLMeta
-          unify(VFL(ctx.eval(l)), lvE)
-          Some(
-            App(
-              App(AppLvl(Prim(PAbsurd), l), ctx.quote(ty), Impl(Unif)),
-              tm,
-              Expl
-            )
-          )
         case (VNewtype(_, _, _, _, _), VNewtype(_, _, _, _, _)) =>
           unify(lv, lvE, ty, tyE)
           None

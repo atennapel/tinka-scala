@@ -1,3 +1,5 @@
+open #lib/void (Void);
+
 mod {
   (~) <l> {A : Type l} (x y : A) : Type = Id {A} {A} x y;
   (!~) <l> {A : Type l} (x y : A) : Type = x ~ y -> Void;
