@@ -137,6 +137,14 @@ object Common:
     case PTS
     case PElimTag
 
+    case PDesc
+    case PEnd
+    case PRec
+    case PRef
+    case PArg
+
+    case PData
+
     override def toString: String = this match
       case PUnitType => "()"
       case PUnit     => "[]"
@@ -161,6 +169,12 @@ object Common:
       case PTZ       => "TZ"
       case PTS       => "TS"
       case PElimTag  => "elimTag"
+      case PDesc     => "Desc"
+      case PEnd      => "End"
+      case PRec      => "Rec"
+      case PRef      => "Ref"
+      case PArg      => "Arg"
+      case PData     => "Data"
   export PrimName.*
   object PrimName:
     def apply(x: Name): Option[PrimName] = x.expose match
@@ -187,4 +201,10 @@ object Common:
       case "TZ"       => Some(PTZ)
       case "TS"       => Some(PTS)
       case "elimTag"  => Some(PElimTag)
+      case "Desc"     => Some(PDesc)
+      case "End"      => Some(PEnd)
+      case "Rec"      => Some(PRec)
+      case "Ref"      => Some(PRef)
+      case "Arg"      => Some(PArg)
+      case "Data"     => Some(PData)
       case _          => None

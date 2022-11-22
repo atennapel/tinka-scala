@@ -59,3 +59,15 @@ object Prims:
          (z : {l : Label} {e : Enum} -> P {ECons l e} (TZ {l} {e})) ->
          (s : {l : Label} {e : Enum} (t : Tag e) -> P {e} t -> P {ECons l e} (TS {l} {e} t)) ->
          {e : Enum} -> (t : Tag e) -> P {e} t"""
+
+    case PDesc => "<l> (I : Type l) -> (I -> Type l) -> Type (S l)"
+    case PEnd => "<l> {I : Type l} {O : I -> Type l} (i : I) -> O i -> Desc I O"
+    case PRec =>
+      "<l> {I : Type l} {O : I -> Type l} (i : I) -> (O i -> Desc I O) -> Desc I O"
+    case PRef =>
+      "<l> {I : Type l} {O : I -> Type l} (A : Type l) (i : A -> I) -> (((a : A) -> O (i a)) -> Desc I O) -> Desc I O"
+    case PArg =>
+      "<l> {I : Type l} {O : I -> Type l} (A : Type l) -> (A -> Desc I O) -> Desc I O"
+
+    case PData =>
+      "<l> {I : Type l} {O : I -> Type l} (D : Desc I O) (i : I) -> Type l"
