@@ -458,3 +458,149 @@ object Value:
           ) =>
         Some((l, e, t))
       case _ => None
+
+  object VDesc:
+    def apply(l: VFinLevel, i: Val, o: Val) =
+      VRigid(
+        HPrim(PDesc),
+        SApp(SApp(SAppLvl(SId, l), i, Expl), o, Expl)
+      )
+    def unapply(value: Val): Option[(VFinLevel, Val, Val)] = value match
+      case VRigid(
+            HPrim(PDesc),
+            SApp(SApp(SAppLvl(SId, l), i, Expl), o, Expl)
+          ) =>
+        Some((l, i, o))
+      case _ => None
+
+  object VEnd:
+    def apply(l: VFinLevel, i: Val, o: Val, ii: Val, oo: Val) =
+      VRigid(
+        HPrim(PEnd),
+        SApp(
+          SApp(
+            SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+            ii,
+            Expl
+          ),
+          oo,
+          Expl
+        )
+      )
+    def unapply(value: Val): Option[(VFinLevel, Val, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PEnd),
+              SApp(
+                SApp(
+                  SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+                  ii,
+                  Expl
+                ),
+                oo,
+                Expl
+              )
+            ) =>
+          Some((l, i, o, ii, oo))
+        case _ => None
+
+  object VRec:
+    def apply(l: VFinLevel, i: Val, o: Val, ii: Val, oo: Val) =
+      VRigid(
+        HPrim(PRec),
+        SApp(
+          SApp(
+            SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+            ii,
+            Expl
+          ),
+          oo,
+          Expl
+        )
+      )
+    def unapply(value: Val): Option[(VFinLevel, Val, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PRec),
+              SApp(
+                SApp(
+                  SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+                  ii,
+                  Expl
+                ),
+                oo,
+                Expl
+              )
+            ) =>
+          Some((l, i, o, ii, oo))
+        case _ => None
+
+  object VRef:
+    def apply(l: VFinLevel, i: Val, o: Val, a: Val, ii: Val, k: Val) =
+      VRigid(
+        HPrim(PRef),
+        SApp(
+          SApp(
+            SApp(
+              SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+              a,
+              Expl
+            ),
+            ii,
+            Expl
+          ),
+          k,
+          Expl
+        )
+      )
+    def unapply(value: Val): Option[(VFinLevel, Val, Val, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PRef),
+              SApp(
+                SApp(
+                  SApp(
+                    SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+                    a,
+                    Expl
+                  ),
+                  ii,
+                  Expl
+                ),
+                k,
+                Expl
+              )
+            ) =>
+          Some((l, i, o, a, ii, k))
+        case _ => None
+
+  object VArg:
+    def apply(l: VFinLevel, i: Val, o: Val, a: Val, k: Val) =
+      VRigid(
+        HPrim(PArg),
+        SApp(
+          SApp(
+            SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+            a,
+            Expl
+          ),
+          k,
+          Expl
+        )
+      )
+    def unapply(value: Val): Option[(VFinLevel, Val, Val, Val, Val)] =
+      value match
+        case VRigid(
+              HPrim(PArg),
+              SApp(
+                SApp(
+                  SApp(SApp(SAppLvl(SId, l), i, Impl(Unif)), o, Impl(Unif)),
+                  a,
+                  Expl
+                ),
+                k,
+                Expl
+              )
+            ) =>
+          Some((l, i, o, a, k))
+        case _ => None

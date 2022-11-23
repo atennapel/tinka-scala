@@ -1,0 +1,17 @@
+open #lib/enum;
+
+mod {
+  El <l> {I : Type l} {O : I -> Type l} (D : Desc I O) (X : I -> Type l) (Y : {i} -> X i -> O i) (i : I) : Type l =
+    elimDesc <S l> <l> (\_. Type l)
+      (\j o. Lift (Id j i))
+      (\j _ ind. (x : X j) ** ind (Y x))
+      (\A j _ ind. (f : (a : A) -> X (j a)) ** ind (\a. Y (f a)))
+      (\A _ ind. (a : A) ** ind a)
+      D;
+
+  Case <l> {I : Type l} {O : I -> Type l} (E : Enum) (cs : cases E (\_. Desc I O)) : Desc I O
+    = Arg (Lift <l> (Tag E)) \t. case t cs;
+
+  IDesc <l> {I : Type l} = Desc <l> I (\_. Lift ());
+  RDesc <l> {O : Type l} = Desc <l> (Lift ()) (\_. O);
+}

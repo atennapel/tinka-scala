@@ -49,7 +49,10 @@ sbt "run lib/bool.tinka"
   - [x] Syntax for enums
   - [x] Replace Void and Bool with Tag
   - [x] Display labels instead of Tag inhabitants if possible
-  - [ ] Descriptions
+  - [x] Descriptions
+  - [ ] Data and Con
+  - [ ] Elaboration support for Con
+- [ ] Top-level gluing
 - [ ] Instance parameters
   - [x] Simple instance search
   - [ ] Recursive instance search

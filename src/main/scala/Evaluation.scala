@@ -96,6 +96,47 @@ object Evaluation:
           Expl
         )
 
+      // elimDesc <k> <l> {I} {O} P end rec ref arg (End <l> {I} {O} i o) ~> end i o
+      case (
+            PElimDesc,
+            VEnd(l, i, o, ii, oo),
+            List(_, _, _, _, _, Right((end, _)), _, _, _)
+          ) =>
+        vapp(vapp(end, ii, Expl), oo, Expl)
+      // elimDesc <k> <l> {I} {O} P end rec ref arg (Rec <l> {I} {O} i k) ~> rec i k (\o. elimDesc <k> <l> P end rec ref arg (k o))
+      case (
+            PElimDesc,
+            VRec(l, i, o, ii, k),
+            List(_, _, _, _, _, _, Right((rec, _)), _, _)
+          ) =>
+        vapp(
+          vapp(vapp(rec, ii, Expl), k, Expl),
+          vlam("o", o => vprimelim(PElimDesc, args, vapp(k, o, Expl))),
+          Expl
+        )
+      // elimDesc <k> <l> {I} {O}P end rec ref arg (Ref <l> {I} {O} a i k) ~> ref a i k (\f. elimDesc <k> <l> P end rec ref arg (k f))
+      case (
+            PElimDesc,
+            VRef(l, i, o, a, ii, k),
+            List(_, _, _, _, _, _, _, Right((ref, _)), _)
+          ) =>
+        vapp(
+          vapp(vapp(vapp(ref, a, Expl), ii, Expl), k, Expl),
+          vlam("f", f => vprimelim(PElimDesc, args, vapp(k, f, Expl))),
+          Expl
+        )
+      // elimDesc <k> <l> {I} {O} P end rec ref arg (Arg <l> {I} {O} a k) ~> arg a k (\a. elimDesc <k> <l> P end rec ref arg (k a))
+      case (
+            PElimDesc,
+            VArg(l, i, o, a, k),
+            List(_, _, _, _, _, _, _, _, Right((arg, _)))
+          ) =>
+        vapp(
+          vapp(vapp(arg, a, Expl), k, Expl),
+          vlam("a", a => vprimelim(PElimDesc, args, vapp(k, a, Expl))),
+          Expl
+        )
+
       case (_, VRigid(hd, sp), _) => VRigid(hd, SPrim(sp, x, args))
       case (_, VFlex(hd, sp), _)  => VFlex(hd, SPrim(sp, x, args))
       case (_, VGlobal(uri, sp, v), _) =>
@@ -366,6 +407,62 @@ object Evaluation:
                                   Right((e, Impl(Unif)))
                                 ),
                                 t
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      )
+    case PElimDesc =>
+      vlamlvl(
+        "k",
+        k =>
+          vlamlvl(
+            "l",
+            l =>
+              vlamI(
+                "I",
+                i =>
+                  vlamI(
+                    "O",
+                    o =>
+                      vlam(
+                        "P",
+                        p =>
+                          vlam(
+                            "end",
+                            e =>
+                              vlam(
+                                "rec",
+                                rec =>
+                                  vlam(
+                                    "ref",
+                                    ref =>
+                                      vlam(
+                                        "arg",
+                                        arg =>
+                                          vlam(
+                                            "d",
+                                            d =>
+                                              vprimelim(
+                                                PElimDesc,
+                                                List(
+                                                  Left(k),
+                                                  Left(l),
+                                                  Right((i, Impl(Unif))),
+                                                  Right((o, Impl(Unif))),
+                                                  Right((p, Expl)),
+                                                  Right((e, Expl)),
+                                                  Right((rec, Expl)),
+                                                  Right((ref, Expl)),
+                                                  Right((arg, Expl))
+                                                ),
+                                                d
+                                              )
+                                          )
+                                      )
+                                  )
                               )
                           )
                       )

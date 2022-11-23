@@ -142,6 +142,7 @@ object Common:
     case PRec
     case PRef
     case PArg
+    case PElimDesc
 
     case PData
 
@@ -174,6 +175,7 @@ object Common:
       case PRec      => "Rec"
       case PRef      => "Ref"
       case PArg      => "Arg"
+      case PElimDesc => "elimDesc"
       case PData     => "Data"
   export PrimName.*
   object PrimName:
@@ -206,5 +208,6 @@ object Common:
       case "Rec"      => Some(PRec)
       case "Ref"      => Some(PRef)
       case "Arg"      => Some(PArg)
+      case "elimDesc" => Some(PElimDesc)
       case "Data"     => Some(PData)
       case _          => None

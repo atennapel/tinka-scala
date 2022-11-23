@@ -1,0 +1,29 @@
+-- non-indexed, non-inductive-recursive datatypes
+open #lib/enum (cases);
+open #lib/desc;
+
+mod {
+  SDesc = Desc <0> () (\_. ());
+
+  SEl (D : SDesc) X = El <0> {()} {\_. ()} D (\_. X) (\_. []) [];
+
+  SCase (E : Enum) (cs : cases E (\_. SDesc)) : SDesc
+    = Case <0> {()} {\_. ()} E cs;
+  SEnd : SDesc = End {()} {\_. ()} [] [];
+  SRec (D : SDesc) : SDesc = Rec {()} {\_. ()} [] (\_. D);
+  SArg (A : Type) (K : A -> SDesc) : SDesc = Arg {()} {\_. ()} A K;
+  
+  SData (D : SDesc) : Type = Data D [];
+
+  -- testing
+  private NatD = SCase '(Z, S) [SEnd, SRec SEnd];
+  private Nat = SData NatD;
+
+  private ListD A = SCase '(Nil, Cons) [SEnd, SArg A (\_. SRec SEnd)]; 
+  private List A = SData (ListD A);
+
+  private N X = SEl NatD X;
+
+  private Z {X} : N X = ['Z];
+  private S {X} (n : X) : N X = ['S, n];
+}

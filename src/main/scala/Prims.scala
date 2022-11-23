@@ -68,6 +68,13 @@ object Prims:
       "<l> {I : Type l} {O : I -> Type l} (A : Type l) (i : A -> I) -> (((a : A) -> O (i a)) -> Desc I O) -> Desc I O"
     case PArg =>
       "<l> {I : Type l} {O : I -> Type l} (A : Type l) -> (A -> Desc I O) -> Desc I O"
+    case PElimDesc =>
+      """<k l> {I : Type l} {O : I -> Type l} (P : Desc I O -> Type k)
+         (end : (i : I) (o : O i) -> P (End <l> {I} {O} i o))
+         (rec : (i : I) (k : O i -> Desc I O) (ind : (o : O i) -> P (k o)) -> P (Rec <l> {I} {O} i k))
+         (ref : (A : Type l) (i : A -> I) (k : ((a : A) -> O (i a)) -> Desc I O) (ind : (f : (a : A) -> O (i a)) -> P (k f)) -> P (Ref <l> {I} {O} A i k))
+         (arg : (A : Type l) (k : A -> Desc I O) (ind : (a : A) -> P (k a)) -> P (Arg <l> {I} {O} A k))
+         (d : Desc I O) -> P d"""
 
     case PData =>
       "<l> {I : Type l} {O : I -> Type l} (D : Desc I O) (i : I) -> Type l"

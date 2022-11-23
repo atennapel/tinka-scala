@@ -722,64 +722,10 @@ object Elaboration:
           None
     go(tm, ty, lv, tyE, lvE).getOrElse(tm)
 
-  private def vcaseF(k: VFinLevel, e: Val): Val =
-    vprimelim(
-      PElimEnum,
-      List(
-        Left(k),
-        Right(
-          (
-            vlam(
-              "E",
-              e =>
-                vpiE(
-                  "P",
-                  vfun(VTag(e), VLevel.unit, VFL(k).inc, VType(VFL(k))),
-                  VFL(k).inc,
-                  VFL(k).inc,
-                  _ => VType(VFL(k))
-                )
-            ),
-            Expl
-          )
-        ),
-        Right((vlam("_", _ => VLift(k, VFinLevel.unit, VUnitType())), Expl)),
-        Right(
-          (
-            vlam(
-              "l",
-              l =>
-                vlam(
-                  "e",
-                  e =>
-                    vlam(
-                      "ind",
-                      ind =>
-                        vlam(
-                          "P",
-                          p =>
-                            vsigma(
-                              "_",
-                              vapp(p, VTZ(l, e), Expl),
-                              VFL(k),
-                              VFL(k),
-                              _ =>
-                                vapp(
-                                  ind,
-                                  vlam("x", x => vapp(p, VTS(l, e, x), Expl)),
-                                  Expl
-                                )
-                            )
-                        )
-                    )
-                )
-            ),
-            Expl
-          )
-        )
-      ),
-      e
-    )
+  private def isNeutral(tm: RTm): Boolean = tm match
+    case RVar(Name("[]")) => true
+    case RLabelLit(_)     => true
+    case _                => false
 
   private def check(tm: RTm, ty: VTy, lv: VLevel)(implicit ctx: Ctx): Tm =
     if !tm.isPos then debug(s"check $tm : ${ctx.pretty(ty)} (${ctx.quote(ty)})")
@@ -828,6 +774,18 @@ object Elaboration:
       case (ROpen(tm, ns, hiding, b), _) =>
         val (nctx, builder, _) = inferOpen(tm, ns, hiding.toSet)
         builder(check(b, ty, lv)(nctx))
+      // automatic syntax wrapping
+      case (tm, VLift(k, l, ty)) if isNeutral(tm) =>
+        val etm = check(tm, ty, VFL(l))
+        App(
+          App(
+            AppLvl(AppLvl(Prim(PLiftTerm), ctx.quote(k)), ctx.quote(l)),
+            ctx.quote(ty),
+            Impl(Unif)
+          ),
+          etm,
+          Expl
+        )
       case (RVar(Name("[]")), VId(l, k, a, b, x, y)) =>
         check(RVar(Name("Refl")), ty, lv)
       case (
@@ -865,6 +823,7 @@ object Elaboration:
           etm,
           Expl
         )
+      // switch to coe
       case _ =>
         val (etm, ty2, lv2) = insert(infer(tm))
         coe(etm, ty2, lv2, ty, lv)
